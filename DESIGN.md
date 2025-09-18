@@ -607,7 +607,100 @@ proptest! {
 }
 ```
 
-## 8. Implementation Roadmap
+## 8. Code Organization & Architecture
+
+### 8.1 Vertical Slicing by Use Case
+
+The codebase is organized around distinct binaries with vertical slicing by use case, sharing common functionality through a library. This approach optimizes for:
+- **Independent development** of each tool
+- **Focused functionality** per binary
+- **Optimized compilation** and binary sizes
+- **Clear feature ownership**
+
+### 8.2 Module Structure
+
+```rust
+src/
+├── lib.rs                     // Public API for shared functionality
+├── shared/                    // Core shared components
+│   ├── mod.rs
+│   ├── crypto/                // Cryptographic primitives
+│   │   ├── mod.rs
+│   │   ├── aes.rs
+│   │   ├── hmac.rs
+│   │   ├── argon2.rs
+│   │   └── secure_memory.rs
+│   ├── header.rs              // File header format
+│   ├── file_detection.rs      // Detect encrypted files
+│   └── errors.rs              // Common error types
+├── encryption/                // Everything needed for lock binary
+│   ├── mod.rs
+│   ├── encrypt_file.rs
+│   ├── encrypt_directory.rs
+│   ├── filename_obfuscation.rs
+│   └── cli.rs
+├── decryption/                // Everything needed for unlock binary
+│   ├── mod.rs
+│   ├── decrypt_file.rs
+│   ├── decrypt_directory.rs
+│   ├── filename_restoration.rs
+│   └── cli.rs
+├── listing/                   // Everything needed for cryptls binary
+│   ├── mod.rs
+│   ├── file_scanner.rs
+│   ├── metadata_extractor.rs
+│   └── cli.rs
+├── viewing/                   // Everything needed for cryptview binary
+│   ├── mod.rs
+│   ├── viewer_integration.rs
+│   ├── streaming_decrypt.rs
+│   └── cli.rs
+├── editing/                   // Everything needed for cryptedit binary
+│   ├── mod.rs
+│   ├── editor_integration.rs
+│   ├── atomic_updates.rs
+│   └── cli.rs
+└── bin/
+    ├── lock.rs                // use crate::encryption
+    ├── unlock.rs              // use crate::decryption
+    ├── cryptls.rs             // use crate::listing
+    ├── cryptview.rs           // use crate::viewing
+    └── cryptedit.rs           // use crate::editing
+```
+
+### 8.3 Dependency Architecture
+
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│   lock      │  │   unlock    │  │  cryptls    │
+│   binary    │  │   binary    │  │   binary    │
+└─────────────┘  └─────────────┘  └─────────────┘
+       │                │                │
+       ▼                ▼                ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ encryption/ │  │ decryption/ │  │  listing/   │
+│   module    │  │   module    │  │   module    │
+└─────────────┘  └─────────────┘  └─────────────┘
+       │                │                │
+       └────────────────┼────────────────┘
+                        ▼
+                ┌─────────────┐
+                │   shared/   │
+                │   module    │
+                └─────────────┘
+```
+
+### 8.4 Benefits of This Architecture
+
+**Feature-Complete Modules**: Each module contains everything needed for its use case including business logic, file I/O, CLI handling, and specific error handling.
+
+**Independent Development**: Work on `lock` without touching `unlock` code, add new features to `cryptview` without affecting other binaries, deploy/update binaries independently.
+
+**Optimized Compilation**: Each binary only compiles what it needs, resulting in faster build times and smaller binary sizes.
+
+**Clear Ownership**: Each feature has a clear "home" with no confusion about where code belongs and easy reasoning about dependencies.
+
+## 9. Implementation Roadmap
 
 ### Phase 1: Single File Operations with Filename Obfuscation (Weeks 1-3)
 **Core Goal**: Complete single file encryption/decryption with optional filename obfuscation and listing
@@ -757,7 +850,7 @@ cryptedit <file>                   # edit with $EDITOR
 - Cross-platform compatibility testing
 - Release preparation and packaging
 
-## 9. Conclusion
+## 10. Conclusion
 
 This comprehensive design provides a robust foundation for a high-security, high-performance file encryption system. The modular architecture supports all required features while maintaining security best practices and performance optimization opportunities. The enhanced header format and trait system provide extensibility for future requirements while maintaining backward compatibility.
 
