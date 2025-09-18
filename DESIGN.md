@@ -51,6 +51,15 @@ This document presents a comprehensive design for a high-security, high-performa
 pub enum AlgorithmId {
     AesGcm256 = 0x0001,
     ChaCha20Poly1305 = 0x0002,  // Future algorithm
+    
+    // Post-quantum cryptography (reserved range 0x1000-0x1FFF)
+    KyberAes256 = 0x1001,       // Future: CRYSTALS-Kyber + AES-256-GCM
+    KyberChaCha20 = 0x1002,     // Future: CRYSTALS-Kyber + ChaCha20-Poly1305
+    DilithiumAes256 = 0x1003,   // Future: CRYSTALS-Dilithium + AES-256-GCM
+    
+    // Streaming algorithms (reserved range 0x2000-0x2FFF)
+    AesGcmStreaming = 0x2001,   // Future: Chunked AES-GCM for large files
+    
     // Reserved for future algorithms
 }
 
@@ -101,6 +110,19 @@ struct FileMetadata {
     created: SystemTime,
     modified: SystemTime,
     accessed: SystemTime,
+    file_hash: [u8; 32],        // SHA-256 of original content for integrity verification
+    compression: Option<CompressionType>, // Optional compression algorithm
+    created_by: String,         // Software version that created the file
+    custom_attributes: HashMap<String, Vec<u8>>, // Extensible metadata storage
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum CompressionType {
+    None = 0x00,
+    Zstd = 0x01,        // Zstandard compression
+    Lz4 = 0x02,         // LZ4 fast compression
+    Brotli = 0x03,      // Brotli compression
 }
 
 // Core crypto functions using AES-GCM
@@ -1204,7 +1226,107 @@ src/
 - Security audit and penetration testing
 - Release notes and migration guides
 
-## 10. Conclusion
+## 10. Future Enhancements
+
+### 10.1 Post-Quantum Cryptography Integration
+**Timeline**: Phase 21+ (Post-Release Enhancement)
+
+The design includes reserved algorithm identifiers for post-quantum cryptography integration:
+
+```rust
+// Post-quantum algorithms for quantum-resistant security
+KyberAes256 = 0x1001,       // CRYSTALS-Kyber key encapsulation + AES-256-GCM
+KyberChaCha20 = 0x1002,     // CRYSTALS-Kyber + ChaCha20-Poly1305
+DilithiumAes256 = 0x1003,   // CRYSTALS-Dilithium digital signatures + AES-256-GCM
+```
+
+**Implementation Approach:**
+- Hybrid mode: Classical + post-quantum algorithms for transition period
+- Key encapsulation for session key protection
+- Digital signatures for file authenticity verification
+- Backward compatibility with classical algorithms
+
+### 10.2 Key Escrow and Recovery System
+**Timeline**: Phase 22+ (Enterprise Feature)
+
+Advanced key management for organizational use:
+
+```rust
+struct KeyEscrow {
+    encrypted_master_key: Vec<u8>,
+    recovery_shares: Vec<Vec<u8>>,      // Shamir's Secret Sharing (k-of-n)
+    escrow_policy: EscrowPolicy,
+    authorized_recovery_keys: Vec<PublicKey>,
+}
+
+struct EscrowPolicy {
+    min_shares_required: u8,            // k in k-of-n threshold
+    total_shares: u8,                   // n in k-of-n threshold
+    recovery_delay_hours: u32,          // Mandatory delay for recovery
+    audit_logging: bool,                // Log all recovery attempts
+}
+```
+
+**Features:**
+- Shamir's Secret Sharing for distributed key recovery
+- Multi-party authorization for key recovery
+- Audit trails for compliance requirements
+- Time-delayed recovery for security
+
+### 10.3 Streaming Mode for Very Large Files
+**Timeline**: Phase 23+ (Performance Enhancement)
+
+Optimized handling for files >1GB with chunked authentication:
+
+```rust
+struct StreamingHeader {
+    chunk_size: u32,                    // Optimized chunk size (1-16MB)
+    total_chunks: u64,                  // Total number of chunks
+    merkle_root: [u8; 32],             // Merkle tree root for integrity
+    chunk_algorithm: AlgorithmId,       // Per-chunk encryption algorithm
+}
+
+// Algorithm identifier for streaming mode
+AesGcmStreaming = 0x2001,              // Chunked AES-GCM with Merkle tree
+```
+
+**Benefits:**
+- Constant memory usage regardless of file size
+- Parallel encryption/decryption of chunks
+- Partial file verification and recovery
+- Progress reporting for large operations
+
+### 10.4 Advanced Compression Integration
+**Timeline**: Phase 24+ (Efficiency Enhancement)
+
+The enhanced metadata structure already supports compression types:
+
+```rust
+pub enum CompressionType {
+    None = 0x00,
+    Zstd = 0x01,        // Zstandard - excellent compression ratio
+    Lz4 = 0x02,         // LZ4 - fast compression/decompression
+    Brotli = 0x03,      // Brotli - web-optimized compression
+}
+```
+
+**Implementation Strategy:**
+- Automatic compression selection based on file type
+- User-configurable compression levels
+- Compression before encryption for optimal security
+- Transparent decompression during decryption
+
+### 10.5 Cloud Storage Integration
+**Timeline**: Phase 25+ (Platform Enhancement)
+
+Native integration with cloud storage providers:
+
+- **S3-compatible storage**: Direct encryption to cloud buckets
+- **Google Drive/OneDrive**: Encrypted file sync
+- **Distributed storage**: IPFS integration with encryption
+- **Backup automation**: Scheduled encrypted backups
+
+## 11. Conclusion
 
 This comprehensive design provides a robust foundation for a high-security, high-performance file encryption system with state-of-the-art cryptographic protections. The vertical slicing architecture with separate binaries supports focused development while maintaining security best practices and performance optimization opportunities. The complete header format with cryptographic agility and shared primitives provide a solid foundation for all use cases.
 
@@ -1232,6 +1354,8 @@ Key strengths of this design:
 6. **Enhanced memory security** → Master key architecture eliminates risky caching
 7. **Secured temporary files** → mlock(), secure deletion, restrictive permissions
 8. **Optimized performance** → Adaptive buffering, hardware acceleration, storage detection
+9. **Enhanced metadata integrity** → SHA-256 file hashes and extensible attributes
+10. **Post-quantum readiness** → Reserved algorithm identifiers for quantum-resistant crypto
 
 The granular implementation roadmap provides a clear path to delivery with 20 focused phases, ensuring thorough testing and validation at each step while avoiding overwhelming complexity for development agents.
 
