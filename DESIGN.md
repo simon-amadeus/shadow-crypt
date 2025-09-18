@@ -702,153 +702,145 @@ src/
 
 ## 9. Implementation Roadmap
 
-### Phase 1: Single File Operations with Filename Obfuscation (Weeks 1-3)
-**Core Goal**: Complete single file encryption/decryption with optional filename obfuscation and listing
+### Phase 1: Set Up Module Structure
+**Goal**: Organize codebase according to vertical slicing architecture
+- Create `shared/`, `encryption/`, `decryption/`, `listing/` module directories
+- Set up basic `mod.rs` files with proper module exports
+- Update `lib.rs` to expose new module structure
+- Move existing code into appropriate modules
 
-**Core Infrastructure:**
-- Implement full file header format (all fields from design specification)
-- Core traits: `KeyDeriver`, `Encryptor`, `FileSystem`
-- AES-256-CBC + HMAC-SHA256 implementation with proper key derivation (Argon2id)
-- Comprehensive error handling with `EncryptionError` enum
-- Memory protection with `SecretVec` and automatic zeroization
+### Phase 2: Complete Header Implementation  
+**Goal**: Finish the file header format with full serialization
+- Complete `Header` struct with all fields from design specification
+- Implement serialization to bytes (write header to file)
+- Implement deserialization from bytes (read header from file)
+- Add header validation and magic number checking
 
-**Single File Features:**
-- Encrypt single file with full header (including directory path, metadata, filename)
-- Optional filename obfuscation using HMAC-based collision-resistant approach
-- Decrypt single file with original filename restoration
-- Preserve and restore file metadata (permissions, timestamps)
-- Atomic file operations to prevent corruption
+### Phase 3: Implement Core Cryptographic Operations
+**Goal**: Build secure crypto primitives in `shared/crypto/`
+- Implement AES-256-CBC encryption/decryption
+- Implement HMAC-SHA256 for authentication
+- Implement Argon2id key derivation
+- Add `SecretVec` for automatic memory zeroization
 
-**Filename Listing (cryptls):**
-- Implement `FileLister` trait for reading encrypted filenames without full decryption
-- Parse file headers to extract obfuscated filename information
-- Display original filenames alongside encrypted filenames
-- Show file sizes, modification dates, and encryption status
+### Phase 4: Build Basic File Encryption
+**Goal**: Create core encryption functionality in `encryption/` module
+- Implement single file encryption with full header
+- Add password-based key derivation
+- Generate secure random salts and IVs per file
+- Store file metadata (permissions, timestamps) in header
 
-**CLI Commands:**
-```bash
-lock <path> [--obfuscate]          # encrypt file or directory, optional name obfuscation
-unlock <path>                      # decrypt file, or directory (decrypts all encrypted files found)
-cryptls [directory]                # list encrypted files with original names
-```
+### Phase 5: Build Basic File Decryption
+**Goal**: Create core decryption functionality in `decryption/` module  
+- Implement single file decryption with header parsing
+- Verify HMAC authentication before decryption
+- Restore original file metadata after decryption
+- Handle decryption errors gracefully
 
-**Testing & Validation:**
-- Unit tests for all cryptographic operations
-- Round-trip testing (encrypt -> decrypt -> verify)
-- Filename obfuscation collision testing
-- Edge cases: empty files, large files, special characters in filenames
-- Memory safety and zeroization verification
+### Phase 6: Add Filename Obfuscation
+**Goal**: Implement secure filename obfuscation in `encryption/` module
+- Create HMAC-based filename obfuscation algorithm
+- Add collision detection and resolution
+- Store encrypted original filename in header
+- Make obfuscation optional via CLI flag
 
-### Phase 2: Multi-File Operations (Weeks 4-5)
-**Core Goal**: Extend to multiple files and directories with batch processing
+### Phase 7: Add Filename Restoration  
+**Goal**: Implement filename restoration in `decryption/` module
+- Parse encrypted filename from header
+- Decrypt and restore original filename
+- Handle both obfuscated and non-obfuscated files
+- Validate filename integrity with HMAC
 
-**Multi-File Encryption:**
-- Directory traversal with recursive file discovery
-- Batch encryption with shared session keys for performance
-- Parallel processing using `rayon` for independent file operations
-- Transaction logging for rollback capability on failures
-- Progress reporting for large batch operations
+### Phase 8: Build File Listing Capability
+**Goal**: Create encrypted file listing in `listing/` module
+- Implement header-only reading (no full decryption)
+- Parse encrypted filenames and display original names
+- Show file metadata (sizes, dates) from headers
+- Handle directories with mixed encrypted/regular files
 
-**Enhanced Directory Support:**
-- Flatten directory structure (all encrypted files in single output directory)
-- Store full original directory paths in each file header
-- Handle filename collisions in target directory
-- Preserve directory structure information for restoration
+### Phase 9: Create `lock` Binary
+**Goal**: Build CLI binary for file encryption
+- Create `bin/lock.rs` with argument parsing
+- Integrate with `encryption/` module
+- Support single files with `--obfuscate` flag  
+- Add basic error handling and user feedback
 
-**Enhanced CLI:**
-```bash
-lock <path>... [--obfuscate]       # multiple files/directories  
-unlock <path>...                   # multiple files/directories (auto-detects encrypted files)
-cryptls [directory]                # list with original names (same as Phase 1)
-```
+### Phase 10: Create `unlock` Binary
+**Goal**: Build CLI binary for file decryption
+- Create `bin/unlock.rs` with argument parsing
+- Integrate with `decryption/` module
+- Support single files with automatic format detection
+- Add basic error handling and user feedback
 
-**Performance Optimizations:**
-- Session key caching to avoid repeated Argon2 derivation
-- Streaming I/O with optimal buffer sizes for large files
-- Memory-efficient processing for large directories
-- Configurable parallelism limits
+### Phase 11: Create `cryptls` Binary
+**Goal**: Build CLI binary for file listing
+- Create `bin/cryptls.rs` with argument parsing
+- Integrate with `listing/` module
+- List encrypted files in directory with original names
+- Display file information in user-friendly format
 
-**Enhanced Error Handling:**
-- Batch operation error aggregation
-- Partial success handling (some files encrypted, others failed)
-- Recovery mechanisms for interrupted batch operations
-- Detailed error reporting with file-specific context
+### Phase 12: Add Directory Support to `lock`
+**Goal**: Extend encryption to handle directories
+- Add directory traversal and recursive file discovery
+- Flatten directory structure to single output directory
+- Store original directory paths in each file header
+- Handle multiple files with batch processing
 
-### Phase 3: Secure File Viewing (Weeks 6-7)
-**Core Goal**: View encrypted files without creating persistent decrypted copies
+### Phase 13: Add Directory Support to `unlock`
+**Goal**: Extend decryption to handle directories
+- Auto-detect encrypted files in directory
+- Restore original directory structure from headers
+- Handle batch decryption with error aggregation
+- Skip non-encrypted files gracefully
 
-**Secure Viewing Infrastructure:**
-- Implement `FileViewer` and `PartialDecryptor` traits
-- Temporary file management with automatic cleanup
-- Range-based decryption for large files (preview functionality)
-- Integration with external viewers (less, cat, image viewers, etc.)
+### Phase 14: Add Multi-File Support
+**Goal**: Support multiple file arguments in CLI binaries
+- Update `lock` to accept multiple file/directory arguments
+- Update `unlock` to handle multiple paths
+- Add progress reporting for batch operations
+- Implement session key caching for performance
 
-**Viewing Features:**
-- Full file viewing with external programs
-- File preview (first N bytes/lines) without full decryption
-- Streaming decryption to stdout for pipeline operations
-- Support for binary and text file detection
-- Configurable viewer programs per file type
+### Phase 15: Add Secure Viewing (`cryptview`)
+**Goal**: View encrypted files without persistent decryption
+- Create `viewing/` module with streaming decryption
+- Create `bin/cryptview.rs` for file viewing
+- Integration with `$PAGER` and external viewers
+- Secure temporary file handling with cleanup
 
-**Security Considerations:**
-- Secure temporary file creation with restricted permissions
-- Automatic cleanup on process termination or signals
-- Memory-mapped file viewing for large files
-- No persistent decrypted data on disk
-- Viewer process isolation and sandboxing
+### Phase 16: Add Secure Editing (`cryptedit`)
+**Goal**: Edit encrypted text files in-place
+- Create `editing/` module with atomic file updates
+- Create `bin/cryptedit.rs` for text file editing
+- Integration with `$EDITOR` and external editors
+- Backup and rollback functionality
 
-**CLI Commands:**
-```bash
-unlock <file> | cat                # decrypt to stdout (piping support)
-cryptview <file>                   # view with $PAGER or default viewer
-```
+### Phase 17: Performance Optimization
+**Goal**: Optimize for production use
+- Add parallel processing with `rayon`
+- Implement streaming I/O for large files
+- Add session key caching
+- Memory usage optimization and profiling
 
-**Advanced Features:**
-- File type detection and automatic viewer selection
-- Streaming support for network operations
-- Integration with system file associations
-- Search within encrypted files without full decryption
+### Phase 18: Comprehensive Testing
+**Goal**: Ensure reliability and security
+- Unit tests for all crypto operations
+- Integration tests for all CLI binaries
+- Property-based testing for edge cases
+- Security testing and memory safety validation
 
-### Phase 4: Secure Text File Editing (Weeks 8-9)
-**Core Goal**: Edit encrypted text files directly without manual decrypt/encrypt cycles
-
-**Secure Editing Infrastructure:**
-- Implement `FileEditor` trait with atomic operations
-- Integration with external text editors (vi, nano, code, emacs, etc.)
-- Text file detection and validation
-- Atomic file updates to prevent corruption during editing
-
-**Editing Features:**
-- Launch external editor with temporarily decrypted content
-- Automatic re-encryption after editor closes
-- Support for various text editors with configuration
-- Backup creation before editing (optional)
-- Change detection to avoid unnecessary re-encryption
-
-**Security & Safety:**
-- Secure temporary file handling during editing
-- Editor process monitoring and cleanup
-- Protection against editor crashes or unexpected termination
-- Verification of text content (no binary corruption)
-- Optional diff display before re-encryption
-
-**CLI Commands:**
-```bash
-cryptedit <file>                   # edit with $EDITOR
-```
-
-**Advanced Editing Features:**
-- Multiple file editing sessions
-- Editor preference detection from environment variables
-- Integration with version control systems
-- Conflict resolution for concurrent editing attempts
-
-**Final Phase Enhancements:**
-- Comprehensive documentation and examples
-- Performance profiling and optimization
-- Security audit and penetration testing
+### Phase 19: Documentation and Polish
+**Goal**: Prepare for release
+- Add comprehensive CLI help and man pages
+- Create usage examples and tutorials
+- Code review and refactoring
 - Cross-platform compatibility testing
-- Release preparation and packaging
+
+### Phase 20: Release Preparation
+**Goal**: Package and distribute
+- Set up CI/CD pipeline
+- Create release packages for multiple platforms
+- Security audit and penetration testing
+- Release notes and migration guides
 
 ## 10. Conclusion
 
