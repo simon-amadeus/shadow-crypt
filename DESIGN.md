@@ -11,7 +11,7 @@ This document presents a comprehensive design for a high-security, high-performa
 - **Filename Obfuscation**: Reversible, no manifest required
 - **Security**: Extreme security with per-file salts, zeroization, constant-time operations
 - **Performance**: High performance with streaming I/O, parallelization, hardware acceleration
-- **Architecture**: Dependency Inversion Principle (DIP) for modularity and testability
+- **Architecture**: Vertical slicing by use case with shared cryptographic primitives
 
 ### 1.2 File Header Format
 ```
@@ -38,85 +38,41 @@ This document presents a comprehensive design for a high-security, high-performa
 - Each new field has its own HMAC for integrity
 - Backward compatibility through version field
 
-## 2. Enhanced Component Architecture
+## 2. Core Data Structures & Shared Components
 
-### 2.1 Key Management Trait
+### 2.1 File Header Format Implementation
 ```rust
-trait KeyDeriver {
-    fn derive_key(&self, password: &str, salt: &[u8]) -> Result<KeyMaterial, Error>;
-    fn derive_session_key(&self, password: &str) -> Result<SessionKey, Error>; // NEW
+struct Header {
+    magic: [u8; 4],              // "ENC2"
+    version: u16,                // Version 2
+    salt: [u8; 16],              // Unique per file
+    iv: [u8; 16],                // Unique per file
+    directory_path_length: u16,  // Length of encrypted directory path
+    encrypted_directory_path: Vec<u8>,  // Original directory structure
+    directory_path_hmac: [u8; 32],      // HMAC of encrypted path
+    filename_length: u16,        // Length of encrypted filename
+    encrypted_filename: Vec<u8>, // Original filename (encrypted)
+    filename_hmac: [u8; 32],     // HMAC of encrypted filename
+    metadata_length: u16,        // Length of encrypted metadata
+    encrypted_metadata: Vec<u8>, // File permissions, timestamps
+    metadata_hmac: [u8; 32],     // HMAC of encrypted metadata
+    // Followed by encrypted content and content HMAC
 }
 
+impl Header {
+    fn serialize(&self) -> Vec<u8> { /* ... */ }
+    fn deserialize(data: &[u8]) -> Result<(Header, usize), Error> { /* ... */ }
+    fn validate_magic(&self) -> bool { self.magic == b"ENC2" }
+}
+```
+
+### 2.2 Shared Cryptographic Primitives
+```rust
+// In shared/crypto/
 struct KeyMaterial {
     encryption_key: SecretVec<u8>,    // 32 bytes, auto-zeroized
     hmac_key: SecretVec<u8>,         // 32 bytes, auto-zeroized
     obfuscation_key: SecretVec<u8>,  // 32 bytes for filename obfuscation
-}
-
-struct SessionKey {
-    key_material: KeyMaterial,
-    salt: [u8; 16],
-    cache_until: Instant,            // For session-based key caching
-}
-```
-
-### 2.2 Enhanced Encryption Trait
-```rust
-trait Encryptor {
-    // Core encryption/decryption
-    fn encrypt(&self, keys: &KeyMaterial, plaintext: &mut dyn Read, 
-               output: &mut dyn Write, iv: &[u8]) -> Result<Vec<u8>, Error>;
-    
-    fn decrypt(&self, keys: &KeyMaterial, ciphertext: &mut dyn Read, 
-               output: &mut dyn Write, iv: &[u8], hmac: &[u8]) -> Result<(), Error>;
-    
-    // Partial decryption for advanced features
-    fn decrypt_range(&self, keys: &KeyMaterial, ciphertext: &mut dyn Read,
-                     output: &mut dyn Write, start_byte: u64, length: u64) -> Result<(), Error>;
-    
-    // Filename handling
-    fn encrypt_name(&self, keys: &KeyMaterial, name: &str, path: &Path) 
-                   -> Result<(Vec<u8>, Vec<u8>), Error>;
-    
-    fn obfuscate_name(&self, key: &[u8], name: &str, path: &Path) -> Result<String, Error>;
-    
-    fn deobfuscate_name(&self, keys: &KeyMaterial, obfuscated: &str, path: &Path,
-                       ciphertext: &[u8], hmac: &[u8]) -> Result<String, Error>;
-    
-    // Directory and metadata handling
-    fn encrypt_directory_path(&self, keys: &KeyMaterial, path: &Path) 
-                             -> Result<(Vec<u8>, Vec<u8>), Error>;
-    
-    fn encrypt_metadata(&self, keys: &KeyMaterial, metadata: &FileMetadata)
-                       -> Result<(Vec<u8>, Vec<u8>), Error>;
-}
-```
-
-### 2.3 Enhanced File System Trait
-```rust
-trait FileSystem {
-    // Basic operations
-    fn read_file(&self, path: &Path) -> Result<Box<dyn Read>, Error>;
-    fn write_file(&self, path: &Path, content: &mut dyn Read) -> Result<(), Error>;
-    fn traverse_directory(&self, root: &Path, recursive: bool) -> Result<Vec<PathBuf>, Error>;
-    
-    // Enhanced operations
-    fn read_file_range(&self, path: &Path, start: u64, length: u64) 
-                      -> Result<Box<dyn Read>, Error>;
-    
-    fn write_encrypted_file(&self, path: &Path, header: Header, content: &mut dyn Read)
-                           -> Result<(), Error>;
-    
-    fn read_encrypted_file(&self, path: &Path) -> Result<(Header, Box<dyn Read>), Error>;
-    
-    fn read_header_only(&self, path: &Path) -> Result<Header, Error>; // For listing
-    
-    fn get_file_metadata(&self, path: &Path) -> Result<FileMetadata, Error>;
-    fn set_file_metadata(&self, path: &Path, metadata: &FileMetadata) -> Result<(), Error>;
-    
-    // Atomic operations
-    fn atomic_write(&self, path: &Path, content: &mut dyn Read) -> Result<(), Error>;
-    fn atomic_rename(&self, old: &Path, new: &Path) -> Result<(), Error>;
 }
 
 struct FileMetadata {
@@ -125,213 +81,137 @@ struct FileMetadata {
     modified: SystemTime,
     accessed: SystemTime,
 }
+
+// Core crypto functions used across modules
+fn derive_key_material(password: &str, salt: &[u8]) -> Result<KeyMaterial, Error>;
+fn encrypt_aes_cbc(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, Error>;
+fn decrypt_aes_cbc(key: &[u8], iv: &[u8], data: &[u8]) -> Result<Vec<u8>, Error>;
+fn compute_hmac(key: &[u8], data: &[u8]) -> [u8; 32];
+fn verify_hmac(key: &[u8], data: &[u8], expected: &[u8]) -> bool;
 ```
 
-### 2.4 New Traits for Advanced Features
-
+### 2.3 Error Handling
 ```rust
-trait PartialDecryptor {
-    fn decrypt_to_stream(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                        output: &mut dyn Write) -> Result<(), Error>;
+#[derive(Debug, thiserror::Error)]
+pub enum CryptoError {
+    #[error("Cryptographic operation failed: {0}")]
+    CryptographicError(String),
     
-    fn decrypt_range_to_stream(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                              start: u64, length: u64, output: &mut dyn Write) 
-                              -> Result<(), Error>;
-}
-
-trait FileEditor {
-    fn edit_text_file(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                     editor_command: &str) -> Result<(), Error>;
+    #[error("File system error: {0}")]
+    FileSystemError(#[from] std::io::Error),
     
-    fn get_editable_content(&self, encrypted_path: &Path, keys: &KeyMaterial)
-                           -> Result<String, Error>;
+    #[error("Authentication failed")]
+    AuthenticationFailed,
     
-    fn save_edited_content(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                          content: &str) -> Result<(), Error>;
-}
-
-trait FileViewer {
-    fn view_file(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                viewer_command: &str) -> Result<(), Error>;
+    #[error("Header parsing failed: {0}")]
+    HeaderParsingError(String),
     
-    fn get_file_preview(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                       preview_size: usize) -> Result<Vec<u8>, Error>;
-}
-
-trait FileLister {
-    fn list_encrypted_names(&self, directory: &Path, keys: &KeyMaterial)
-                           -> Result<Vec<FileInfo>, Error>;
+    #[error("Key derivation failed: {0}")]
+    KeyDerivationError(String),
     
-    fn get_original_name(&self, encrypted_path: &Path, keys: &KeyMaterial)
-                        -> Result<String, Error>;
-}
-
-struct FileInfo {
-    original_name: String,
-    obfuscated_name: String,
-    original_path: PathBuf,
-    size: u64,
-    encrypted_size: u64,
-    modified: SystemTime,
+    #[error("Invalid file format")]
+    InvalidFileFormat,
+    
+    #[error("File not found: {0}")]
+    FileNotFound(String),
 }
 ```
 
-## 3. Feature Implementation Specifications
+## 3. Use Case Implementations
 
-### 3.1 Core Encryption Features
-
-#### Single File Encryption
-- Generate unique salt and IV per file
-- Derive keys using Argon2id
-- Encrypt filename and content separately
-- Store original metadata for restoration
-- Use atomic file operations to prevent corruption
-
-#### Multiple File Encryption
-- Process files in parallel using `rayon`
-- Share session keys for performance
-- Batch small files to reduce overhead
-- Maintain transaction log for rollback capability
-
-#### Directory Encryption with Structure Collapse
-- Traverse directory recursively
-- Store full original path in each file header
-- Flatten all files to single directory
-- Generate collision-resistant obfuscated names
-- Preserve directory metadata separately
-
-### 3.2 Advanced Features
-
-#### Filename Listing Without Full Decryption
+### 3.1 File Encryption (encryption/ module)
 ```rust
-impl FileLister for EncryptionService {
-    fn list_encrypted_names(&self, directory: &Path, keys: &KeyMaterial)
-                           -> Result<Vec<FileInfo>, Error> {
-        let mut file_infos = Vec::new();
-        
-        for entry in std::fs::read_dir(directory)? {
-            let path = entry?.path();
-            if let Ok(header) = self.file_system.read_header_only(&path) {
-                let original_name = self.encryptor.deobfuscate_name(
-                    keys, &path.file_name().unwrap().to_string_lossy(),
-                    &path, &header.encrypted_filename, &header.filename_hmac
-                )?;
-                
-                file_infos.push(FileInfo {
-                    original_name,
-                    obfuscated_name: path.file_name().unwrap().to_string_lossy().to_string(),
-                    original_path: self.decrypt_directory_path(&header, keys)?,
-                    size: self.calculate_original_size(&header)?,
-                    encrypted_size: std::fs::metadata(&path)?.len(),
-                    modified: std::fs::metadata(&path)?.modified()?,
-                });
-            }
-        }
-        
-        Ok(file_infos)
-    }
+// encryption/encrypt_file.rs
+pub fn encrypt_single_file(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool
+) -> Result<(), CryptoError> {
+    // 1. Generate salt and IV
+    // 2. Derive key material from password
+    // 3. Read file content and metadata
+    // 4. Encrypt content with AES-CBC
+    // 5. Create and serialize header
+    // 6. Write encrypted file atomically
+}
+
+// encryption/filename_obfuscation.rs
+pub fn obfuscate_filename(key: &[u8], original_name: &str) -> String {
+    // HMAC-based collision-resistant obfuscation
 }
 ```
 
-#### Text File Editing Without Full Decryption
+### 3.2 File Decryption (decryption/ module)
 ```rust
-impl FileEditor for EncryptionService {
-    fn edit_text_file(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                     editor_command: &str) -> Result<(), Error> {
-        // Create temporary file
-        let temp_file = tempfile::NamedTempFile::new()?;
-        
-        // Decrypt to temporary file
-        let mut temp_writer = BufWriter::new(temp_file.as_file());
-        self.partial_decryptor.decrypt_to_stream(encrypted_path, keys, &mut temp_writer)?;
-        temp_writer.flush()?;
-        
-        // Launch editor
-        let output = Command::new(editor_command)
-            .arg(temp_file.path())
-            .status()?;
-            
-        if !output.success() {
-            return Err(Error::EditorFailed);
-        }
-        
-        // Re-encrypt the modified content
-        let mut temp_reader = BufReader::new(File::open(temp_file.path())?);
-        self.encrypt_file_in_place(encrypted_path, &mut temp_reader, keys)?;
-        
-        // Temporary file is automatically cleaned up
-        Ok(())
-    }
+// decryption/decrypt_file.rs
+pub fn decrypt_single_file(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str
+) -> Result<(), CryptoError> {
+    // 1. Read and parse header
+    // 2. Derive key material from password and header salt
+    // 3. Verify HMAC authentication
+    // 4. Decrypt content with AES-CBC
+    // 5. Restore original filename and metadata
+    // 6. Write decrypted file atomically
+}
+
+// decryption/filename_restoration.rs
+pub fn restore_original_filename(
+    header: &Header,
+    keys: &KeyMaterial
+) -> Result<String, CryptoError> {
+    // Decrypt and verify filename from header
 }
 ```
 
-#### File Viewing Without Full Decryption
+### 3.3 File Listing (listing/ module)
 ```rust
-impl FileViewer for EncryptionService {
-    fn view_file(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                viewer_command: &str) -> Result<(), Error> {
-        // Create named pipe or temporary file
-        let temp_file = tempfile::NamedTempFile::new()?;
-        
-        // Decrypt content to temporary file
-        let mut temp_writer = BufWriter::new(temp_file.as_file());
-        self.partial_decryptor.decrypt_to_stream(encrypted_path, keys, &mut temp_writer)?;
-        temp_writer.flush()?;
-        
-        // Launch viewer
-        Command::new(viewer_command)
-            .arg(temp_file.path())
-            .status()?;
-        
-        Ok(())
-    }
-    
-    fn get_file_preview(&self, encrypted_path: &Path, keys: &KeyMaterial,
-                       preview_size: usize) -> Result<Vec<u8>, Error> {
-        let mut preview_buffer = Vec::with_capacity(preview_size);
-        let mut cursor = Cursor::new(&mut preview_buffer);
-        
-        self.partial_decryptor.decrypt_range_to_stream(
-            encrypted_path, keys, 0, preview_size as u64, &mut cursor
-        )?;
-        
-        Ok(preview_buffer)
-    }
+// listing/file_scanner.rs
+pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<FileInfo>, CryptoError> {
+    // 1. Scan directory for files with "ENC2" magic
+    // 2. Parse headers (no full decryption)
+    // 3. Extract original filenames and metadata
+    // 4. Return structured file information
+}
+
+pub struct FileInfo {
+    pub original_name: String,
+    pub encrypted_path: PathBuf,
+    pub size: u64,
+    pub modified: SystemTime,
 }
 ```
 
-### 3.3 Directory Structure Restoration
+### 3.4 Secure Viewing (viewing/ module)
 ```rust
-impl EncryptionService {
-    fn decrypt_directory(&self, encrypted_dir: &Path, output_dir: &Path, 
-                        keys: &KeyMaterial, restore_structure: bool) -> Result<(), Error> {
-        let file_infos = self.list_encrypted_names(encrypted_dir, keys)?;
-        
-        for file_info in file_infos {
-            let encrypted_path = encrypted_dir.join(&file_info.obfuscated_name);
-            
-            let output_path = if restore_structure {
-                output_dir.join(&file_info.original_path)
-            } else {
-                output_dir.join(&file_info.original_name)
-            };
-            
-            // Create parent directories if needed
-            if let Some(parent) = output_path.parent() {
-                std::fs::create_dir_all(parent)?;
-            }
-            
-            // Decrypt file
-            self.decrypt_file(&encrypted_path, &output_path, keys)?;
-            
-            // Restore metadata
-            if let Ok(metadata) = self.decrypt_file_metadata(&encrypted_path, keys) {
-                self.file_system.set_file_metadata(&output_path, &metadata)?;
-            }
-        }
-        
-        Ok(())
-    }
+// viewing/streaming_decrypt.rs
+pub fn stream_decrypt_to_viewer(
+    encrypted_path: &Path,
+    password: &str,
+    viewer_command: Option<&str>
+) -> Result<(), CryptoError> {
+    // 1. Create secure temporary file
+    // 2. Stream decrypt to temporary file
+    // 3. Launch viewer with temporary file
+    // 4. Clean up on exit
+}
+```
+
+### 3.5 Secure Editing (editing/ module)
+```rust
+// editing/atomic_updates.rs
+pub fn edit_encrypted_file(
+    encrypted_path: &Path,
+    password: &str,
+    editor_command: Option<&str>
+) -> Result<(), CryptoError> {
+    // 1. Decrypt to secure temporary file
+    // 2. Launch editor with temporary file
+    // 3. Re-encrypt modified content
+    // 4. Atomically replace original file
 }
 ```
 
@@ -346,29 +226,30 @@ impl EncryptionService {
 
 ### 4.2 Filename Obfuscation Security
 ```rust
-impl EnhancedObfuscation {
-    fn obfuscate_name_with_collision_check(&self, key: &[u8], name: &str, 
-                                          path: &Path, existing_names: &HashSet<String>) 
-                                          -> Result<String, Error> {
-        let mut counter = 0u32;
-        loop {
-            let input = if counter == 0 {
-                name.to_string()
-            } else {
-                format!("{}_{}", name, counter)
-            };
-            
-            let hmac = self.compute_hmac(key, input.as_bytes());
-            let obfuscated = base64::encode_config(&hmac[..20], base64::URL_SAFE_NO_PAD);
-            
-            if !existing_names.contains(&obfuscated) {
-                return Ok(obfuscated);
-            }
-            
-            counter += 1;
-            if counter > 1000 {
-                return Err(Error::TooManyCollisions);
-            }
+// In encryption/filename_obfuscation.rs
+pub fn obfuscate_name_with_collision_check(
+    key: &[u8], 
+    name: &str, 
+    existing_names: &HashSet<String>
+) -> Result<String, CryptoError> {
+    let mut counter = 0u32;
+    loop {
+        let input = if counter == 0 {
+            name.to_string()
+        } else {
+            format!("{}_{}", name, counter)
+        };
+        
+        let hmac = compute_hmac(key, input.as_bytes());
+        let obfuscated = base64::encode_config(&hmac[..20], base64::URL_SAFE_NO_PAD);
+        
+        if !existing_names.contains(&obfuscated) {
+            return Ok(obfuscated);
+        }
+        
+        counter += 1;
+        if counter > 1000 {
+            return Err(CryptoError::TooManyCollisions);
         }
     }
 }
@@ -384,86 +265,105 @@ impl EnhancedObfuscation {
 
 ### 5.1 Streaming and Buffering
 ```rust
+// In shared/crypto/streaming.rs
 const OPTIMAL_BUFFER_SIZE: usize = 64 * 1024; // 64KB buffers
 const SMALL_FILE_THRESHOLD: usize = 1024 * 1024; // 1MB threshold for batching
 
-impl PerformanceOptimizations {
-    fn encrypt_with_optimal_buffering(&self, input: &mut dyn Read, 
-                                     output: &mut dyn Write) -> Result<(), Error> {
-        let mut buffer = vec![0u8; OPTIMAL_BUFFER_SIZE];
-        let mut cipher = self.create_cipher();
+pub fn encrypt_with_optimal_buffering(
+    input: &mut dyn Read, 
+    output: &mut dyn Write,
+    key: &[u8],
+    iv: &[u8]
+) -> Result<(), CryptoError> {
+    let mut buffer = vec![0u8; OPTIMAL_BUFFER_SIZE];
+    let mut cipher = create_aes_cipher(key, iv);
+    
+    loop {
+        let bytes_read = input.read(&mut buffer)?;
+        if bytes_read == 0 { break; }
         
-        loop {
-            let bytes_read = input.read(&mut buffer)?;
-            if bytes_read == 0 { break; }
-            
-            let encrypted = cipher.update(&buffer[..bytes_read])?;
-            output.write_all(&encrypted)?;
-        }
-        
-        let final_block = cipher.finalize()?;
-        output.write_all(&final_block)?;
-        Ok(())
+        let encrypted = cipher.update(&buffer[..bytes_read])?;
+        output.write_all(&encrypted)?;
     }
+    
+    let final_block = cipher.finalize()?;
+    output.write_all(&final_block)?;
+    Ok(())
 }
 ```
 
 ### 5.2 Parallel Processing
 ```rust
+// In encryption/encrypt_directory.rs
 use rayon::prelude::*;
 
-impl ParallelProcessing {
-    fn encrypt_directory_parallel(&self, files: Vec<PathBuf>, keys: Arc<KeyMaterial>)
-                                 -> Result<(), Error> {
-        let errors: Vec<_> = files
-            .par_iter()
-            .map(|file_path| {
-                self.encrypt_single_file(file_path, &keys)
-            })
-            .filter_map(|result| result.err())
-            .collect();
-            
-        if !errors.is_empty() {
-            return Err(Error::BatchProcessingFailed(errors));
-        }
+pub fn encrypt_directory_parallel(
+    files: Vec<PathBuf>, 
+    password: &str,
+    output_dir: &Path,
+    obfuscate: bool
+) -> Result<(), CryptoError> {
+    let errors: Vec<_> = files
+        .par_iter()
+        .map(|file_path| {
+            encrypt_single_file(file_path, output_dir, password, obfuscate)
+        })
+        .filter_map(|result| result.err())
+        .collect();
         
-        Ok(())
+    if !errors.is_empty() {
+        return Err(CryptoError::BatchProcessingFailed(errors));
     }
+    
+    Ok(())
 }
 ```
 
 ### 5.3 Session Key Caching
 ```rust
-struct SessionKeyCache {
-    cache: Arc<RwLock<HashMap<String, SessionKey>>>,
+// In shared/crypto/key_cache.rs
+use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
+use std::time::{Duration, Instant};
+
+pub struct SessionKeyCache {
+    cache: Arc<RwLock<HashMap<String, CachedKey>>>,
     max_age: Duration,
 }
 
+struct CachedKey {
+    key_material: KeyMaterial,
+    cache_until: Instant,
+}
+
 impl SessionKeyCache {
-    fn get_or_derive(&self, password: &str, salt: &[u8], 
-                    deriver: &dyn KeyDeriver) -> Result<KeyMaterial, Error> {
+    pub fn get_or_derive(
+        &self, 
+        password: &str, 
+        salt: &[u8]
+    ) -> Result<KeyMaterial, CryptoError> {
         let cache_key = self.compute_cache_key(password, salt);
         
         // Try to get from cache first
         {
             let cache = self.cache.read().unwrap();
-            if let Some(session_key) = cache.get(&cache_key) {
-                if session_key.cache_until > Instant::now() {
-                    return Ok(session_key.key_material.clone());
+            if let Some(cached_key) = cache.get(&cache_key) {
+                if cached_key.cache_until > Instant::now() {
+                    return Ok(cached_key.key_material.clone());
                 }
             }
         }
         
         // Derive new key and cache it
-        let key_material = deriver.derive_key(password, salt)?;
-        let session_key = SessionKey {
+        let key_material = derive_key_material(password, salt)?;
+        let cached_key = CachedKey {
             key_material: key_material.clone(),
             cache_until: Instant::now() + self.max_age,
         };
         
         {
             let mut cache = self.cache.write().unwrap();
-            cache.insert(cache_key, session_key);
+            cache.insert(cache_key, cached_key);
         }
         
         Ok(key_material)
@@ -476,7 +376,7 @@ impl SessionKeyCache {
 ### 6.1 Comprehensive Error Types
 ```rust
 #[derive(Debug, thiserror::Error)]
-pub enum EncryptionError {
+pub enum CryptoError {
     #[error("Cryptographic operation failed: {0}")]
     CryptographicError(String),
     
@@ -495,28 +395,34 @@ pub enum EncryptionError {
     #[error("Filename collision limit exceeded")]
     TooManyCollisions,
     
-    #[error("Partial decryption not supported for this file type")]
-    PartialDecryptionNotSupported,
+    #[error("Invalid file format")]
+    InvalidFileFormat,
+    
+    #[error("File not found: {0}")]
+    FileNotFound(String),
     
     #[error("Operation interrupted: {context}")]
     OperationInterrupted { context: String },
     
     #[error("Batch processing failed: {0:?}")]
-    BatchProcessingFailed(Vec<EncryptionError>),
+    BatchProcessingFailed(Vec<CryptoError>),
 }
 ```
 
 ### 6.2 Recovery Mechanisms
 ```rust
-struct RecoveryManager {
+// In shared/recovery.rs
+pub struct RecoveryManager {
     transaction_log: PathBuf,
 }
 
+pub struct TransactionId(uuid::Uuid);
+
 impl RecoveryManager {
-    fn begin_transaction(&mut self, operation: &str) -> Result<TransactionId, Error> {
-        let tx_id = TransactionId::new();
+    pub fn begin_transaction(&mut self, operation: &str) -> Result<TransactionId, CryptoError> {
+        let tx_id = TransactionId(uuid::Uuid::new_v4());
         let entry = TransactionLogEntry {
-            id: tx_id,
+            id: tx_id.0,
             operation: operation.to_string(),
             started_at: SystemTime::now(),
             completed: false,
@@ -527,18 +433,21 @@ impl RecoveryManager {
         Ok(tx_id)
     }
     
-    fn add_rollback_action(&mut self, tx_id: TransactionId, action: RollbackAction) 
-                          -> Result<(), Error> {
+    pub fn add_rollback_action(
+        &mut self, 
+        tx_id: TransactionId, 
+        action: RollbackAction
+    ) -> Result<(), CryptoError> {
         // Add action to transaction log for recovery
         Ok(())
     }
     
-    fn commit_transaction(&mut self, tx_id: TransactionId) -> Result<(), Error> {
+    pub fn commit_transaction(&mut self, tx_id: TransactionId) -> Result<(), CryptoError> {
         // Mark transaction as completed
         Ok(())
     }
     
-    fn recover_interrupted_operations(&self) -> Result<(), Error> {
+    pub fn recover_interrupted_operations(&self) -> Result<(), CryptoError> {
         // Find incomplete transactions and roll them back
         Ok(())
     }
@@ -547,60 +456,85 @@ impl RecoveryManager {
 
 ## 7. Testing Strategy
 
-### 7.1 Unit Testing with Mocks
+### 7.1 Unit Testing for Individual Modules
 ```rust
+// Example: testing encryption module
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockall::predicate::*;
+    use tempfile::tempdir;
+    use std::fs;
     
-    mock! {
-        FileSystem {}
+    #[test]
+    fn test_single_file_encryption_roundtrip() {
+        let temp_dir = tempdir().unwrap();
+        let input_file = temp_dir.path().join("test.txt");
+        let encrypted_file = temp_dir.path().join("test.txt.enc");
+        let decrypted_file = temp_dir.path().join("test_decrypted.txt");
         
-        impl FileSystem for FileSystem {
-            fn read_file(&self, path: &Path) -> Result<Box<dyn Read>, Error>;
-            fn write_file(&self, path: &Path, content: &mut dyn Read) -> Result<(), Error>;
-            // ... other methods
-        }
+        // Create test file
+        fs::write(&input_file, b"Hello, world!").unwrap();
+        
+        // Encrypt
+        encrypt_single_file(&input_file, &encrypted_file, "password", false).unwrap();
+        
+        // Decrypt
+        decrypt_single_file(&encrypted_file, &decrypted_file, "password").unwrap();
+        
+        // Verify
+        let decrypted_content = fs::read(&decrypted_file).unwrap();
+        assert_eq!(decrypted_content, b"Hello, world!");
     }
     
     #[test]
-    fn test_single_file_encryption() {
-        let mut mock_fs = MockFileSystem::new();
-        mock_fs.expect_read_file()
-            .returning(|_| Ok(Box::new(Cursor::new(b"test content"))));
+    fn test_filename_obfuscation() {
+        let key = b"test_key_32_bytes_long_padding!!";
+        let original_name = "secret_document.pdf";
         
-        let encryptor = create_test_encryptor(mock_fs);
-        let result = encryptor.encrypt_file("test.txt", "password");
-        
-        assert!(result.is_ok());
+        let obfuscated = obfuscate_filename(key, original_name).unwrap();
+        assert_ne!(obfuscated, original_name);
+        assert!(obfuscated.len() > 0);
     }
 }
 ```
 
 ### 7.2 Property-Based Testing
 ```rust
+// Testing crypto operations with proptest
 use proptest::prelude::*;
 
 proptest! {
     #[test]
-    fn test_encrypt_decrypt_roundtrip(data in any::<Vec<u8>>(), password in "\\PC*") {
-        let encryptor = create_test_encryptor();
-        let encrypted = encryptor.encrypt(&data, &password)?;
-        let decrypted = encryptor.decrypt(&encrypted, &password)?;
+    fn test_encrypt_decrypt_roundtrip(
+        data in any::<Vec<u8>>(), 
+        password in "\\PC{8,50}"
+    ) {
+        let temp_dir = tempdir().unwrap();
+        let input_file = temp_dir.path().join("input");
+        let encrypted_file = temp_dir.path().join("encrypted");
+        let output_file = temp_dir.path().join("output");
         
-        prop_assert_eq!(data, decrypted);
+        // Write test data
+        fs::write(&input_file, &data).unwrap();
+        
+        // Encrypt and decrypt
+        encrypt_single_file(&input_file, &encrypted_file, &password, false).unwrap();
+        decrypt_single_file(&encrypted_file, &output_file, &password).unwrap();
+        
+        // Verify roundtrip
+        let result = fs::read(&output_file).unwrap();
+        prop_assert_eq!(data, result);
     }
     
     #[test]
     fn test_filename_obfuscation_collision_resistance(
-        names in prop::collection::vec("\\PC{1,100}", 1..1000)
+        names in prop::collection::vec("\\PC{1,100}", 1..100)
     ) {
-        let encryptor = create_test_encryptor();
+        let key = b"test_key_32_bytes_long_padding!!";
         let mut obfuscated_names = HashSet::new();
         
         for name in names {
-            let obfuscated = encryptor.obfuscate_name(&[0u8; 32], &name, Path::new("/"))?;
+            let obfuscated = obfuscate_filename(key, &name).unwrap();
             prop_assert!(obfuscated_names.insert(obfuscated));
         }
     }
@@ -844,13 +778,14 @@ src/
 
 ## 10. Conclusion
 
-This comprehensive design provides a robust foundation for a high-security, high-performance file encryption system. The modular architecture supports all required features while maintaining security best practices and performance optimization opportunities. The enhanced header format and trait system provide extensibility for future requirements while maintaining backward compatibility.
+This comprehensive design provides a robust foundation for a high-security, high-performance file encryption system. The vertical slicing architecture with separate binaries supports focused development while maintaining security best practices and performance optimization opportunities. The complete header format and shared cryptographic primitives provide a solid foundation for all use cases.
 
 Key strengths of this design:
 - **Security**: Multiple layers of protection with proven cryptographic primitives
-- **Performance**: Streaming I/O, parallel processing, and session key caching
-- **Usability**: Advanced features like partial decryption and in-place editing
-- **Maintainability**: Clear separation of concerns with dependency inversion
-- **Extensibility**: Trait-based architecture supports future enhancements
+- **Simplicity**: Clean, Unix-style binaries (`lock`, `unlock`, `cryptls`, `cryptview`, `cryptedit`)
+- **Usability**: Intuitive CLI with smart defaults and optional filename obfuscation  
+- **Maintainability**: Clear separation by use case with shared cryptographic core
+- **Extensibility**: Modular architecture allows independent feature development
+- **Performance**: Optimized for single-purpose tools with streaming I/O
 
-The implementation roadmap provides a clear path to delivery while ensuring thorough testing and security validation at each phase.
+The granular implementation roadmap provides a clear path to delivery with 20 focused phases, ensuring thorough testing and validation at each step while avoiding overwhelming complexity for development agents.
