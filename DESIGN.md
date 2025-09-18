@@ -609,35 +609,153 @@ proptest! {
 
 ## 8. Implementation Roadmap
 
-### Phase 1: Core Infrastructure (Weeks 1-3)
-- Implement basic traits and structures
-- Core AES-256-CBC + HMAC encryption
-- File header format and serialization
-- Basic key derivation with Argon2
+### Phase 1: Single File Operations with Filename Obfuscation (Weeks 1-3)
+**Core Goal**: Complete single file encryption/decryption with optional filename obfuscation and listing
 
-### Phase 2: Basic Features (Weeks 4-6)
-- Single file encryption/decryption
-- Filename obfuscation with collision handling
-- Directory traversal and batch processing
-- Basic error handling and logging
+**Core Infrastructure:**
+- Implement full file header format (all fields from design specification)
+- Core traits: `KeyDeriver`, `Encryptor`, `FileSystem`
+- AES-256-CBC + HMAC-SHA256 implementation with proper key derivation (Argon2id)
+- Comprehensive error handling with `EncryptionError` enum
+- Memory protection with `SecretVec` and automatic zeroization
 
-### Phase 3: Advanced Features (Weeks 7-10)
-- Partial decryption capabilities
-- Text file editing without full decryption
-- File viewing and preview functionality
-- Directory structure preservation and restoration
+**Single File Features:**
+- Encrypt single file with full header (including directory path, metadata, filename)
+- Optional filename obfuscation using HMAC-based collision-resistant approach
+- Decrypt single file with original filename restoration
+- Preserve and restore file metadata (permissions, timestamps)
+- Atomic file operations to prevent corruption
 
-### Phase 4: Performance & Security (Weeks 11-12)
-- Performance optimizations and profiling
+**Filename Listing (cryptls):**
+- Implement `FileLister` trait for reading encrypted filenames without full decryption
+- Parse file headers to extract obfuscated filename information
+- Display original filenames alongside encrypted filenames
+- Show file sizes, modification dates, and encryption status
+
+**CLI Commands:**
+```bash
+lock <path> [--obfuscate]          # encrypt file or directory, optional name obfuscation
+unlock <path>                      # decrypt file, or directory (decrypts all encrypted files found)
+cryptls [directory]                # list encrypted files with original names
+```
+
+**Testing & Validation:**
+- Unit tests for all cryptographic operations
+- Round-trip testing (encrypt -> decrypt -> verify)
+- Filename obfuscation collision testing
+- Edge cases: empty files, large files, special characters in filenames
+- Memory safety and zeroization verification
+
+### Phase 2: Multi-File Operations (Weeks 4-5)
+**Core Goal**: Extend to multiple files and directories with batch processing
+
+**Multi-File Encryption:**
+- Directory traversal with recursive file discovery
+- Batch encryption with shared session keys for performance
+- Parallel processing using `rayon` for independent file operations
+- Transaction logging for rollback capability on failures
+- Progress reporting for large batch operations
+
+**Enhanced Directory Support:**
+- Flatten directory structure (all encrypted files in single output directory)
+- Store full original directory paths in each file header
+- Handle filename collisions in target directory
+- Preserve directory structure information for restoration
+
+**Enhanced CLI:**
+```bash
+lock <path>... [--obfuscate]       # multiple files/directories  
+unlock <path>...                   # multiple files/directories (auto-detects encrypted files)
+cryptls [directory]                # list with original names (same as Phase 1)
+```
+
+**Performance Optimizations:**
+- Session key caching to avoid repeated Argon2 derivation
+- Streaming I/O with optimal buffer sizes for large files
+- Memory-efficient processing for large directories
+- Configurable parallelism limits
+
+**Enhanced Error Handling:**
+- Batch operation error aggregation
+- Partial success handling (some files encrypted, others failed)
+- Recovery mechanisms for interrupted batch operations
+- Detailed error reporting with file-specific context
+
+### Phase 3: Secure File Viewing (Weeks 6-7)
+**Core Goal**: View encrypted files without creating persistent decrypted copies
+
+**Secure Viewing Infrastructure:**
+- Implement `FileViewer` and `PartialDecryptor` traits
+- Temporary file management with automatic cleanup
+- Range-based decryption for large files (preview functionality)
+- Integration with external viewers (less, cat, image viewers, etc.)
+
+**Viewing Features:**
+- Full file viewing with external programs
+- File preview (first N bytes/lines) without full decryption
+- Streaming decryption to stdout for pipeline operations
+- Support for binary and text file detection
+- Configurable viewer programs per file type
+
+**Security Considerations:**
+- Secure temporary file creation with restricted permissions
+- Automatic cleanup on process termination or signals
+- Memory-mapped file viewing for large files
+- No persistent decrypted data on disk
+- Viewer process isolation and sandboxing
+
+**CLI Commands:**
+```bash
+unlock <file> | cat                # decrypt to stdout (piping support)
+cryptview <file>                   # view with $PAGER or default viewer
+```
+
+**Advanced Features:**
+- File type detection and automatic viewer selection
+- Streaming support for network operations
+- Integration with system file associations
+- Search within encrypted files without full decryption
+
+### Phase 4: Secure Text File Editing (Weeks 8-9)
+**Core Goal**: Edit encrypted text files directly without manual decrypt/encrypt cycles
+
+**Secure Editing Infrastructure:**
+- Implement `FileEditor` trait with atomic operations
+- Integration with external text editors (vi, nano, code, emacs, etc.)
+- Text file detection and validation
+- Atomic file updates to prevent corruption during editing
+
+**Editing Features:**
+- Launch external editor with temporarily decrypted content
+- Automatic re-encryption after editor closes
+- Support for various text editors with configuration
+- Backup creation before editing (optional)
+- Change detection to avoid unnecessary re-encryption
+
+**Security & Safety:**
+- Secure temporary file handling during editing
+- Editor process monitoring and cleanup
+- Protection against editor crashes or unexpected termination
+- Verification of text content (no binary corruption)
+- Optional diff display before re-encryption
+
+**CLI Commands:**
+```bash
+cryptedit <file>                   # edit with $EDITOR
+```
+
+**Advanced Editing Features:**
+- Multiple file editing sessions
+- Editor preference detection from environment variables
+- Integration with version control systems
+- Conflict resolution for concurrent editing attempts
+
+**Final Phase Enhancements:**
+- Comprehensive documentation and examples
+- Performance profiling and optimization
 - Security audit and penetration testing
-- Comprehensive test suite
-- Documentation and user guides
-
-### Phase 5: Polish & Release (Weeks 13-14)
-- CLI interface implementation
-- Integration testing
-- Performance benchmarking
-- Release preparation
+- Cross-platform compatibility testing
+- Release preparation and packaging
 
 ## 9. Conclusion
 
