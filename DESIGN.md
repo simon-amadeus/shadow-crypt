@@ -219,17 +219,17 @@ pub fn encrypt_single_file(
     password: &str,
     obfuscate_filename: bool
 ) -> Result<(), CryptoError> {
-    // 1. Generate salt and IV
+    // 1. Generate salt and nonce
     // 2. Derive key material from password
     // 3. Read file content and metadata
-    // 4. Encrypt content with AES-CBC
+    // 4. Encrypt content with AES-GCM
     // 5. Create and serialize header
     // 6. Write encrypted file atomically
 }
 
 // encryption/filename_obfuscation.rs
 pub fn obfuscate_filename(key: &[u8], original_name: &str) -> String {
-    // HMAC-based collision-resistant obfuscation
+    // HKDF-based collision-resistant obfuscation
 }
 ```
 
@@ -243,8 +243,8 @@ pub fn decrypt_single_file(
 ) -> Result<(), CryptoError> {
     // 1. Read and parse header
     // 2. Derive key material from password and header salt
-    // 3. Verify HMAC authentication
-    // 4. Decrypt content with AES-CBC
+    // 3. Verify GCM authentication tags
+    // 4. Decrypt content with AES-GCM
     // 5. Restore original filename and metadata
     // 6. Write decrypted file atomically
 }
@@ -262,7 +262,7 @@ pub fn restore_original_filename(
 ```rust
 // listing/file_scanner.rs
 pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<FileInfo>, CryptoError> {
-    // 1. Scan directory for files with "ENC2" magic
+    // 1. Scan directory for files with "ENC3" magic
     // 2. Parse headers (no full decryption)
     // 3. Extract original filenames and metadata
     // 4. Return structured file information
@@ -1102,8 +1102,8 @@ src/
 
 ### Phase 3: Implement Core Cryptographic Operations
 **Goal**: Build secure crypto primitives in `shared/crypto/`
-- Implement AES-256-CBC encryption/decryption
-- Implement HMAC-SHA256 for authentication
+- Implement AES-256-GCM authenticated encryption/decryption
+- Implement GCM authentication tag handling
 - Implement Argon2id key derivation
 - Add `SecretVec` for automatic memory zeroization
 
@@ -1117,13 +1117,13 @@ src/
 ### Phase 5: Build Basic File Decryption
 **Goal**: Create core decryption functionality in `decryption/` module  
 - Implement single file decryption with header parsing
-- Verify HMAC authentication before decryption
+- Verify GCM authentication tags before decryption
 - Restore original file metadata after decryption
 - Handle decryption errors gracefully
 
 ### Phase 6: Add Filename Obfuscation
 **Goal**: Implement secure filename obfuscation in `encryption/` module
-- Create HMAC-based filename obfuscation algorithm
+- Create HKDF-based filename obfuscation algorithm
 - Add collision detection and resolution
 - Store encrypted original filename in header
 - Make obfuscation optional via CLI flag
@@ -1133,7 +1133,7 @@ src/
 - Parse encrypted filename from header
 - Decrypt and restore original filename
 - Handle both obfuscated and non-obfuscated files
-- Validate filename integrity with HMAC
+- Validate filename integrity with GCM authentication tags
 
 ### Phase 8: Build File Listing Capability
 **Goal**: Create encrypted file listing in `listing/` module
