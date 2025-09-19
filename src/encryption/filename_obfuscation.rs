@@ -9,9 +9,6 @@ use hkdf::Hkdf;
 use sha2::{Sha256, Digest};
 use base64::Engine;
 
-/// Maximum filename length for padding (512 bytes as per spec)
-const MAX_FILENAME_LENGTH: usize = 512;
-
 /// Obfuscate filename using HKDF-derived key
 /// 
 /// Creates a deterministic obfuscated filename that can be reversed with the same key.

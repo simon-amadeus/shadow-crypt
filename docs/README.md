@@ -33,13 +33,13 @@ cargo build --release
 # Decrypt a file  
 ./target/release/unlock secret.txt.enc
 
-# List encrypted files in directory (Phase 6+)
-./target/release/cryptls encrypted_files/
+# List encrypted files in directory (Phases 8+)
+./target/release/cryptls encrypted_files/ mypassword123
 
-# View an encrypted file (Phase 8+)
+# View an encrypted file (Phase 9+)
 ./target/release/cryptview secret.txt.enc
 
-# Edit an encrypted file (Phase 9+)
+# Edit an encrypted file (Phase 10+)
 ./target/release/cryptedit secret.txt.enc
 ```
 
@@ -52,10 +52,11 @@ cargo build --release
 - ✅ **Phase 5**: Basic file decryption
 - ✅ **Phase 6**: Filename obfuscation
 - ✅ **Phase 7**: Filename restoration
-- 🚧 **Phase 8**: Directory encryption (Next)
-- ⏳ **Phases 9-20**: Feature implementation and optimization
+- ✅ **Phase 8**: File listing capability
+- 🚧 **Phase 9**: Directory encryption (Next)
+- ⏳ **Phases 10-20**: Feature implementation and optimization
 
-### Current Capabilities (Phases 1-7 Complete)
+### Current Capabilities (Phases 1-8 Complete)
 
 ✅ **Working Features:**
 - Single file encryption with AES-256-GCM
@@ -64,12 +65,14 @@ cargo build --release
 - Complete file decryption with integrity verification
 - Secure filename obfuscation with collision resistance
 - Intelligent filename restoration during decryption
-- Cross-platform command-line tools (`lock` and `unlock`)
+- Cross-platform command-line tools (`lock`, `unlock`, and `cryptls`)
+- Directory scanning and encrypted file listing
+- Original filename display without full decryption
 - Comprehensive test coverage and validation
 
 🚧 **In Development:**
 - Directory encryption and batch processing
-- File listing and viewing tools
+- File viewing and editing tools
 - Advanced CLI features and user experience improvements
 
 See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for detailed progress.

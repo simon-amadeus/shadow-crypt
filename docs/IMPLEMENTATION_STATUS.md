@@ -6,11 +6,73 @@ Current progress and status of the crypto file encryption system implementation.
 
 Current progress and status of the crypto file encryption system implementation.
 
-## Current Status: Phase 7 Complete ✅
+## Current Status: Phase 8 Complete ✅
 
 **Last Updated**: September 19, 2025
-**Phase**: 7 of 20 complete
-**Overall Progress**: 35% complete
+**Phase**: 8 of 20 complete
+**Overall Progress**: 40% complete
+
+## Phase 8: File Listing Capability ✅ **COMPLETED**
+
+**Goal**: Create encrypted file listing in `listing/` module
+
+### ✅ **Completed Tasks**
+
+- ✅ Implemented `list_encrypted_files()` function with directory scanning and magic number detection
+- ✅ Added header-only file reading without requiring full decryption for file detection
+- ✅ Integrated filename restoration to display original names in file listings  
+- ✅ Implemented metadata extraction with file size calculation and timestamp formatting
+- ✅ Created comprehensive formatting functions for clean tabular output
+- ✅ Enhanced `cryptls` binary with full CLI interface and argument parsing
+- ✅ Added graceful error handling for wrong passwords and corrupted files
+- ✅ Implemented sorting by original filename for consistent output
+- ✅ Added support for mixed directories (encrypted and regular files)
+- ✅ Created comprehensive test suite validating all functionality
+
+### 📊 **Phase 8 Metrics**
+
+- **Files Enhanced**: `listing/file_scanner.rs` (full implementation), `listing/metadata_extractor.rs` (formatting), `bin/cryptls.rs` (CLI integration), `tests/listing_integration.rs` (test coverage)
+- **Lines of Code**: ~90 lines file scanner + ~100 lines metadata extractor + ~70 lines CLI + ~220 lines tests
+- **Test Coverage**: 9 comprehensive integration tests covering directory scanning, wrong passwords, mixed directories, formatting
+- **Compilation**: ✅ Clean compilation with only minor warnings from unused imports in other binaries
+- **Binary**: ✅ Working `cryptls` binary with full listing functionality
+
+### 🎯 **Key Achievements**
+
+1. **Header-Only File Detection**: Efficiently detects encrypted files using magic numbers without full decryption
+2. **Password-Based Filename Restoration**: Displays original filenames when correct password provided
+3. **Graceful Error Handling**: Shows encrypted filenames when password is wrong rather than failing
+4. **Comprehensive File Information**: Displays original size, encrypted size, and modification timestamps
+5. **Clean CLI Interface**: User-friendly command-line interface with help text and error messages
+6. **Performance Optimized**: Scans directories efficiently without decrypting file content
+7. **Robust Testing**: Comprehensive test coverage including edge cases and error conditions
+
+### 🔧 **Technical Implementation Details**
+
+**File Listing Workflow**:
+- Directory scanning → Magic number detection → Header parsing for each encrypted file
+- Password-based key derivation → Filename decryption for display
+- Fallback to encrypted filename display on authentication failure
+- File size calculation from header metadata and encrypted content analysis
+- Sorted output by original filename for consistent user experience
+
+**CLI Integration Features**:
+- Simple argument parsing: `cryptls <directory> <password>`
+- Clean tabular output with headers and separators
+- File count summary and helpful error messages
+- Support for help flag (`--help` / `-h`) with usage information
+
+**Security Features**:
+- No content decryption required for listing (header-only access)
+- Authentication-verified filename decryption prevents tampering
+- Graceful error handling without information leakage about passwords
+- Unicode filename support with proper validation
+
+**Performance Features**:
+- Efficient directory traversal skipping non-encrypted files
+- Header-only reading minimizes I/O overhead
+- Sorted output for predictable user experience
+- Memory-efficient processing of large directories
 
 ## Phase 7: Filename Restoration ✅ **COMPLETED**
 
