@@ -17,8 +17,9 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 2**: Header implementation with serialization (**COMPLETE**)
 - ✅ **Phase 3**: Core cryptographic operations (**COMPLETE**)
 - ✅ **Phase 4**: Basic file encryption (**COMPLETE**)
-- 🚧 **Phase 5**: Basic file decryption (**NEXT**)
-- ⏳ **Phases 6-20**: Pending implementation
+- ✅ **Phase 5**: Basic file decryption (**COMPLETE**)
+- 🚧 **Phase 6**: Filename obfuscation (**NEXT**)
+- ⏳ **Phases 7-20**: Pending implementation
 
 ---
 
@@ -151,30 +152,43 @@ The implementation is organized into 20 focused phases, each with specific goals
 
 ---
 
-### Phase 5: Build Basic File Decryption 🚧 **NEXT**
+### Phase 5: Build Basic File Decryption ✅ **COMPLETED**
 
 **Goal**: Create core decryption functionality in `decryption/` module
 
-**Tasks**:
-- [ ] Implement single file decryption with header parsing
-- [ ] Verify GCM authentication tags before decryption
-- [ ] Restore original file metadata after decryption
-- [ ] Handle decryption errors gracefully
-- [ ] Add integrity verification
+**Completed Tasks**:
+- ✅ Implemented single file decryption with header parsing
+- ✅ Added GCM authentication tag verification before decryption
+- ✅ Implemented original file metadata restoration after decryption
+- ✅ Added graceful decryption error handling with user-friendly messages
+- ✅ Implemented SHA-256 integrity verification of decrypted content
+- ✅ Created comprehensive integration tests for roundtrip functionality
+- ✅ Enhanced `unlock` binary with interactive CLI interface
 
 **Dependencies**: Phase 4 ✅
 
-**Estimated Duration**: 2-3 days
+**Actual Duration**: 1 day
 
-**Success Criteria**:
-- Roundtrip encryption/decryption works perfectly
-- Authentication failures are properly detected
-- Metadata restoration preserves all attributes
-- Error messages are user-friendly
+**Success Criteria**: ✅ **ALL MET**
+- ✅ Roundtrip encryption/decryption works perfectly
+- ✅ Authentication failures are properly detected with clear error messages
+- ✅ Metadata restoration preserves file permissions and attributes
+- ✅ Error messages are user-friendly and informative
+- ✅ Integrity verification prevents data corruption
+- ✅ Working command-line binary for real-world usage
+
+**Deliverables**: ✅ **COMPLETED**
+- Complete file decryption implementation in `decryption/decrypt_file.rs`
+- Working `unlock` binary with interactive password input
+- Comprehensive test suite with 8 integration tests
+- Roundtrip compatibility with Phase 4 encryption
+- Cross-platform metadata restoration
+
+**Status**: Successfully implemented. Ready for Phase 6.
 
 ---
 
-### Phase 6: Add Filename Obfuscation
+### Phase 6: Add Filename Obfuscation 🚧 **NEXT**
 
 **Goal**: Implement secure filename obfuscation in `encryption/` module
 

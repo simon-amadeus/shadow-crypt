@@ -2,11 +2,72 @@
 
 Current progress and status of the crypto file encryption system implementation.
 
-## Current Status: Phase 4 Complete ✅
+## Current Status: Phase 5 Complete ✅
 
 **Last Updated**: September 19, 2025
-**Phase**: 4 of 20 complete
-**Overall Progress**: 20% complete
+**Phase**: 5 of 20 complete
+**Overall Progress**: 25% complete
+
+## Phase 5: Basic File Decryption ✅ **COMPLETED**
+
+**Goal**: Create core decryption functionality in `decryption/` module
+
+### ✅ **Completed Tasks**
+
+- ✅ Implemented single file decryption with header parsing
+- ✅ Added GCM authentication tag verification before decryption
+- ✅ Implemented original file metadata restoration after decryption
+- ✅ Added graceful decryption error handling with user-friendly messages
+- ✅ Implemented SHA-256 integrity verification of decrypted content
+- ✅ Created separate decryption for filename, directory path, metadata, and content
+- ✅ Added comprehensive error handling for corrupted files and wrong passwords
+- ✅ Enhanced `unlock` binary with interactive CLI interface
+- ✅ Added comprehensive integration tests for roundtrip encryption/decryption
+- ✅ Implemented cross-platform file permission restoration
+
+### 📊 **Phase 5 Metrics**
+
+- **Files Enhanced**: Complete implementation of `decryption/decrypt_file.rs` and `bin/unlock.rs`
+- **Lines of Code**: ~150 lines of decryption implementation + ~80 lines CLI
+- **Test Coverage**: 8 comprehensive integration tests covering all scenarios
+- **Compilation**: ✅ Clean (no warnings or errors)
+- **Binary**: ✅ Working `unlock` binary with interactive password input
+
+### 🎯 **Key Achievements**
+
+1. **Production-Ready File Decryption**: Complete decryption workflow from encrypted file to original content
+2. **Robust Authentication**: GCM authentication tag verification prevents tampering
+3. **Integrity Protection**: SHA-256 hash verification ensures content integrity
+4. **Graceful Error Handling**: Clear error messages for wrong passwords, corruption, and format errors
+5. **Metadata Restoration**: File permissions and attributes restored correctly
+6. **Roundtrip Compatibility**: Perfect encryption/decryption roundtrip with Phase 4 encryption
+7. **Interactive CLI**: User-friendly command-line interface for file decryption
+
+### 🔧 **Technical Implementation Details**
+
+**File Decryption Workflow**:
+- Encrypted file → Header parsing with comprehensive bounds checking
+- Password → Argon2id key derivation using salt from header
+- Separate AES-256-GCM decryption for each component (directory, filename, metadata, content)
+- GCM authentication tag verification prevents unauthorized modifications
+- SHA-256 integrity verification ensures content hasn't been corrupted
+- File metadata restoration including permissions and attributes
+- Atomic file writing prevents partial corruption
+
+**Security Features**:
+- Authentication failure detection (wrong password or corrupted data)
+- Integrity verification using SHA-256 hashing
+- Graceful error handling without information leakage
+- Secure memory handling throughout decryption process
+- Cross-platform permission restoration
+
+**Testing and Validation**:
+- Comprehensive roundtrip encryption/decryption tests
+- Authentication failure testing (wrong passwords)
+- File corruption detection testing
+- Multiple file handling with different passwords
+- Special character and Unicode content testing
+- Empty file and large file testing
 
 ## Phase 4: Basic File Encryption ✅ **COMPLETED**
 

@@ -71,8 +71,8 @@ pub fn encrypt_single_file(
         &metadata_bytes,
         &[]
     )?;
-    header.encrypted_metadata = encrypted_metadata;
-    header.metadata_length = metadata_bytes.len() as u16;
+    header.encrypted_metadata = encrypted_metadata.clone();
+    header.metadata_length = encrypted_metadata.len() as u16;
     
     // Encrypt filename
     if let Some(filename) = input_path.file_name() {
@@ -84,8 +84,8 @@ pub fn encrypt_single_file(
                 filename_bytes,
                 &[]
             )?;
-            header.encrypted_filename = encrypted_filename;
-            header.filename_length = filename_bytes.len() as u16;
+            header.encrypted_filename = encrypted_filename.clone();
+            header.filename_length = encrypted_filename.len() as u16;
         }
     }
     
@@ -99,8 +99,8 @@ pub fn encrypt_single_file(
                 path_bytes,
                 &[]
             )?;
-            header.encrypted_directory_path = encrypted_path;
-            header.directory_path_length = path_bytes.len() as u16;
+            header.encrypted_directory_path = encrypted_path.clone();
+            header.directory_path_length = encrypted_path.len() as u16;
         }
     }
     

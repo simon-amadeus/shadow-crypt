@@ -28,18 +28,18 @@ The system provides five specialized command-line tools:
 cargo build --release
 
 # Encrypt a file
-./target/release/lock --obfuscate secret.txt
+./target/release/lock secret.txt secret.txt.enc mypassword123
 
 # Decrypt a file  
 ./target/release/unlock secret.txt.enc
 
-# List encrypted files in directory
+# List encrypted files in directory (Phase 6+)
 ./target/release/cryptls encrypted_files/
 
-# View an encrypted file
+# View an encrypted file (Phase 8+)
 ./target/release/cryptview secret.txt.enc
 
-# Edit an encrypted file
+# Edit an encrypted file (Phase 9+)
 ./target/release/cryptedit secret.txt.enc
 ```
 
@@ -48,8 +48,26 @@ cargo build --release
 - ✅ **Phase 1**: Module structure and architecture foundation
 - ✅ **Phase 2**: Header implementation with complete serialization
 - ✅ **Phase 3**: Core cryptographic operations
-- 🚧 **Phase 4**: Basic file encryption (Next)
-- ⏳ **Phases 5-20**: Feature implementation and optimization
+- ✅ **Phase 4**: Basic file encryption
+- ✅ **Phase 5**: Basic file decryption
+- 🚧 **Phase 6**: Filename obfuscation (Next)
+- ⏳ **Phases 7-20**: Feature implementation and optimization
+
+### Current Capabilities (Phases 1-5 Complete)
+
+✅ **Working Features:**
+- Single file encryption with AES-256-GCM
+- Password-based key derivation using Argon2id
+- File metadata preservation (permissions, timestamps)
+- Complete file decryption with integrity verification
+- Cross-platform command-line tools (`lock` and `unlock`)
+- Comprehensive test coverage and validation
+
+🚧 **In Development:**
+- Filename obfuscation for privacy protection
+- Directory encryption and batch processing
+- File listing and viewing tools
+- Advanced CLI features and user experience improvements
 
 See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for detailed progress.
 
@@ -91,19 +109,31 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for complete details.
 ## Development
 
 ```bash
-# Run tests
+# Run all tests
 cargo test
 
-# Check code
+# Run specific test suite
+cargo test --test decryption_integration
+
+# Check code quality
 cargo check
 
-# Run specific tool
+# Build and run specific tool
+cargo run --bin lock -- input.txt output.enc password123
+cargo run --bin unlock -- output.enc decrypted.txt
+
+# Run with help
 cargo run --bin lock -- --help
 cargo run --bin unlock -- --help
-cargo run --bin cryptls -- --help
-cargo run --bin cryptview -- --help  
-cargo run --bin cryptedit -- --help
 ```
+
+### Current Tools Status
+
+- ✅ **`lock`** - Fully functional file encryption
+- ✅ **`unlock`** - Fully functional file decryption
+- 🚧 **`cryptls`** - Placeholder (Phase 6+)
+- 🚧 **`cryptview`** - Placeholder (Phase 8+)  
+- 🚧 **`cryptedit`** - Placeholder (Phase 9+)
 
 ## License
 
