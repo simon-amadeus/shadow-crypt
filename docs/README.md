@@ -50,21 +50,23 @@ cargo build --release
 - ✅ **Phase 3**: Core cryptographic operations
 - ✅ **Phase 4**: Basic file encryption
 - ✅ **Phase 5**: Basic file decryption
-- 🚧 **Phase 6**: Filename obfuscation (Next)
-- ⏳ **Phases 7-20**: Feature implementation and optimization
+- ✅ **Phase 6**: Filename obfuscation
+- 🚧 **Phase 7**: Filename restoration (Next)
+- ⏳ **Phases 8-20**: Feature implementation and optimization
 
-### Current Capabilities (Phases 1-5 Complete)
+### Current Capabilities (Phases 1-6 Complete)
 
 ✅ **Working Features:**
 - Single file encryption with AES-256-GCM
 - Password-based key derivation using Argon2id
 - File metadata preservation (permissions, timestamps)
 - Complete file decryption with integrity verification
+- Secure filename obfuscation with collision resistance
 - Cross-platform command-line tools (`lock` and `unlock`)
 - Comprehensive test coverage and validation
 
 🚧 **In Development:**
-- Filename obfuscation for privacy protection
+- Filename restoration during decryption
 - Directory encryption and batch processing
 - File listing and viewing tools
 - Advanced CLI features and user experience improvements

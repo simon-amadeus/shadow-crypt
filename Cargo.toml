@@ -38,6 +38,7 @@ thiserror = "1.0"        # Error handling
 rand = "0.8"             # Additional randomness utilities
 hkdf = "0.12"            # HKDF key derivation
 sha2 = "0.10"            # SHA-256 for HKDF
+base64 = "0.21"          # Base64 encoding for filename obfuscation
 # clap = "4.0"  # For CLI parsing in later phases
 
 [dev-dependencies]

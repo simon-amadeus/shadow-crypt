@@ -8,7 +8,8 @@ use crate::shared::header::{Header, FileMetadata, AlgorithmId};
 use crate::shared::crypto::{
     generate_secure_nonce, encrypt_aes_gcm, derive_master_key, generate_salt, Argon2Params
 };
-use std::path::Path;
+use crate::encryption::filename_obfuscation::obfuscate_filename;
+use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
 use std::io::{Read, Write};
 use std::time::SystemTime;
@@ -18,13 +19,17 @@ use sha2::{Sha256, Digest};
 /// 
 /// # Arguments
 /// * `input_path` - Path to the file to encrypt
-/// * `output_path` - Path where encrypted file will be saved
+/// * `output_path` - Base path for output (will be modified if obfuscation is enabled)
 /// * `password` - Password for key derivation
-/// * `obfuscate_filename` - Whether to obfuscate the original filename (Phase 6 feature)
+/// * `obfuscate_filename` - Whether to obfuscate the original filename
 /// 
 /// # Returns
 /// * `Ok(())` - File encrypted successfully
 /// * `Err(CryptoError)` - Encryption failed
+/// 
+/// # Behavior
+/// * If obfuscate_filename is false: saves to exact output_path
+/// * If obfuscate_filename is true: creates obfuscated filename in same directory as output_path
 /// 
 /// # Security
 /// * Uses AES-256-GCM authenticated encryption
@@ -53,6 +58,13 @@ pub fn encrypt_single_file(
     let params = Argon2Params::default();
     let key_material = derive_master_key(password, &salt, &params)?;
     let nonce = generate_secure_nonce()?;
+    
+    // Determine actual output path (obfuscated or original)
+    let actual_output_path = if obfuscate_filename {
+        generate_obfuscated_output_path(input_path, output_path, &key_material)?
+    } else {
+        output_path.to_path_buf()
+    };
     
     // Create header
     let mut header = create_encryption_header(
@@ -113,9 +125,53 @@ pub fn encrypt_single_file(
     )?;
     
     // Write encrypted file atomically
-    write_encrypted_file(output_path, &header, &ciphertext)?;
+    write_encrypted_file(&actual_output_path, &header, &ciphertext)?;
+    
+    if obfuscate_filename {
+        println!("🎭 File saved with obfuscated name: {}", actual_output_path.display());
+    }
     
     Ok(())
+}
+
+/// Generate obfuscated output path for the encrypted file
+/// 
+/// Takes the input filename, obfuscates it using the derived key,
+/// and creates a new output path in the same directory as the specified output path.
+/// 
+/// # Arguments
+/// * `input_path` - Original file path (for extracting filename)
+/// * `output_path` - Base output path (for extracting directory)
+/// * `key_material` - Derived cryptographic keys
+/// 
+/// # Returns
+/// * `Ok(PathBuf)` - Obfuscated output path
+/// * `Err(CryptoError)` - Obfuscation failed
+fn generate_obfuscated_output_path(
+    input_path: &Path, 
+    output_path: &Path, 
+    key_material: &crate::shared::crypto::KeyMaterial
+) -> Result<PathBuf, CryptoError> {
+    // Extract original filename
+    let original_filename = input_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| CryptoError::FileSystemError(
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Invalid input filename")
+        ))?;
+    
+    // Generate obfuscated filename
+    let obfuscated_name = obfuscate_filename(
+        key_material.obfuscation_key.expose_secret(),
+        original_filename
+    )?;
+    
+    // Use the directory from output_path, but with obfuscated filename
+    let output_dir = output_path
+        .parent()
+        .unwrap_or_else(|| Path::new("."));
+    
+    Ok(output_dir.join(obfuscated_name))
 }
 
 /// Extract metadata from a file for secure storage
