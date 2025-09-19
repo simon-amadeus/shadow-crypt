@@ -2,5 +2,38 @@
 name = "crypto"
 version = "0.1.0"
 edition = "2024"
+description = "High-security file encryption system with filename obfuscation"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/user/crypto"
+authors = ["Your Name <your.email@example.com>"]
+
+# Binary targets for each use case
+[[bin]]
+name = "lock"
+path = "src/bin/lock.rs"
+
+[[bin]]
+name = "unlock"
+path = "src/bin/unlock.rs"
+
+[[bin]]
+name = "cryptls"
+path = "src/bin/cryptls.rs"
+
+[[bin]]
+name = "cryptview"
+path = "src/bin/cryptview.rs"
+
+[[bin]]
+name = "cryptedit"
+path = "src/bin/cryptedit.rs"
 
 [dependencies]
+# Core dependencies will be added in Phase 3
+# TODO: Add cryptographic dependencies:
+# aes-gcm = "0.10"
+# argon2 = "0.5"
+# getrandom = "0.2"
+# zeroize = "1.6"
+# thiserror = "1.0"
+# clap = "4.0"  # For CLI parsing in later phases
