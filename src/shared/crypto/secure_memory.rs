@@ -36,6 +36,11 @@ where
         &self.data
     }
     
+    /// Get a reference to the underlying data (alias for expose_secret)
+    pub fn expose(&self) -> &[T] {
+        &self.data
+    }
+    
     /// Get the length of the secret data
     pub fn len(&self) -> usize {
         self.data.len()
@@ -73,6 +78,7 @@ where
 }
 
 /// Key material container with automatic zeroization
+#[derive(Debug)]
 pub struct KeyMaterial {
     pub master_key: SecretVec<u8>,           // 32 bytes, auto-zeroized
     pub encryption_key: SecretVec<u8>,       // Derived from master for file encryption

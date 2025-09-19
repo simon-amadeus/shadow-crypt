@@ -9,6 +9,6 @@ pub mod argon2;
 pub mod secure_memory;
 
 // Re-export commonly used types and functions
-pub use aes::{encrypt_aes_gcm, decrypt_aes_gcm, generate_secure_nonce};
-pub use argon2::{derive_master_key, Argon2Params, MasterKeyManager};
+pub use aes::{encrypt_aes_gcm, decrypt_aes_gcm, generate_secure_nonce, generate_random_key};
+pub use argon2::{derive_master_key, generate_salt, Argon2Params, MasterKeyManager};
 pub use secure_memory::{SecretVec, KeyMaterial};

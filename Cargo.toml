@@ -29,13 +29,15 @@ name = "cryptedit"
 path = "src/bin/cryptedit.rs"
 
 [dependencies]
-# Core dependencies will be added in Phase 3
-# TODO: Add cryptographic dependencies:
-# aes-gcm = "0.10"
-# argon2 = "0.5"
-# getrandom = "0.2"
-# zeroize = "1.6"
-# thiserror = "1.0"
+# Cryptographic dependencies for Phase 3
+aes-gcm = "0.10"         # AES-256-GCM authenticated encryption
+argon2 = "0.5"           # Argon2id key derivation
+getrandom = "0.2"        # Secure random number generation
+zeroize = "1.6"          # Secure memory zeroization
+thiserror = "1.0"        # Error handling
+rand = "0.8"             # Additional randomness utilities
+hkdf = "0.12"            # HKDF key derivation
+sha2 = "0.10"            # SHA-256 for HKDF
 # clap = "4.0"  # For CLI parsing in later phases
 
 [dev-dependencies]
