@@ -37,3 +37,10 @@ path = "src/bin/cryptedit.rs"
 # zeroize = "1.6"
 # thiserror = "1.0"
 # clap = "4.0"  # For CLI parsing in later phases
+
+[dev-dependencies]
+# Testing and development dependencies
+serde_json = "1.0"          # For test data serialization
+tempfile = "3.0"            # For temporary file testing
+hex = "0.4"                 # For hex encoding in tests
+proptest = "1.0"            # For property-based testing
