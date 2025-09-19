@@ -1,18 +1,42 @@
-//! File encryption binary (lock)
+//! Lock binary - File encryption tool
 //! 
-//! This binary provides command-line interface for encrypting files and directories
-//! with optional filename obfuscation.
+//! This binary provides file encryption functionality using the encryption module.
 
-use crypto::encryption;
-use crypto::shared::errors::CryptoError;
+use std::env;
+use std::path::Path;
+use std::process;
+use crypto::encryption::encrypt_single_file;
 
-fn main() -> Result<(), CryptoError> {
-    // TODO: Implement CLI argument parsing and main encryption logic
-    // This will be implemented in Phase 9
-    println!("lock: File encryption tool");
-    println!("Usage: lock [OPTIONS] <files...>");
-    println!("  --obfuscate    Obfuscate filenames");
-    println!("  --help         Show this help message");
+fn main() {
+    let args: Vec<String> = env::args().collect();
     
-    Ok(())
+    if args.len() != 4 {
+        eprintln!("Usage: {} <input_file> <output_file> <password>", args[0]);
+        eprintln!("Example: lock secret.txt secret.txt.enc mypassword123");
+        process::exit(1);
+    }
+    
+    let input_path = Path::new(&args[1]);
+    let output_path = Path::new(&args[2]);
+    let password = &args[3];
+    
+    if !input_path.exists() {
+        eprintln!("Error: Input file '{}' does not exist", input_path.display());
+        process::exit(1);
+    }
+    
+    println!("🔒 Encrypting file: {}", input_path.display());
+    println!("📄 Output file: {}", output_path.display());
+    println!("🔑 Using password-based encryption with AES-256-GCM");
+    
+    match encrypt_single_file(input_path, output_path, password, false) {
+        Ok(()) => {
+            println!("✅ File encrypted successfully!");
+            println!("🔒 Encrypted file: {}", output_path.display());
+        }
+        Err(e) => {
+            eprintln!("❌ Encryption failed: {}", e);
+            process::exit(1);
+        }
+    }
 }
