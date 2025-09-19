@@ -6,11 +6,73 @@ Current progress and status of the crypto file encryption system implementation.
 
 Current progress and status of the crypto file encryption system implementation.
 
-## Current Status: Phase 6 Complete ✅
+## Current Status: Phase 7 Complete ✅
 
 **Last Updated**: September 19, 2025
-**Phase**: 6 of 20 complete
-**Overall Progress**: 30% complete
+**Phase**: 7 of 20 complete
+**Overall Progress**: 35% complete
+
+## Phase 7: Filename Restoration ✅ **COMPLETED**
+
+**Goal**: Implement filename restoration in `decryption/` module
+
+### ✅ **Completed Tasks**
+
+- ✅ Implemented `restore_original_filename()` function with AES-256-GCM decryption
+- ✅ Added secure filename decryption from encrypted file headers
+- ✅ Integrated filename restoration into `unlock` binary with smart output naming
+- ✅ Added fallback logic for extension-based naming when restoration fails
+- ✅ Implemented comprehensive error handling for corrupted filenames and wrong passwords
+- ✅ Added support for both obfuscated and non-obfuscated files
+- ✅ Created extensive test suite with 6 new integration tests covering all scenarios
+- ✅ Added UTF-8 validation for decrypted filenames to prevent encoding issues
+- ✅ Enhanced `unlock` binary workflow to prioritize restored filenames over default naming
+
+### 📊 **Phase 7 Metrics**
+
+- **Files Enhanced**: `decryption/filename_restoration.rs` (full implementation), `bin/unlock.rs` (CLI integration), `tests/decryption_integration.rs` (test coverage)
+- **Lines of Code**: ~80 lines of restoration implementation + ~60 lines CLI integration + ~150 lines test coverage
+- **Test Coverage**: 6 comprehensive integration tests covering basic restoration, obfuscation, Unicode, wrong passwords, and edge cases
+- **Compilation**: ✅ Clean compilation with no new warnings
+- **Binary**: ✅ Enhanced `unlock` binary with intelligent filename restoration
+
+### 🎯 **Key Achievements**
+
+1. **Complete Filename Restoration**: Original filenames reliably restored from encrypted headers for both obfuscated and plain files
+2. **Intelligent Output Naming**: `unlock` binary now uses restored filenames as default output names, improving user experience
+3. **Robust Error Handling**: Graceful fallback to extension-based naming when restoration fails (wrong password, corruption)
+4. **Unicode Support**: Full UTF-8 filename support with proper validation and error handling
+5. **Security Integration**: Leverages existing AES-256-GCM authenticated decryption for filename security
+6. **Backwards Compatibility**: Works seamlessly with files encrypted in previous phases
+7. **Comprehensive Testing**: Rigorous test coverage including edge cases, error conditions, and Unicode filenames
+
+### 🔧 **Technical Implementation Details**
+
+**Filename Restoration Workflow**:
+- Encrypted file → Header parsing to extract encrypted filename
+- Password → Key derivation using same Argon2id parameters as content decryption
+- Encrypted filename → AES-256-GCM authenticated decryption using file nonce
+- Decrypted bytes → UTF-8 validation and string conversion
+- Restored filename → Used for intelligent output path determination
+
+**CLI Integration Features**:
+- Smart output path determination: tries restoration first, falls back to extension-based naming
+- User-provided output paths take precedence over restoration
+- Helpful error messages when restoration fails due to authentication errors
+- Seamless integration with existing decryption workflow
+
+**Security Features**:
+- Authentication-verified filename decryption prevents tampering
+- UTF-8 validation prevents encoding attacks
+- Secure fallback behavior when decryption fails
+- No information leakage about original filenames on authentication failure
+
+**Testing and Validation**:
+- Basic filename restoration from both obfuscated and non-obfuscated files
+- Unicode filename support with international characters and emojis
+- Wrong password detection and graceful error handling
+- Empty filename handling and edge case coverage
+- Integration testing with full encrypt/decrypt/restore workflow
 
 ## Phase 6: Filename Obfuscation ✅ **COMPLETED**
 

@@ -227,4 +227,254 @@ mod tests {
         
         println!("✅ Special characters decryption test passed!");
     }
+
+    #[test]
+    fn test_filename_restoration_basic() {
+        use crypto::decryption::restore_original_filename;
+        use crypto::shared::header::Header;
+        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use std::fs::File;
+        use std::io::Read;
+
+        // Create a temporary directory for test files
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let original_path = temp_dir.path().join("my_document.txt");
+        let encrypted_path = temp_dir.path().join("encrypted.enc");
+        
+        // Create a test file
+        let test_content = "Test content for filename restoration";
+        fs::write(&original_path, test_content).expect("Failed to write test file");
+        
+        let password = "restoration_test_password";
+        
+        // Encrypt the file (without obfuscation)
+        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        assert!(encrypt_result.is_ok(), "Encryption failed: {:?}", encrypt_result.err());
+        
+        // Read the encrypted file and parse header
+        let mut encrypted_data = Vec::new();
+        let mut file = File::open(&encrypted_path).expect("Failed to open encrypted file");
+        file.read_to_end(&mut encrypted_data).expect("Failed to read encrypted file");
+        
+        let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse header");
+        
+        // Derive key material
+        let params = Argon2Params::default();
+        let key_material = derive_master_key(password, &header.salt, &params)
+            .expect("Failed to derive key material");
+        
+        // Test filename restoration
+        let restored_name = restore_original_filename(&header, &key_material)
+            .expect("Failed to restore filename");
+        
+        assert_eq!(restored_name, "my_document.txt", "Restored filename doesn't match original");
+        
+        println!("✅ Basic filename restoration test passed!");
+        println!("   Original: my_document.txt");
+        println!("   Restored: {}", restored_name);
+    }
+
+    #[test]
+    fn test_filename_restoration_with_obfuscation() {
+        use crypto::decryption::restore_original_filename;
+        use crypto::shared::header::Header;
+        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use std::fs::{File, read_dir};
+        use std::io::Read;
+
+        // Create a temporary directory for test files
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let original_path = temp_dir.path().join("secret_file.txt");
+        let output_base_path = temp_dir.path().join("obfuscated.enc");
+        
+        // Create a test file
+        let test_content = "Secret content that needs obfuscated filename";
+        fs::write(&original_path, test_content).expect("Failed to write test file");
+        
+        let password = "obfuscation_test_password";
+        
+        // Encrypt the file WITH obfuscation
+        let encrypt_result = encrypt_single_file(&original_path, &output_base_path, password, true);
+        assert!(encrypt_result.is_ok(), "Obfuscated encryption failed: {:?}", encrypt_result.err());
+        
+        // Find the actual obfuscated file that was created
+        // (since obfuscation changes the filename, we need to find the .enc file in the directory)
+        let encrypted_file_path = {
+            let dir_entries = read_dir(temp_dir.path()).expect("Failed to read temp directory");
+            let mut enc_files: Vec<_> = dir_entries
+                .filter_map(|entry| entry.ok())
+                .filter(|entry| {
+                    entry.path().extension()
+                        .and_then(|ext| ext.to_str())
+                        .map(|ext| ext == "enc")
+                        .unwrap_or(false)
+                })
+                .collect();
+            
+            assert_eq!(enc_files.len(), 1, "Expected exactly one .enc file, found {}", enc_files.len());
+            enc_files.pop().unwrap().path()
+        };
+        
+        // Read the encrypted file and parse header
+        let mut encrypted_data = Vec::new();
+        let mut file = File::open(&encrypted_file_path).expect("Failed to open obfuscated encrypted file");
+        file.read_to_end(&mut encrypted_data).expect("Failed to read obfuscated encrypted file");
+        
+        let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse obfuscated header");
+        
+        // Derive key material
+        let params = Argon2Params::default();
+        let key_material = derive_master_key(password, &header.salt, &params)
+            .expect("Failed to derive key material for obfuscated file");
+        
+        // Test filename restoration
+        let restored_name = restore_original_filename(&header, &key_material)
+            .expect("Failed to restore obfuscated filename");
+        
+        assert_eq!(restored_name, "secret_file.txt", "Restored obfuscated filename doesn't match original");
+        
+        println!("✅ Obfuscated filename restoration test passed!");
+        println!("   Original: secret_file.txt");
+        println!("   Restored: {}", restored_name);
+        println!("   Obfuscated file: {}", encrypted_file_path.display());
+    }
+
+    #[test]
+    fn test_filename_restoration_unicode() {
+        use crypto::decryption::restore_original_filename;
+        use crypto::shared::header::Header;
+        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use std::fs::File;
+        use std::io::Read;
+
+        // Create a temporary directory for test files
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let unicode_filename = "測試文件_тест_файл_🔒.txt";
+        let original_path = temp_dir.path().join(unicode_filename);
+        let encrypted_path = temp_dir.path().join("unicode_encrypted.enc");
+        
+        // Create a test file with Unicode filename
+        let test_content = "Unicode filename test content";
+        fs::write(&original_path, test_content).expect("Failed to write Unicode test file");
+        
+        let password = "unicode_test_password";
+        
+        // Encrypt the file
+        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        assert!(encrypt_result.is_ok(), "Unicode encryption failed: {:?}", encrypt_result.err());
+        
+        // Read the encrypted file and parse header
+        let mut encrypted_data = Vec::new();
+        let mut file = File::open(&encrypted_path).expect("Failed to open Unicode encrypted file");
+        file.read_to_end(&mut encrypted_data).expect("Failed to read Unicode encrypted file");
+        
+        let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse Unicode header");
+        
+        // Derive key material
+        let params = Argon2Params::default();
+        let key_material = derive_master_key(password, &header.salt, &params)
+            .expect("Failed to derive key material for Unicode file");
+        
+        // Test filename restoration
+        let restored_name = restore_original_filename(&header, &key_material)
+            .expect("Failed to restore Unicode filename");
+        
+        assert_eq!(restored_name, unicode_filename, "Restored Unicode filename doesn't match original");
+        
+        println!("✅ Unicode filename restoration test passed!");
+        println!("   Original: {}", unicode_filename);
+        println!("   Restored: {}", restored_name);
+    }
+
+    #[test]
+    fn test_filename_restoration_wrong_password() {
+        use crypto::decryption::restore_original_filename;
+        use crypto::shared::header::Header;
+        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use std::fs::File;
+        use std::io::Read;
+
+        // Create a temporary directory for test files
+        let temp_dir = tempdir().expect("Failed to create temp directory");
+        let original_path = temp_dir.path().join("password_test.txt");
+        let encrypted_path = temp_dir.path().join("password_encrypted.enc");
+        
+        // Create a test file
+        let test_content = "Content for password test";
+        fs::write(&original_path, test_content).expect("Failed to write password test file");
+        
+        let correct_password = "correct_password_123";
+        let wrong_password = "wrong_password_456";
+        
+        // Encrypt the file
+        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, correct_password, false);
+        assert!(encrypt_result.is_ok(), "Password test encryption failed: {:?}", encrypt_result.err());
+        
+        // Read the encrypted file and parse header
+        let mut encrypted_data = Vec::new();
+        let mut file = File::open(&encrypted_path).expect("Failed to open password test encrypted file");
+        file.read_to_end(&mut encrypted_data).expect("Failed to read password test encrypted file");
+        
+        let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse password test header");
+        
+        // Derive key material with WRONG password
+        let params = Argon2Params::default();
+        let wrong_key_material = derive_master_key(wrong_password, &header.salt, &params)
+            .expect("Failed to derive wrong key material");
+        
+        // Test filename restoration with wrong password - should fail
+        let restoration_result = restore_original_filename(&header, &wrong_key_material);
+        assert!(restoration_result.is_err(), "Filename restoration should fail with wrong password");
+        
+        // Verify correct password works
+        let correct_key_material = derive_master_key(correct_password, &header.salt, &params)
+            .expect("Failed to derive correct key material");
+        
+        let restored_name = restore_original_filename(&header, &correct_key_material)
+            .expect("Failed to restore filename with correct password");
+        
+        assert_eq!(restored_name, "password_test.txt", "Filename restoration with correct password failed");
+        
+        println!("✅ Filename restoration wrong password test passed!");
+        println!("   Wrong password correctly rejected");
+        println!("   Correct password restored: {}", restored_name);
+    }
+
+    #[test]
+    fn test_filename_restoration_empty_header() {
+        use crypto::decryption::restore_original_filename;
+        use crypto::shared::header::{Header, AlgorithmId};
+        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+
+        // Create a header with empty encrypted filename
+        let header = Header {
+            magic: *b"ENC3",
+            version: 3,
+            algorithm_id: AlgorithmId::AesGcm256,
+            salt: [1u8; 16],
+            nonce: [2u8; 12],
+            directory_path_length: 0,
+            encrypted_directory_path: Vec::new(),
+            directory_path_auth_tag: [0u8; 16],
+            filename_length: 0,
+            encrypted_filename: Vec::new(), // Empty filename
+            filename_auth_tag: [0u8; 16],
+            metadata_length: 0,
+            encrypted_metadata: Vec::new(),
+            metadata_auth_tag: [0u8; 16],
+        };
+        
+        // Create dummy key material
+        let password = "dummy_password";
+        let params = Argon2Params::default();
+        let key_material = derive_master_key(password, &header.salt, &params)
+            .expect("Failed to derive dummy key material");
+        
+        // Test filename restoration with empty header - should fail
+        let restoration_result = restore_original_filename(&header, &key_material);
+        assert!(restoration_result.is_err(), "Filename restoration should fail with empty encrypted filename");
+        
+        println!("✅ Empty header filename restoration test passed!");
+        println!("   Empty encrypted filename correctly rejected");
+    }
 }

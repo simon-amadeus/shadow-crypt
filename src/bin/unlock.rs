@@ -3,11 +3,15 @@
 //! This binary provides command-line interface for decrypting files with automatic
 //! filename restoration and metadata preservation.
 
-use crypto::decryption::decrypt_single_file;
+use crypto::decryption::{decrypt_single_file, restore_original_filename};
 use crypto::shared::errors::CryptoError;
+use crypto::shared::header::Header;
+use crypto::shared::crypto::{derive_master_key, Argon2Params};
 use std::env;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::io::{self, Write};
+use std::fs::File;
+use std::io::Read;
 
 fn main() -> Result<(), CryptoError> {
     let args: Vec<String> = env::args().collect();
@@ -29,22 +33,6 @@ fn main() -> Result<(), CryptoError> {
         ));
     }
     
-    // Determine output file path
-    let output_path = if args.len() >= 3 {
-        Path::new(&args[2]).to_path_buf()
-    } else {
-        // Remove .enc extension if present, otherwise add .dec
-        if let Some(stem) = input_path.file_stem() {
-            if input_file.ends_with(".enc") {
-                input_path.with_file_name(stem)
-            } else {
-                input_path.with_extension("dec")
-            }
-        } else {
-            input_path.with_extension("dec")
-        }
-    };
-    
     // Get password from user
     print!("Enter password for decryption: ");
     io::stdout().flush().unwrap();
@@ -57,6 +45,15 @@ fn main() -> Result<(), CryptoError> {
         eprintln!("Error: Password cannot be empty");
         return Err(CryptoError::CryptographicError("Empty password".to_string()));
     }
+
+    // Determine output file path with filename restoration
+    let output_path = if args.len() >= 3 {
+        // User provided explicit output path
+        PathBuf::from(&args[2])
+    } else {
+        // Try to restore original filename, fall back to extension-based naming
+        determine_output_path_with_restoration(input_path, password)?
+    };
     
     // Perform decryption
     println!("Decrypting '{}' to '{}'...", input_file, output_path.display());
@@ -89,6 +86,79 @@ fn main() -> Result<(), CryptoError> {
     }
     
     Ok(())
+}
+
+/// Determine output path using filename restoration
+/// 
+/// Attempts to restore the original filename from the encrypted file header.
+/// Falls back to extension-based naming if restoration fails.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `password` - Password for decryption
+/// 
+/// # Returns
+/// * `Ok(PathBuf)` - Determined output path
+/// * `Err(CryptoError)` - Failed to determine path
+fn determine_output_path_with_restoration(
+    input_path: &Path,
+    password: &str
+) -> Result<PathBuf, CryptoError> {
+    // Try to restore original filename from header
+    match try_restore_filename_from_header(input_path, password) {
+        Ok(original_name) => {
+            // Use the directory of input file + restored filename
+            let input_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
+            Ok(input_dir.join(original_name))
+        }
+        Err(_) => {
+            // Fall back to extension-based naming
+            if let Some(stem) = input_path.file_stem() {
+                if input_path.to_string_lossy().ends_with(".enc") {
+                    Ok(input_path.with_file_name(stem))
+                } else {
+                    Ok(input_path.with_extension("dec"))
+                }
+            } else {
+                Ok(input_path.with_extension("dec"))
+            }
+        }
+    }
+}
+
+/// Try to restore filename from header without full decryption
+/// 
+/// Reads just the header from the encrypted file and attempts to restore
+/// the original filename. This is used for smart output path determination.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `password` - Password for decryption
+/// 
+/// # Returns
+/// * `Ok(String)` - Restored original filename
+/// * `Err(CryptoError)` - Restoration failed
+fn try_restore_filename_from_header(
+    input_path: &Path,
+    password: &str
+) -> Result<String, CryptoError> {
+    // Read encrypted file
+    let mut input_file = File::open(input_path)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    let mut encrypted_data = Vec::new();
+    input_file.read_to_end(&mut encrypted_data)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    // Parse header from encrypted file
+    let (header, _) = Header::deserialize(&encrypted_data)?;
+    
+    // Derive master key from password and salt
+    let params = Argon2Params::default();
+    let key_material = derive_master_key(password, &header.salt, &params)?;
+    
+    // Restore original filename
+    restore_original_filename(&header, &key_material)
 }
 
 fn print_usage() {
