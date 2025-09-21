@@ -57,7 +57,8 @@ cargo build --release
 - ✅ **Phase 7**: Filename restoration
 - ✅ **Phase 8**: File listing capability
 - ✅ **User Feedback Integration**: Security and UX improvements
-- 🚧 **Phase 9**: Multi-file encryption (Next)
+- � **Phase 8.5**: Critical UX fixes (Next - addressing user feedback)
+- ⏳ **Phase 9**: Multi-file encryption
 - ⏳ **Phases 10-20**: Feature implementation and optimization
 
 ### Current Capabilities (Phases 1-8 + User Feedback Complete)
@@ -76,7 +77,11 @@ cargo build --release
 - **Improved filename display** with visual indicators for decryption status
 - Comprehensive test coverage and validation
 
-🚧 **In Development:**
+� **Critical Priority (Phase 8.5):**
+- Enhanced `cryptls` display showing both obfuscated and original filenames
+- File overwrite protection with `--force` flag requirement
+
+�🚧 **In Development (Post Phase 8.5):**
 - Multi-file encryption and batch processing (focus area per user feedback)
 - File viewing and editing tools
 - Advanced CLI features and user experience improvements

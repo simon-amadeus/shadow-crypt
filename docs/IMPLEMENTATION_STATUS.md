@@ -6,60 +6,43 @@ Current progress and status of the crypto file encryption system implementation.
 
 Current progress and status of the crypto file encryption system implementation.
 
-## Current Status: Phase 8 Complete ✅ + User Feedback Integration
+## Current Status: Phase 8.5 Priority ✅ + Critical UX Fixes Required
 
 **Last Updated**: September 21, 2025
-**Phase**: 8 of 20 complete (with user feedback integration)
-**Overall Progress**: 40% complete
-**Next Phase**: Multi-file encryption support (Phase 9 revised)
+**Phase**: 8.5 of 20+ (Critical UX fixes inserted based on user feedback)
+**Overall Progress**: 42% complete (with critical UX gap identified)
+**Next Phase**: Phase 8.5 - Critical user experience fixes (**NEW PRIORITY**)
 
-## 🔄 **User Feedback Integration** (**JUST COMPLETED**)
+## � **Phase 8.5: Critical User Experience Fixes** (**URGENT PRIORITY**)
 
-**Goal**: Address critical user feedback points for better usability and security
+**Goal**: Address workflow-blocking UX issues identified in user feedback
 
-### ✅ **Completed User Feedback Tasks**
+### 📋 **Critical Issues Identified**
 
-1. **✅ Fixed Insecure Password Handling**
-   - Replaced command-line password arguments with secure interactive prompts
-   - Updated `lock`, `unlock`, and `cryptls` binaries to use `rpassword` crate
-   - Passwords no longer visible in process lists or command history
-   - Enhanced user experience with secure password input
+1. **`cryptls` Display Gap**: Users cannot map obfuscated filenames to original names
+   - **Impact**: Blocks user workflow - they can see original names but can't identify which obfuscated file to decrypt
+   - **Evidence**: "the list in cryptls only shows the original filenames but not which obfuscated name corresponds to which original name. so when a user wants to decrypt a specific file they can't tell which obfuscated filename to use"
 
-2. **✅ Improved File Listing Display** 
-   - Enhanced `cryptls` to better identify files when filename decryption fails
-   - Added visual indicators: ✓ for decrypted filenames, ? for encrypted filenames
-   - Added `[ENCRYPTED]` prefix for obfuscated filenames to provide context
-   - Added helpful legend explaining the symbols to users
-   - Improved formatting and user guidance
+2. **File Overwrite Safety**: No protection against accidental overwrites
+   - **Impact**: Risk of data loss
+   - **Evidence**: "overriding files should generally only be allowed with an explicit --force flag"
 
-3. **✅ Fixed Filename Obfuscation Workflow**
-   - Made output filename optional when using `--obfuscate` flag
-   - When obfuscating, tool automatically uses obfuscated filename in same directory
-   - Simplified user experience: `lock --obfuscate document.pdf` (no output file needed)
-   - Updated usage documentation and help text
+### 🎯 **Phase 8.5 Tasks**
 
-4. **✅ Postponed Directory Support**
-   - Updated roadmap to focus on single and multi-file support only
-   - Postponed directory encryption/decryption functionality per user request
-   - Retained useful directory listing functionality (`cryptls`)
-   - Revised Phase 9+ roadmap to focus on multi-file operations
+- [ ] Enhance `cryptls` output to show both obfuscated and original filenames clearly
+- [ ] Add `--force` flag requirement for file overwriting in `lock` and `unlock` binaries
+- [ ] Update help text and documentation for improved user guidance
+- [ ] Add comprehensive tests for new safety and display features
 
-### 📊 **User Feedback Integration Metrics**
+### ⚡ **Critical Path Justification**
 
-- **Security Enhancement**: Eliminated password exposure in process lists
-- **Usability Improvement**: Simplified obfuscation workflow, better file identification
-- **Documentation**: Updated help text, usage examples, and roadmap
-- **Compilation**: ✅ All changes compile cleanly
-- **Backward Compatibility**: Maintained existing functionality while improving UX
+**Why This Interrupts Phase 9**: User feedback reveals that Phase 8 has a fundamental gap that prevents effective use of the listing feature. This is a **workflow blocker** that must be resolved before adding new features.
 
-### 🎯 **Key User Experience Improvements**
+**Adaptive Development Principle**: "Boldly adapt future plans when evidence suggests better approaches" - the evidence clearly shows users need these fixes to use existing features effectively.
 
-1. **Security**: No more plaintext passwords in command line arguments
-2. **Simplicity**: Filename obfuscation no longer requires specifying output filename
-3. **Clarity**: Better identification of encrypted vs. decrypted files in listings
-4. **Focus**: Roadmap now focuses on most requested features (single/multi-file support)
+**User-Centered Focus**: "Security serves user experience, not the other way around" - the crypto is solid, but UX gaps prevent user adoption.
 
-## Phase 8: File Listing Capability ✅ **COMPLETED**
+## Phase 8: File Listing Capability ✅ **COMPLETED** (with identified gaps)
 
 **Goal**: Create encrypted file listing in `listing/` module
 

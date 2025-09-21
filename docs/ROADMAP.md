@@ -1,4 +1,8 @@
-# Implementation Roadmap
+# Implementation Roa- ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
+- ✅ **Phase 7**: Filename restoration (**COMPLETE**)
+- ✅ **Phase 8**: File listing capability (**COMPLETE**)
+- 🔥 **Phase 8.5**: Critical user experience fixes (**NEW PRIORITY**)
+- 🚧 **Phase 9**: Multi-file encryption support (**NEXT AFTER 8.5**)
 
 Complete 20-phase implementation plan for the crypto file encryption system.
 
@@ -286,7 +290,32 @@ The implementation is organized into 20 focused phases, each with specific goals
 
 ---
 
-### Phase 9: Multi-File Encryption Support (**REVISED BASED ON USER FEEDBACK**)
+### Phase 8.5: Critical User Experience Fixes (**NEW PRIORITY PHASE**)
+
+**Goal**: Address critical UX issues identified in user feedback that block effective usage
+
+**Evidence from User Feedback**:
+- Users cannot determine which obfuscated file to decrypt (workflow blocker)
+- File overwrite safety concerns require explicit protection
+
+**High Priority Tasks**:
+- [ ] Fix `cryptls` to show both obfuscated and original filenames in clear format
+- [ ] Add `--force` flag requirement for file overwriting in `lock` and `unlock`
+- [ ] Update help text and documentation for improved workflow guidance
+- [ ] Add comprehensive tests for new UX features
+
+**Dependencies**: Phase 8 ✅
+
+**Estimated Duration**: 1-2 days (critical path)
+
+**Success Criteria**:
+- Users can clearly identify which obfuscated file corresponds to which original
+- No accidental file overwrites without explicit `--force` flag
+- Workflow from listing to decryption is intuitive and safe
+
+---
+
+### Phase 9: Multi-File Encryption Support (**MOVED TO FOLLOW 8.5**)
 
 **Goal**: Support encrypting multiple individual files (not directories)
 

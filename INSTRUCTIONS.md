@@ -30,9 +30,16 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - Identify technical debt and improvement opportunities
 
 ### 3.5. **CHECK FEEDBACK & ADAPT IF NEEDED** 🔄
-- **Check `FEEDBACK.md` for customer feedback**
-- If feedback exists or roadmap needs refinement → **Jump to Step 6**
-- If no adaptation needed → Continue to Step 4
+- **Check `FEEDBACK.md` for NEW customer feedback**
+- **IMPORTANT**: Only consider items in the "New Feedback" section
+- **IGNORE**: Items already marked as "Addressed" or "ROADMAP UPDATED" 
+- If NEW feedback exists that requires roadmap changes → **Jump to Step 6**
+- If no NEW adaptation needed → Continue to Step 4
+
+**Feedback Processing Rules:**
+- NEW feedback = items in "New Feedback" section only
+- ADDRESSED feedback = moved to "Addressed" section, should be ignored
+- When jumping to Step 6, mark feedback items as "ROADMAP UPDATED" and move to "Addressed"
 
 ### 4. **IMPLEMENT NEXT ROADMAP PHASE** ⚡
 **Execute with focus on learning and user value:**
@@ -58,6 +65,12 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - Question assumptions and be willing to pivot when warranted
 - Balance technical debt against user-facing improvements
 - Plan experiments to test new hypotheses about user needs
+- **When processing feedback**: Move items from "New Feedback" to "Addressed" section with status updates
+
+**Feedback File Management:**
+- Mark feedback items as "ROADMAP UPDATED" when integrated
+- Move completed items to "Addressed" section to prevent infinite loops
+- Keep "New Feedback" section clear for future input
 
 ## Implementation Guidelines
 
