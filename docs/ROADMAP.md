@@ -21,7 +21,8 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- 🚧 **Phase 9**: Directory encryption (**NEXT**)
+- � **Phase 9**: Multi-file encryption support (**NEXT**)
+- ⏸️ **Phase 10+**: Directory encryption (**POSTPONED** per user feedback)
 
 ---
 
@@ -285,49 +286,72 @@ The implementation is organized into 20 focused phases, each with specific goals
 
 ---
 
-### Phase 9: Add Directory Support to `lock`
+### Phase 9: Multi-File Encryption Support (**REVISED BASED ON USER FEEDBACK**)
 
-**Goal**: Build CLI binary for file encryption
+**Goal**: Support encrypting multiple individual files (not directories)
+
+**Revised Approach Based on User Feedback**:
+- **Focus**: Single and multi-file support only
+- **Postponed**: Directory encryption functionality
+- **Retain**: Directory listing capability (`cryptls`)
 
 **Tasks**:
-- [ ] Add CLI dependency to Cargo.toml (clap)
-- [ ] Create `bin/lock.rs` with argument parsing
-- [ ] Integrate with `encryption/` module
-- [ ] Support single files with `--obfuscate` flag
-- [ ] Add basic error handling and user feedback
-- [ ] Add progress indicators
+- [ ] Add support for multiple file arguments to `lock` binary
+- [ ] Implement batch processing for multiple individual files
+- [ ] Add progress indicators for multi-file operations
+- [ ] Support glob patterns for file selection
+- [ ] Enhance error handling for partial failures
+- [ ] Add parallel processing for performance
 
 **Dependencies**: Phase 8 ✅
 
 **Estimated Duration**: 2-3 days
 
 **Success Criteria**:
-- CLI is user-friendly and intuitive
-- Error messages are helpful
-- Progress feedback works correctly
-- Help text is comprehensive
+- Can encrypt multiple individual files in one command
+- Progress feedback shows per-file and overall progress
+- Robust error handling for individual file failures
+- Performance scales well with file count
+
+**Note**: Directory encryption has been postponed per user feedback. The focus is on
+single file and multi-file (individual files) support only.
 
 ---
 
-### Phase 10: Create `unlock` Binary
+### Phase 10: Multi-File Decryption Support (**REVISED**)
 
-**Goal**: Build CLI binary for file decryption
+**Goal**: Support decrypting multiple individual files
 
 **Tasks**:
-- [ ] Create `bin/unlock.rs` with argument parsing
-- [ ] Integrate with `decryption/` module
-- [ ] Support single files with automatic format detection
-- [ ] Add basic error handling and user feedback
-- [ ] Add password prompting with secure input
+- [ ] Add support for multiple file arguments to `unlock` binary
+- [ ] Implement batch processing for multiple encrypted files
+- [ ] Add automatic output path determination for batch operations
+- [ ] Support wildcard/glob patterns for encrypted file selection
+- [ ] Add progress indicators and error handling
 
 **Dependencies**: Phase 9 ✅
 
 **Estimated Duration**: 2-3 days
 
 **Success Criteria**:
-- Decryption CLI works seamlessly
-- Password input is secure (no echo)
-- Error handling guides users effectively
+- Can decrypt multiple files in one command
+- Automatic filename restoration works for all files
+- Progress feedback and error handling work correctly
+
+---
+
+### ⏸️ **POSTPONED PHASES** (Per User Feedback)
+
+The following phases have been postponed to focus on single and multi-file support:
+
+#### Phase 11+: Directory Encryption (POSTPONED)
+- Directory structure encryption
+- Recursive directory processing  
+- Directory-level obfuscation
+
+#### Phase 12+: Directory Decryption (POSTPONED)
+- Directory structure restoration
+- Batch directory decryption
 - Format detection is reliable
 
 ---

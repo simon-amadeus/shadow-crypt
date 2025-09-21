@@ -19,6 +19,7 @@ pub struct FileInfo {
     pub size: u64,
     pub modified: SystemTime,
     pub encrypted_size: u64,
+    pub filename_decrypted: bool, // New field to track if filename was successfully decrypted
 }
 
 /// List encrypted files in a directory with their original names
@@ -65,14 +66,15 @@ pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<File
         let original_size = encrypted_content_size.saturating_sub(16); // Subtract GCM auth tag
         
         // Try to extract original filename from header
-        let original_name = match extract_original_filename(&header, password) {
-            Ok(name) => name,
+        let (original_name, filename_decrypted) = match extract_original_filename(&header, password) {
+            Ok(name) => (name, true),
             Err(_) => {
                 // If filename restoration fails, use the encrypted filename
-                path.file_name()
+                let encrypted_name = path.file_name()
                     .unwrap_or_default()
                     .to_string_lossy()
-                    .to_string()
+                    .to_string();
+                (format!("[ENCRYPTED] {}", encrypted_name), false)
             }
         };
         
@@ -82,6 +84,7 @@ pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<File
             size: original_size,
             modified,
             encrypted_size,
+            filename_decrypted,
         });
     }
     

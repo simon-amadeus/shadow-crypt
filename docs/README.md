@@ -27,14 +27,17 @@ The system provides five specialized command-line tools:
 # Build all tools
 cargo build --release
 
-# Encrypt a file
-./target/release/lock secret.txt secret.txt.enc mypassword123
+# Encrypt a file (password prompted securely)
+./target/release/lock secret.txt secret.txt.enc
 
-# Decrypt a file  
+# Encrypt with filename obfuscation (output filename optional)
+./target/release/lock --obfuscate secret.txt
+
+# Decrypt a file (password prompted securely)
 ./target/release/unlock secret.txt.enc
 
-# List encrypted files in directory (Phases 8+)
-./target/release/cryptls encrypted_files/ mypassword123
+# List encrypted files in directory (password prompted securely)
+./target/release/cryptls encrypted_files/
 
 # View an encrypted file (Phase 9+)
 ./target/release/cryptview secret.txt.enc
@@ -53,27 +56,33 @@ cargo build --release
 - ✅ **Phase 6**: Filename obfuscation
 - ✅ **Phase 7**: Filename restoration
 - ✅ **Phase 8**: File listing capability
-- 🚧 **Phase 9**: Directory encryption (Next)
+- ✅ **User Feedback Integration**: Security and UX improvements
+- 🚧 **Phase 9**: Multi-file encryption (Next)
 - ⏳ **Phases 10-20**: Feature implementation and optimization
 
-### Current Capabilities (Phases 1-8 Complete)
+### Current Capabilities (Phases 1-8 + User Feedback Complete)
 
 ✅ **Working Features:**
 - Single file encryption with AES-256-GCM
+- **Secure password input** (no command-line password exposure)
+- **Simplified filename obfuscation workflow** (output filename optional)
 - Password-based key derivation using Argon2id  
 - File metadata preservation (permissions, timestamps)
 - Complete file decryption with integrity verification
 - Secure filename obfuscation with collision resistance
 - Intelligent filename restoration during decryption
 - Cross-platform command-line tools (`lock`, `unlock`, and `cryptls`)
-- Directory scanning and encrypted file listing
-- Original filename display without full decryption
+- **Enhanced directory scanning** with encrypted file listing
+- **Improved filename display** with visual indicators for decryption status
 - Comprehensive test coverage and validation
 
 🚧 **In Development:**
-- Directory encryption and batch processing
+- Multi-file encryption and batch processing (focus area per user feedback)
 - File viewing and editing tools
 - Advanced CLI features and user experience improvements
+
+⏸️ **Postponed (Per User Feedback):**
+- Directory encryption (postponed to focus on single/multi-file support)
 
 See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for detailed progress.
 

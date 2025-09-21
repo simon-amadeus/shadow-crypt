@@ -9,7 +9,6 @@ use crypto::shared::header::Header;
 use crypto::shared::crypto::{derive_master_key, Argon2Params};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::io::{self, Write};
 use std::fs::File;
 use std::io::Read;
 
@@ -33,13 +32,16 @@ fn main() -> Result<(), CryptoError> {
         ));
     }
     
-    // Get password from user
-    print!("Enter password for decryption: ");
-    io::stdout().flush().unwrap();
-    let mut password = String::new();
-    io::stdin().read_line(&mut password)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
-    let password = password.trim();
+    // Get password securely from user
+    let password = match rpassword::prompt_password("Enter password for decryption: ") {
+        Ok(pass) => pass,
+        Err(e) => {
+            eprintln!("Error reading password: {}", e);
+            return Err(CryptoError::FileSystemError(
+                std::io::Error::new(std::io::ErrorKind::Other, "Failed to read password")
+            ));
+        }
+    };
     
     if password.is_empty() {
         eprintln!("Error: Password cannot be empty");
@@ -52,13 +54,13 @@ fn main() -> Result<(), CryptoError> {
         PathBuf::from(&args[2])
     } else {
         // Try to restore original filename, fall back to extension-based naming
-        determine_output_path_with_restoration(input_path, password)?
+        determine_output_path_with_restoration(input_path, &password)?
     };
     
     // Perform decryption
     println!("Decrypting '{}' to '{}'...", input_file, output_path.display());
     
-    match decrypt_single_file(input_path, &output_path, password) {
+    match decrypt_single_file(input_path, &output_path, &password) {
         Ok(()) => {
             println!("✅ Decryption successful!");
             println!("   Output: {}", output_path.display());

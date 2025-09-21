@@ -77,8 +77,15 @@ pub fn format_timestamp(time: SystemTime) -> String {
 
 /// Format file information for display
 pub fn format_file_info(info: &FileInfo) -> String {
+    let status_indicator = if info.filename_decrypted {
+        "✓"
+    } else {
+        "?"
+    };
+    
     format!(
-        "{:<40} {:>10} {:>15} {}",
+        "{} {:<38} {:>10} {:>15} {}",
+        status_indicator,
         info.original_name,
         format_file_size(info.size),
         format_file_size(info.encrypted_size),
@@ -89,8 +96,8 @@ pub fn format_file_info(info: &FileInfo) -> String {
 /// Format file listing header
 pub fn format_header() -> String {
     format!(
-        "{:<40} {:>10} {:>15} {}",
-        "ORIGINAL NAME", "SIZE", "ENCRYPTED SIZE", "MODIFIED"
+        "{} {:<38} {:>10} {:>15} {}",
+        "✓", "FILENAME", "SIZE", "ENCRYPTED SIZE", "MODIFIED"
     )
 }
 
