@@ -8,14 +8,28 @@ Add your feedback here. Keep it simple - just write what you think.
 
 *(Add new items here)*
 
-- add some option to remove the source file after encryption/decryption. maybe use --inplace or --remove-source flag? not sure about the name.
-- a strong security audit is requested ASAP.
-
 ---
 
 ## Addressed
 
 *(Completed items move here)*
+
+### September 30, 2025 - Source File Removal Priority
+
+- **ROADMAP UPDATED**: separate source file removal from the phase that implements multi-file support. source file removal is a generally useful feature that should be available for single-file operations as well. it is also more important than multi-file support, so it should be implemented first.
+  - **Status**: Integrated into roadmap restructure - Phase 9 now focuses on source removal for single-file operations
+  - **Action**: Reprioritized phases: Phase 9 = source removal, Phase 10 = multi-file encryption, Phase 11 = multi-file decryption
+  - **Impact**: Addresses user insight that source removal is more generally useful and important
+
+### September 30, 2025 - Multi-file Enhancement and Security Priorities
+
+- **ROADMAP UPDATED**: add some option to remove the source file after encryption/decryption. maybe use --inplace or --remove-source flag? not sure about the name.
+  - **Status**: Integrated into Phase 9 and 10 as `--remove-source`/`--inplace` flag feature
+  - **Action**: Added to multi-file encryption/decryption tasks with safety considerations
+
+- **ROADMAP UPDATED**: a strong security audit is requested ASAP.
+  - **Status**: Integrated as new Phase 10.5 with high priority
+  - **Action**: Created comprehensive security audit phase with external review and penetration testing
 
 ### September 21, 2025 - Roadmap Simplification
 

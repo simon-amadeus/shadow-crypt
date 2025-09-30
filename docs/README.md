@@ -58,8 +58,11 @@ cargo build --release
 - ✅ **Phase 8**: File listing capability
 - ✅ **User Feedback Integration**: Security and UX improvements
 - ✅ **Phase 8.5**: Critical UX fixes (**COMPLETED** - Enhanced display and file safety)
-- 🚧 **Phase 9**: Multi-file encryption (**NEXT**)
-- ⏳ **Phases 10-20**: Feature implementation and optimization
+- 🚧 **Phase 9**: Source file removal support (**CURRENT PRIORITY** - User feedback: more important than multi-file)
+- ⏳ **Phase 10**: Multi-file encryption support (**REPRIORITIZED**)
+- ⏳ **Phase 11**: Multi-file decryption support (**REPRIORITIZED**)
+- ⏳ **Phase 11.5**: Security audit (**NEW** - User requested ASAP)
+- ⏳ **Phases 12-20**: Advanced features and optimization
 
 ### Current Capabilities (Phases 1-8.5 Complete)
 
@@ -79,7 +82,11 @@ cargo build --release
 - Comprehensive test coverage and validation
 
 🚧 **In Development (Phase 9):**
-- Multi-file encryption and batch processing (focus area per user feedback)
+- Source file removal support with `--remove-source`/`--inplace` flags (focus area per user feedback)
+- Enhanced single-file workflow with secure source deletion
+
+⏳ **Next Priorities:**
+- Multi-file encryption and batch processing (Phase 10+)
 - File viewing and editing tools
 - Advanced CLI features and user experience improvements
 

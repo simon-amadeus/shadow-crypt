@@ -11,7 +11,7 @@ Current progress and status of the crypto file encryption system implementation.
 **Last Updated**: September 30, 2025
 **Phase**: 8.5 of 20+ (**COMPLETED** - Critical UX fixes)
 **Overall Progress**: 44% complete (Phase 8.5 complete, UX workflow blockers resolved)
-**Next Phase**: Phase 9 - Multi-file encryption support
+**Next Phase**: Phase 9 - Source file removal support (**REPRIORITIZED** per user feedback)
 
 ## ✅ **Phase 8.5: Critical User Experience Fixes** (**COMPLETED**)
 

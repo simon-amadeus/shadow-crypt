@@ -26,8 +26,10 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
 - ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
-- 🚧 **Phase 9**: Multi-file encryption support (**CURRENT PRIORITY**)
-- ⏸️ **Directory Encryption**: (**REMOVED** - user feedback: "will never be needed")
+- 🚧 **Phase 9**: Source file removal support for single-file operations (**CURRENT PRIORITY** - User feedback: more important than multi-file)
+- ⏳ **Phase 9.5**: Security audit (**NEW** - User requested ASAP)
+- ⏳ **Phase 10**: Multi-file encryption support (**REPRIORITIZED**)
+- ⏳ **Phase 11**: Multi-file decryption support (**REPRIORITIZED**)
 
 ---
 
@@ -291,39 +293,84 @@ The implementation is organized into 20 focused phases, each with specific goals
 
 ---
 
-### Phase 8.5: Critical User Experience Fixes (**NEW PRIORITY PHASE**)
+### Phase 9: Source File Removal Support (**CURRENT PRIORITY** - **User Feedback Priority**)
 
-**Goal**: Address critical UX issues identified in user feedback that block effective usage
+**Goal**: Add source file removal support for single-file operations (`--remove-source`/`--inplace`)
 
-**Evidence from User Feedback**:
-- Users cannot determine which obfuscated file to decrypt (workflow blocker)
-- File overwrite safety concerns require explicit protection
+**User Insight**: Source file removal is more important than multi-file support and should be available for single-file operations. It's a generally useful feature that should be implemented first.
 
-**High Priority Tasks**:
-- [ ] Fix `cryptls` to show both obfuscated and original filenames in clear format
-- [ ] Add `--force` flag requirement for file overwriting in `lock` and `unlock`
-- [ ] Update help text and documentation for improved workflow guidance
-- [ ] Add comprehensive tests for new UX features
+**Tasks**:
+- [ ] Add `--remove-source` flag to `lock` binary for single-file encryption
+- [ ] Add `--remove-source` flag to `unlock` binary for single-file decryption  
+- [ ] Add `--inplace` alias flag for convenience
+- [ ] Implement secure file deletion (overwrite before removal on supported filesystems)
+- [ ] Add safety confirmation prompts for destructive operations
+- [ ] Implement atomic operation: ensure encryption/decryption succeeds before source removal
+- [ ] Add comprehensive error handling for removal failures
+- [ ] Update help text and documentation for new flags
+- [ ] Add comprehensive tests for source removal functionality
 
-**Dependencies**: Phase 8 ✅
+**Dependencies**: Phase 8.5 ✅
 
-**Estimated Duration**: 1-2 days (critical path)
+**Estimated Duration**: 1-2 days
 
 **Success Criteria**:
-- Users can clearly identify which obfuscated file corresponds to which original
-- No accidental file overwrites without explicit `--force` flag
-- Workflow from listing to decryption is intuitive and safe
+- `lock --remove-source file.txt` encrypts and safely removes source
+- `unlock --remove-source file.txt.enc` decrypts and safely removes encrypted file
+- Atomic operations: removal only happens after successful encryption/decryption
+- Clear safety prompts and error messages
+- Comprehensive test coverage for all edge cases
+
+**Security Considerations**:
+- Ensure file is fully written and verified before source removal
+- Use secure deletion where possible (overwrite before unlink)
+- Provide clear feedback about irreversible operations
+- Handle partial failures gracefully (e.g., successful encryption but failed removal)
 
 ---
 
-### Phase 9: Multi-File Encryption Support (**MOVED TO FOLLOW 8.5**)
+### Phase 9.5: Security Audit (**NEW PRIORITY PHASE** - **User Feedback**)
+
+**Goal**: Conduct comprehensive security audit as requested by users
+
+**Critical Security Tasks**:
+- [ ] Third-party cryptographic review of AES-256-GCM implementation
+- [ ] Argon2id parameter validation and side-channel analysis
+- [ ] Memory safety audit (SecureVec, zeroization, mlock usage)
+- [ ] Timing attack resistance verification
+- [ ] File format security analysis
+- [ ] CLI input sanitization and injection testing
+- [ ] Dependency security audit (crypto crates, supply chain)
+- [ ] Penetration testing of complete workflow
+
+**Deliverables**:
+- [ ] Professional security audit report
+- [ ] Remediation plan for any identified issues
+- [ ] Security certification documentation
+- [ ] Updated security documentation with audit results
+
+**Dependencies**: Phase 10 ✅
+
+**Estimated Duration**: 7-14 days (external audit + remediation)
+
+**Success Criteria**:
+- Professional security audit passes with no critical issues
+- All medium/high findings addressed
+- Security documentation updated with audit results
+- Users receive audit report and remediation evidence
+
+**Note**: This phase was added in response to urgent user request for security validation.
+
+---
+
+### Phase 10: Multi-File Encryption Support (**REPRIORITIZED** after source removal)
 
 **Goal**: Support encrypting multiple individual files (not directories)
 
 **Revised Approach Based on User Feedback**:
-- **Focus**: Single and multi-file support only
+- **Focus**: Multi-file support building on single-file source removal from Phase 9
 - **Postponed**: Directory encryption functionality
-- **Retain**: Directory listing capability (`cryptls`)
+- **Inherit**: Source removal support from Phase 9
 
 **Tasks**:
 - [ ] Add support for multiple file arguments to `lock` binary
@@ -332,8 +379,9 @@ The implementation is organized into 20 focused phases, each with specific goals
 - [ ] Support glob patterns for file selection
 - [ ] Enhance error handling for partial failures
 - [ ] Add parallel processing for performance
+- [ ] Extend `--remove-source` support to multi-file operations
 
-**Dependencies**: Phase 8 ✅
+**Dependencies**: Phase 9 ✅ (Source file removal)
 
 **Estimated Duration**: 2-3 days
 
@@ -341,14 +389,12 @@ The implementation is organized into 20 focused phases, each with specific goals
 - Can encrypt multiple individual files in one command
 - Progress feedback shows per-file and overall progress
 - Robust error handling for individual file failures
+- Source removal works safely for multi-file operations
 - Performance scales well with file count
-
-**Note**: Directory encryption has been postponed per user feedback. The focus is on
-single file and multi-file (individual files) support only.
 
 ---
 
-### Phase 10: Multi-File Decryption Support (**REVISED**)
+### Phase 11: Multi-File Decryption Support (**REPRIORITIZED**)
 
 **Goal**: Support decrypting multiple individual files
 
@@ -358,8 +404,9 @@ single file and multi-file (individual files) support only.
 - [ ] Add automatic output path determination for batch operations
 - [ ] Support wildcard/glob patterns for encrypted file selection
 - [ ] Add progress indicators and error handling
+- [ ] Extend `--remove-source` support to multi-file decryption
 
-**Dependencies**: Phase 9 ✅
+**Dependencies**: Phase 10 ✅
 
 **Estimated Duration**: 2-3 days
 
@@ -367,6 +414,7 @@ single file and multi-file (individual files) support only.
 - Can decrypt multiple files in one command
 - Automatic filename restoration works for all files
 - Progress feedback and error handling work correctly
+- Source file removal works safely for multi-file operations
 
 ---
 
