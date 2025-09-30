@@ -28,6 +28,10 @@ path = "src/bin/shadowview.rs"
 name = "shadowedit"
 path = "src/bin/shadowedit.rs"
 
+[[bin]]
+name = "shadowmigrate"
+path = "src/bin/shadowmigrate.rs"
+
 [dependencies]
 # Cryptographic dependencies for Phase 3
 aes-gcm = "0.10"         # AES-256-GCM authenticated encryption

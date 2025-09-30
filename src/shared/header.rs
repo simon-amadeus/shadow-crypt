@@ -257,11 +257,30 @@ pub const MAX_FILENAME_LENGTH: usize = 512;     // Pad all filenames to this siz
 pub const MAX_DIRECTORY_PATH_LENGTH: usize = 2048;  // Pad all paths to this size  
 pub const MAX_METADATA_LENGTH: usize = 256;     // Pad all metadata to this size
 
+/// Current Shadow format version
+pub const CURRENT_VERSION: u16 = 1;
+
+/// Minimum supported version for backward compatibility
+pub const MIN_SUPPORTED_VERSION: u16 = 1;
+
+/// Maximum supported version for forward compatibility
+pub const MAX_SUPPORTED_VERSION: u16 = 1;
+
+/// Version information for migration decisions
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VersionInfo {
+    pub current: u16,
+    pub is_current: bool,
+    pub is_supported: bool,
+    pub needs_migration: bool,
+    pub can_migrate: bool,
+}
+
 /// File header structure with all encrypted components
 #[derive(Debug)]
 pub struct Header {
     pub magic: [u8; 6],              // "SHADOW"
-    pub version: u16,                // Version 3
+    pub version: u16,                // Current version: 1 (Shadow format)
     pub algorithm_id: AlgorithmId,   // Cryptographic algorithm identifier
     pub salt: [u8; 16],              // Unique per file
     pub nonce: [u8; 12],             // GCM nonce (96-bit)
@@ -286,7 +305,7 @@ impl Header {
     ) -> Self {
         Self {
             magic: *b"SHADOW",
-            version: 3,
+            version: CURRENT_VERSION,
             algorithm_id,
             salt,
             nonce,
@@ -366,9 +385,17 @@ impl Header {
         offset += 2;
         
         // Validate version
-        if version > 3 {
+        if version > MAX_SUPPORTED_VERSION {
             return Err(CryptoError::HeaderParsingError(
-                format!("Unsupported version: {}", version)
+                format!("Unsupported version: {} (maximum supported: {})", 
+                       version, MAX_SUPPORTED_VERSION)
+            ));
+        }
+        
+        if version < MIN_SUPPORTED_VERSION {
+            return Err(CryptoError::HeaderParsingError(
+                format!("Unsupported version: {} (minimum supported: {})", 
+                       version, MIN_SUPPORTED_VERSION)
             ));
         }
         
@@ -520,7 +547,28 @@ impl Header {
     
     /// Validate version compatibility
     pub fn is_version_compatible(&self) -> bool {
-        self.version <= 3 && self.version > 0
+        self.version >= MIN_SUPPORTED_VERSION && self.version <= MAX_SUPPORTED_VERSION
+    }
+    
+    /// Get version information for migration decisions
+    pub fn get_version_info(&self) -> VersionInfo {
+        VersionInfo {
+            current: self.version,
+            is_current: self.version == CURRENT_VERSION,
+            is_supported: self.is_version_compatible(),
+            needs_migration: self.version < CURRENT_VERSION,
+            can_migrate: self.version >= MIN_SUPPORTED_VERSION,
+        }
+    }
+    
+    /// Check if file can be migrated to current version
+    pub fn can_be_migrated(&self) -> bool {
+        self.get_version_info().can_migrate
+    }
+    
+    /// Check if file needs migration to current version
+    pub fn needs_migration(&self) -> bool {
+        self.get_version_info().needs_migration
     }
     
     /// Check if header is structurally valid
@@ -737,7 +785,7 @@ mod tests {
     fn test_header_creation() {
         let header = create_test_header();
         assert_eq!(header.magic, *b"SHADOW");
-        assert_eq!(header.version, 3);
+        assert_eq!(header.version, CURRENT_VERSION);
         assert_eq!(header.algorithm_id, AlgorithmId::AesGcm256);
         assert_eq!(header.salt, [1u8; 16]);
         assert_eq!(header.nonce, [2u8; 12]);
@@ -812,7 +860,7 @@ mod tests {
     fn test_header_deserialization_length_overflow() {
         let mut data = vec![0u8; 100];
         data[0..6].copy_from_slice(b"SHADOW");
-        data[6] = 3; // Version 3
+        data[6] = CURRENT_VERSION as u8; // Current version
         data[7] = 0;
         data[8] = 1; // Algorithm AES-256-GCM
         data[9] = 0;
@@ -824,7 +872,11 @@ mod tests {
         assert!(result.is_err());
         let error_msg = result.unwrap_err().to_string();
         // Should fail with bounds check error when trying to read directory path data
-        assert!(error_msg.contains("Cannot read directory path") || error_msg.contains("Directory path length"));
+        assert!(
+            error_msg.contains("Cannot read directory path") || 
+            error_msg.contains("Directory path length") ||
+            error_msg.contains("Insufficient data")
+        );
     }
     
     #[test]

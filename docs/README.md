@@ -13,13 +13,14 @@ A high-security, high-performance file encryption system written in Rust with re
 
 ## Tools
 
-The system provides five specialized command-line tools:
+The system provides six specialized command-line tools:
 
 - **`shadow`** - Encrypt files and directories
 - **`unshadow`** - Decrypt files and directories  
 - **`shadows`** - List encrypted files with original names
 - **`shadowview`** - Securely view encrypted files
 - **`shadowedit`** - Securely edit encrypted files
+- **`shadowmigrate`** - Analyze and migrate between file format versions
 
 ## Quick Start
 
@@ -50,13 +51,19 @@ cargo build --release
 
 # Edit an encrypted file (Phase 11+)
 ./target/release/shadowedit secret.txt.shadow
+
+# Analyze files for migration needs (Phase 9.98+)
+./target/release/shadowmigrate analyze secret.txt.shadow
+
+# Analyze directory for migration planning
+./target/release/shadowmigrate analyze-dir encrypted_files/
 ```
 
 ## Status
 
 This is a production-ready file encryption system with completed core features, comprehensive security audit, production-quality error handling, and complete shadow branding. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
 
-**Latest Update**: ✅ **Phase 9.95 Complete** - Full project rebranding to "Shadow" with new command names and file format implemented.
+**Latest Update**: ✅ **Phase 9.98 Complete** - Migration system foundation implemented with cryptographic agility infrastructure for future algorithm upgrades.
 
 **Security Status**: ✅ **Internal security audit completed** - No critical or high-risk vulnerabilities identified. Ready for external professional audit.
 
@@ -84,9 +91,10 @@ cargo build --release
 cargo test
 
 # Run specific tool with help
-cargo run --bin lock -- --help
-cargo run --bin unlock -- --help
-cargo run --bin cryptls -- --help
+cargo run --bin shadow -- --help
+cargo run --bin unshadow -- --help
+cargo run --bin shadows -- --help
+cargo run --bin shadowmigrate -- --help
 ```
 
 ## License
