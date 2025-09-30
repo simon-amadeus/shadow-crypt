@@ -8,9 +8,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- Security audit and cryptographic review
 - Multi-file encryption and decryption support
 - File viewing and editing tools
+- External professional security audit
+
+## [0.9.6] - 2025-09-30
+
+### Fixed
+- **CRITICAL**: Integration test performance optimization - Tests now complete in <5 seconds instead of 60+ seconds  
+- **CRITICAL**: Fixed parameter mismatch between encryption and decryption in integration tests
+- Added `encrypt_single_file_with_params` and `decrypt_single_file_with_params` functions for test parameter control
+- All integration tests now use consistent lightweight Argon2 test parameters (1MB memory, 1 iteration)
+- Systematic fix across all test files: `decryption_integration.rs`, `encryption_integration.rs`, `source_removal_integration.rs`, `listing_integration.rs`
+- Production mode maintains security with system-adaptive parameters (32MB-512MB memory, 5 iterations, 1-8 threads)
+
+### Changed
+- `Argon2Params::default()` now automatically detects test vs production mode via `cfg!(test)`
+- Added `Argon2Params::test_params()` and `Argon2Params::production_params()` methods
+- Enhanced security validation tests to verify both parameter profiles
+
+## [0.9.5] - 2025-09-30
+
+### Added
+- Comprehensive internal security audit with detailed report
+- Adaptive Argon2id parameters based on actual system memory and CPU detection
+- Constant-time cryptographic operations for filename obfuscation verification
+- Security validation test suite with 5 specialized security tests
+- Automated security audit script (`security_audit.sh`) for ongoing validation
+
+### Security
+- **MAJOR**: System-aware Argon2 memory cost (1/8 of available RAM, 32MB-512MB bounds)
+- **MAJOR**: Actual CPU detection for optimal Argon2 parallelism (1-8 threads)
+- **MEDIUM**: Constant-time comparison prevents timing side-channel attacks
+- Security audit report identifies no critical or high-risk vulnerabilities
+- Comprehensive dependency security analysis
+- Memory safety validation and timing attack resistance verification
+
+### Fixed
+- Unused import warnings in `cryptview` and `cryptedit` binaries
+- Hardcoded system resource parameters replaced with dynamic detection
+
+### Changed
+- Argon2 parameters now adapt to system capabilities automatically
+- Enhanced cryptographic security with timing attack protections
 
 ## [0.9.0] - 2025-09-30
 

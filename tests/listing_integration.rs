@@ -3,9 +3,10 @@
 //! These tests verify the file listing functionality works correctly
 //! with encrypted files from previous phases.
 
-use crypto::listing::file_scanner::list_encrypted_files;
+use crypto::listing::file_scanner::list_encrypted_files_with_params;
 use crypto::listing::metadata_extractor::{format_file_size, format_header, format_separator, format_file_info};
-use crypto::encryption::encrypt_file::encrypt_single_file;
+use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
+use crypto::shared::crypto::argon2::Argon2Params;
 use crypto::shared::errors::CryptoError;
 use std::fs::{self, File};
 use std::io::Write;
@@ -22,14 +23,17 @@ fn create_test_files(temp_dir: &Path) -> Result<(), CryptoError> {
         ("unicode_文件.txt", "Unicode filename test with emoji 🔒"),
     ];
     
+    // Use fast test parameters for integration tests
+    let params = Argon2Params::test_params();
+    
     for (filename, content) in test_files {
         let file_path = temp_dir.join(filename);
         let mut file = File::create(&file_path)?;
         file.write_all(content.as_bytes())?;
         
-        // Encrypt the file
+        // Encrypt the file with fast test parameters
         let encrypted_path = temp_dir.join(format!("{}.enc", filename));
-        encrypt_single_file(&file_path, &encrypted_path, "testpassword123", false)?;
+        encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
         
         // Remove the original file
         fs::remove_file(&file_path)?;
@@ -40,6 +44,7 @@ fn create_test_files(temp_dir: &Path) -> Result<(), CryptoError> {
 
 #[test]
 fn test_list_encrypted_files_basic() -> Result<(), CryptoError> {
+    let params = Argon2Params::test_params();
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     
@@ -47,7 +52,7 @@ fn test_list_encrypted_files_basic() -> Result<(), CryptoError> {
     create_test_files(temp_path)?;
     
     // List encrypted files
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     
     // Should find all encrypted files
     assert_eq!(files.len(), 4);
@@ -70,6 +75,7 @@ fn test_list_encrypted_files_basic() -> Result<(), CryptoError> {
 
 #[test]
 fn test_list_encrypted_files_wrong_password() -> Result<(), CryptoError> {
+    let params = Argon2Params::test_params();
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     
@@ -77,7 +83,7 @@ fn test_list_encrypted_files_wrong_password() -> Result<(), CryptoError> {
     create_test_files(temp_path)?;
     
     // List with wrong password
-    let files = list_encrypted_files(temp_path, "wrongpassword")?;
+    let files = list_encrypted_files_with_params(temp_path, "wrongpassword", &params)?;
     
     // Should still find files but with encrypted names
     assert_eq!(files.len(), 4);
@@ -94,6 +100,7 @@ fn test_list_encrypted_files_wrong_password() -> Result<(), CryptoError> {
 
 #[test]
 fn test_list_encrypted_files_mixed_directory() -> Result<(), CryptoError> {
+    let params = Argon2Params::test_params();
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     
@@ -106,7 +113,7 @@ fn test_list_encrypted_files_mixed_directory() -> Result<(), CryptoError> {
     file.write_all(b"This is a regular file")?;
     
     // List encrypted files
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     
     // Should only find encrypted files (not the regular file)
     assert_eq!(files.len(), 4);
@@ -120,11 +127,12 @@ fn test_list_encrypted_files_mixed_directory() -> Result<(), CryptoError> {
 
 #[test]
 fn test_list_empty_directory() -> Result<(), CryptoError> {
+    let params = Argon2Params::test_params();
     let temp_dir = TempDir::new().unwrap();
     let temp_path = temp_dir.path();
     
     // List files in empty directory
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     
     // Should return empty list
     assert_eq!(files.len(), 0);
@@ -134,10 +142,11 @@ fn test_list_empty_directory() -> Result<(), CryptoError> {
 
 #[test]
 fn test_list_nonexistent_directory() {
+    let params = Argon2Params::test_params();
     let nonexistent_path = Path::new("/nonexistent/directory");
     
     // Should return error for nonexistent directory
-    let result = list_encrypted_files(nonexistent_path, "testpassword123");
+    let result = list_encrypted_files_with_params(nonexistent_path, "testpassword123", &params);
     assert!(result.is_err());
 }
 
@@ -153,11 +162,12 @@ fn test_file_info_structure() -> Result<(), CryptoError> {
     file.write_all(content.as_bytes())?;
     
     let encrypted_path = temp_path.join("test.txt.enc");
-    encrypt_single_file(&file_path, &encrypted_path, "testpassword123", false)?;
+    let params = Argon2Params::test_params();
+    encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
     
     // List files
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     assert_eq!(files.len(), 1);
     
     let file_info = &files[0];
@@ -207,11 +217,12 @@ fn test_format_file_info() -> Result<(), CryptoError> {
     file.write_all(content.as_bytes())?;
     
     let encrypted_path = temp_path.join("test.txt.enc");
-    encrypt_single_file(&file_path, &encrypted_path, "testpassword123", false)?;
+    let params = Argon2Params::test_params();
+    encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
     
     // Get file info
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     assert_eq!(files.len(), 1);
     
     let formatted = format_file_info(&files[0]);
@@ -236,11 +247,12 @@ fn test_enhanced_display_shows_both_filenames() -> Result<(), CryptoError> {
     
     // Encrypt with standard naming
     let encrypted_path = temp_path.join("obfuscated_name.enc");
-    encrypt_single_file(&file_path, &encrypted_path, "testpassword123", false)?;
+    let params = Argon2Params::test_params();
+    encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
     
     // List files with correct password
-    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    let files = list_encrypted_files_with_params(temp_path, "testpassword123", &params)?;
     assert_eq!(files.len(), 1);
     
     let file_info = &files[0];
@@ -275,11 +287,12 @@ fn test_enhanced_display_shows_encrypted_when_wrong_password() -> Result<(), Cry
     file.write_all(content.as_bytes())?;
     
     let encrypted_path = temp_path.join("secret.txt.enc");
-    encrypt_single_file(&file_path, &encrypted_path, "correctpassword", false)?;
+    let params = Argon2Params::test_params();
+    encrypt_single_file_with_params(&file_path, &encrypted_path, "correctpassword", false, &params)?;
     fs::remove_file(&file_path)?;
     
     // List files with wrong password
-    let files = list_encrypted_files(temp_path, "wrongpassword")?;
+    let files = list_encrypted_files_with_params(temp_path, "wrongpassword", &params)?;
     assert_eq!(files.len(), 1);
     
     let file_info = &files[0];

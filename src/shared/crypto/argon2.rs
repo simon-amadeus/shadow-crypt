@@ -9,6 +9,7 @@ use argon2::{Argon2, Algorithm, Version, Params};
 use hkdf::Hkdf;
 use sha2::Sha256;
 use getrandom::getrandom;
+use sysinfo::{System, SystemExt};
 use std::collections::HashMap;
 
 /// Argon2id parameters for key derivation
@@ -21,26 +22,69 @@ pub struct Argon2Params {
 
 impl Default for Argon2Params {
     fn default() -> Self {
+        // Use lightweight parameters during testing
+        if cfg!(test) {
+            Self::test_params()
+        } else {
+            Self::production_params()
+        }
+    }
+}
+
+impl Argon2Params {
+    /// Production parameters with system adaptation
+    pub fn production_params() -> Self {
         Self {
             memory_cost: determine_optimal_memory_cost(),
             time_cost: 5,
             parallelism: std::cmp::min(8, num_cpus()),
         }
     }
+    
+    /// Lightweight parameters for testing
+    pub fn test_params() -> Self {
+        Self {
+            memory_cost: 1024,  // 1MB - very fast for testing
+            time_cost: 1,       // 1 iteration - minimal time
+            parallelism: 1,     // Single thread - deterministic
+        }
+    }
+    
+    /// Custom parameters for specific use cases
+    pub fn custom(memory_cost: u32, time_cost: u32, parallelism: u32) -> Self {
+        Self {
+            memory_cost,
+            time_cost,
+            parallelism,
+        }
+    }
 }
 
 /// Determine optimal memory cost based on available system memory
 fn determine_optimal_memory_cost() -> u32 {
-    // For Phase 3, use a conservative default
-    // TODO: Implement system memory detection in later phases
-    65536  // 64MB - good balance of security and usability
+    // Get total system memory
+    let mut system = System::new_all();
+    system.refresh_memory();
+    
+    let total_memory_kb = system.total_memory();
+    
+    // Use 1/8 of total memory for Argon2, with reasonable bounds
+    let recommended_memory_kb = (total_memory_kb / 8).max(32 * 1024).min(512 * 1024);
+    
+    // Convert to u32, fallback to safe default if overflow
+    recommended_memory_kb.try_into().unwrap_or(65536)
 }
 
 /// Get number of CPUs for parallelism
 fn num_cpus() -> u32 {
-    // For Phase 3, use a conservative default
-    // TODO: Use `num_cpus` crate or similar in later phases
-    4  // Default to 4 cores
+    // Get actual CPU count from system
+    let mut system = System::new();
+    system.refresh_cpu();
+    
+    let cpu_count = system.cpus().len() as u32;
+    
+    // Use actual CPU count, but cap at 8 for reasonable memory usage
+    cpu_count.min(8).max(1)
 }
 
 /// Generate a secure random salt

@@ -5,8 +5,9 @@
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-use crypto::encryption::encrypt_single_file;
-use crypto::decryption::decrypt_single_file;
+use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
+use crypto::shared::crypto::argon2::Argon2Params;
+use crypto::decryption::decrypt_file::decrypt_single_file_with_params;
 use crypto::shared::secure_delete::secure_delete_file;
 
 #[test]
@@ -24,7 +25,7 @@ fn test_source_removal_workflow() {
     let encrypted_file = Path::new(&auto_output_path);
     
     // Encrypt the file (simulating simplified CLI: lock secret_document.txt)
-    encrypt_single_file(&original_file, encrypted_file, password, false).unwrap();
+    encrypt_single_file_with_params(&original_file, encrypted_file, password, false, &Argon2Params::test_params()).unwrap();
     
     // Verify encrypted file exists and original still exists
     assert!(encrypted_file.exists(), "Encrypted file should be created");
@@ -43,7 +44,7 @@ fn test_source_removal_workflow() {
     // The decryption should restore the original filename from the header
     let restored_file = temp_dir.path().join("secret_document.txt");
     
-    decrypt_single_file(encrypted_file, &restored_file, password).unwrap();
+    decrypt_single_file_with_params(encrypted_file, &restored_file, password, &Argon2Params::test_params()).unwrap();
     
     // Verify decryption worked and content matches
     assert!(restored_file.exists(), "Restored file should exist");
@@ -118,7 +119,7 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     let parent_dir = input_file.parent().unwrap();
     let temp_output = parent_dir.join("temp_obfuscated.enc"); // Placeholder name
     
-    encrypt_single_file(&input_file, &temp_output, password, true).unwrap();
+    encrypt_single_file_with_params(&input_file, &temp_output, password, true, &Argon2Params::test_params()).unwrap();
     
     // Find the actual obfuscated file that was created (filename will be different)
     let enc_files: Vec<_> = fs::read_dir(parent_dir).unwrap()
@@ -137,7 +138,7 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     
     // Test that we can decrypt and restore original filename
     let restored_file = temp_dir.path().join("restored_private_doc.pdf");
-    decrypt_single_file(obfuscated_file, &restored_file, password).unwrap();
+    decrypt_single_file_with_params(obfuscated_file, &restored_file, password, &Argon2Params::test_params()).unwrap();
     
     // Verify restoration worked
     assert!(restored_file.exists(), "Restored file should exist");

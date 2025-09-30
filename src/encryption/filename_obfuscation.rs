@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use hkdf::Hkdf;
 use sha2::{Sha256, Digest};
 use base64::Engine;
+use subtle::ConstantTimeEq;
 
 /// Obfuscate filename using HKDF-derived key
 /// 
@@ -159,9 +160,11 @@ pub fn verify_obfuscated_filename(
         obfuscated_name.to_string()
     };
     
-    // Re-obfuscate original and compare
+    // Re-obfuscate original and compare using constant-time comparison
     let expected = obfuscate_filename(obfuscation_key, original_name)?;
-    Ok(expected == normalized_obfuscated)
+    
+    // Use constant-time comparison to prevent timing side-channel attacks
+    Ok(expected.as_bytes().ct_eq(normalized_obfuscated.as_bytes()).into())
 }
 
 #[cfg(test)]

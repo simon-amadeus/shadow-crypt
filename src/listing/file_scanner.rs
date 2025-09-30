@@ -29,6 +29,15 @@ pub struct FileInfo {
 /// and attempts to restore original filenames using the provided password.
 /// Files with authentication failures are still listed but show encrypted names.
 pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<FileInfo>, CryptoError> {
+    list_encrypted_files_with_params(directory, password, &Argon2Params::default())
+}
+
+/// List encrypted files in a directory with custom Argon2 parameters
+/// 
+/// This function scans a directory for encrypted files, reads their headers,
+/// and attempts to restore original filenames using the provided password and parameters.
+/// Files with authentication failures are still listed but show encrypted names.
+pub fn list_encrypted_files_with_params(directory: &Path, password: &str, params: &Argon2Params) -> Result<Vec<FileInfo>, CryptoError> {
     if !directory.is_dir() {
         return Err(CryptoError::InvalidFileFormat);
     }
@@ -67,7 +76,7 @@ pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<File
         let original_size = encrypted_content_size.saturating_sub(16); // Subtract GCM auth tag
         
         // Try to extract original filename from header
-        let (original_name, filename_decrypted) = match extract_original_filename(&header, password) {
+        let (original_name, filename_decrypted) = match extract_original_filename(&header, password, params) {
             Ok(name) => (name, true),
             Err(_) => {
                 // If filename restoration fails, show that filename is encrypted
@@ -102,10 +111,9 @@ pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<File
 /// 
 /// This function derives keys from password and attempts to decrypt the filename.
 /// It's a helper function used by list_encrypted_files.
-fn extract_original_filename(header: &crate::shared::header::Header, password: &str) -> Result<String, CryptoError> {
+fn extract_original_filename(header: &crate::shared::header::Header, password: &str, params: &Argon2Params) -> Result<String, CryptoError> {
     // Derive key material from password using header salt
-    let params = Argon2Params::default();
-    let key_material = derive_master_key(password, &header.salt, &params)?;
+    let key_material = derive_master_key(password, &header.salt, params)?;
     
     // Use existing filename restoration logic from Phase 7
     restore_original_filename(header, &key_material)

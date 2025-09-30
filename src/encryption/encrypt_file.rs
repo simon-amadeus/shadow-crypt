@@ -42,6 +42,19 @@ pub fn encrypt_single_file(
     password: &str,
     obfuscate_filename: bool,
 ) -> Result<(), CryptoError> {
+    // Use default (production) parameters for public API
+    let params = Argon2Params::default();
+    encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, &params)
+}
+
+/// Internal function that accepts custom Argon2 parameters for testing
+pub fn encrypt_single_file_with_params(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    params: &Argon2Params,
+) -> Result<(), CryptoError> {
     // Read input file
     let mut input_file = File::open(input_path)
         .map_err(|e| CryptoError::FileSystemError(e))?;
@@ -55,8 +68,7 @@ pub fn encrypt_single_file(
     
     // Generate cryptographic materials
     let salt = generate_salt(16)?;
-    let params = Argon2Params::default();
-    let key_material = derive_master_key(password, &salt, &params)?;
+    let key_material = derive_master_key(password, &salt, params)?;
     let nonce = generate_secure_nonce()?;
     
     // Determine actual output path (obfuscated or original)

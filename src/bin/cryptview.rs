@@ -3,7 +3,6 @@
 //! This binary provides command-line interface for securely viewing encrypted files
 //! without creating persistent decrypted copies.
 
-use crypto::viewing;
 use crypto::shared::errors::CryptoError;
 
 fn main() -> Result<(), CryptoError> {

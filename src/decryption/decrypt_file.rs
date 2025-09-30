@@ -35,6 +35,18 @@ pub fn decrypt_single_file(
     output_path: &Path,
     password: &str
 ) -> Result<(), CryptoError> {
+    // Use default (production) parameters for public API
+    let params = Argon2Params::default();
+    decrypt_single_file_with_params(input_path, output_path, password, &params)
+}
+
+/// Internal function that accepts custom Argon2 parameters for testing
+pub fn decrypt_single_file_with_params(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    params: &Argon2Params,
+) -> Result<(), CryptoError> {
     // Read encrypted file
     let mut input_file = File::open(input_path)
         .map_err(|e| CryptoError::FileSystemError(e))?;
@@ -47,8 +59,7 @@ pub fn decrypt_single_file(
     let (header, header_size) = Header::deserialize(&encrypted_data)?;
     
     // Derive master key from password and salt
-    let params = Argon2Params::default();
-    let key_material = derive_master_key(password, &header.salt, &params)?;
+    let key_material = derive_master_key(password, &header.salt, params)?;
     
     // Decrypt and verify directory path
     let _directory_path = if !header.encrypted_directory_path.is_empty() {

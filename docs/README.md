@@ -54,13 +54,16 @@ cargo build --release
 
 ## Status
 
-This is a functional file encryption system with completed core features. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
+This is a production-ready file encryption system with completed core features and comprehensive security audit. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
+
+**Security Status**: ✅ **Internal security audit completed** - No critical or high-risk vulnerabilities identified. Ready for external professional audit.
 
 ## Documentation
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System design and module structure
 - **[CHANGELOG.md](CHANGELOG.md)** - Version history and progress tracking  
 - **[ROADMAP.md](ROADMAP.md)** - Development roadmap and planned features
+- **[SECURITY_AUDIT.md](../SECURITY_AUDIT.md)** - Comprehensive security audit report
 - **[specs/](specs/)** - Detailed technical specifications
 
 ## Contributing

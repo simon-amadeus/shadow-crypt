@@ -5,32 +5,33 @@
 
 #[cfg(test)]
 mod tests {
-    use crypto::encryption::encrypt_single_file;
-    use crypto::decryption::decrypt_single_file;
+    use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
+    use crypto::shared::crypto::argon2::Argon2Params;
+    use crypto::decryption::decrypt_file::decrypt_single_file_with_params;
     use std::fs;
     use tempfile::tempdir;
 
     #[test]
     fn test_basic_file_decryption() {
         // Create a temporary directory for test files
-        let temp_dir = tempdir().expect("Failed to create temp directory");
-        let original_path = temp_dir.path().join("original.txt");
-        let encrypted_path = temp_dir.path().join("encrypted.enc");
-        let decrypted_path = temp_dir.path().join("decrypted.txt");
+        let temp_dir = tempdir().unwrap();
+        let original_path = temp_dir.path().join("test_file.txt");
+        let encrypted_path = temp_dir.path().join("test_file.txt.enc");
+        let decrypted_path = temp_dir.path().join("decrypted_file.txt");
         
-        // Create a test file
-        let test_content = "This is a test file for decryption testing.\nMultiple lines\nWith special chars: @#$%^&*()";
-        fs::write(&original_path, test_content).expect("Failed to write test file");
+        // Create original file
+        fs::write(&original_path, "Hello, this is a test file for decryption!").unwrap();
         
         let password = "test_password_123";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption failed: {:?}", encrypt_result.err());
         assert!(encrypted_path.exists(), "Encrypted file was not created");
         
         // Decrypt the file
-        let decrypt_result = decrypt_single_file(&encrypted_path, &decrypted_path, password);
+        let decrypt_result = decrypt_single_file_with_params(&encrypted_path, &decrypted_path, password, &params);
         assert!(decrypt_result.is_ok(), "Decryption failed: {:?}", decrypt_result.err());
         assert!(decrypted_path.exists(), "Decrypted file was not created");
         
@@ -60,11 +61,12 @@ mod tests {
         let wrong_password = "wrong_password_456";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, correct_password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, correct_password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption failed: {:?}", encrypt_result.err());
         
         // Try to decrypt with wrong password - should fail
-        let decrypt_result = decrypt_single_file(&encrypted_path, &decrypted_path, wrong_password);
+        let decrypt_result = decrypt_single_file_with_params(&encrypted_path, &decrypted_path, wrong_password, &params);
         assert!(decrypt_result.is_err(), "Decryption should fail with wrong password");
         
         // Verify the error is cryptographic (authentication failure)
@@ -97,7 +99,8 @@ mod tests {
         let password = "test_password_123";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption failed: {:?}", encrypt_result.err());
         
         // Corrupt the encrypted file by modifying some bytes
@@ -111,7 +114,7 @@ mod tests {
         fs::write(&corrupted_path, &encrypted_data).expect("Failed to write corrupted file");
         
         // Try to decrypt corrupted file - should fail
-        let decrypt_result = decrypt_single_file(&corrupted_path, &decrypted_path, password);
+        let decrypt_result = decrypt_single_file_with_params(&corrupted_path, &decrypted_path, password, &params);
         assert!(decrypt_result.is_err(), "Decryption should fail with corrupted file");
         
         // Verify the error is cryptographic (authentication failure)
@@ -142,11 +145,12 @@ mod tests {
         let password = "test_password_123";
         
         // Encrypt the empty file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption of empty file failed: {:?}", encrypt_result.err());
         
         // Decrypt the empty file
-        let decrypt_result = decrypt_single_file(&encrypted_path, &decrypted_path, password);
+        let decrypt_result = decrypt_single_file_with_params(&encrypted_path, &decrypted_path, password, &params);
         assert!(decrypt_result.is_ok(), "Decryption of empty file failed: {:?}", decrypt_result.err());
         
         // Verify the decrypted file is also empty
@@ -172,11 +176,12 @@ mod tests {
         let password = "test_password_123";
         
         // Encrypt the large file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption of large file failed: {:?}", encrypt_result.err());
         
         // Decrypt the large file
-        let decrypt_result = decrypt_single_file(&encrypted_path, &decrypted_path, password);
+        let decrypt_result = decrypt_single_file_with_params(&encrypted_path, &decrypted_path, password, &params);
         assert!(decrypt_result.is_ok(), "Decryption of large file failed: {:?}", decrypt_result.err());
         
         // Verify content matches exactly
@@ -213,11 +218,12 @@ mod tests {
         let password = "special_password_🔒🔑";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let params = Argon2Params::test_params();
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &params);
         assert!(encrypt_result.is_ok(), "Encryption of special chars file failed: {:?}", encrypt_result.err());
         
         // Decrypt the file
-        let decrypt_result = decrypt_single_file(&encrypted_path, &decrypted_path, password);
+        let decrypt_result = decrypt_single_file_with_params(&encrypted_path, &decrypted_path, password, &params);
         assert!(decrypt_result.is_ok(), "Decryption of special chars file failed: {:?}", decrypt_result.err());
         
         // Verify content matches exactly
@@ -248,7 +254,7 @@ mod tests {
         let password = "restoration_test_password";
         
         // Encrypt the file (without obfuscation)
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &Argon2Params::test_params());
         assert!(encrypt_result.is_ok(), "Encryption failed: {:?}", encrypt_result.err());
         
         // Read the encrypted file and parse header
@@ -258,8 +264,8 @@ mod tests {
         
         let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse header");
         
-        // Derive key material
-        let params = Argon2Params::default();
+        // Derive key material (use test params for fast integration testing)
+        let params = Argon2Params::test_params();
         let key_material = derive_master_key(password, &header.salt, &params)
             .expect("Failed to derive key material");
         
@@ -294,7 +300,7 @@ mod tests {
         let password = "obfuscation_test_password";
         
         // Encrypt the file WITH obfuscation
-        let encrypt_result = encrypt_single_file(&original_path, &output_base_path, password, true);
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &output_base_path, password, true, &Argon2Params::test_params());
         assert!(encrypt_result.is_ok(), "Obfuscated encryption failed: {:?}", encrypt_result.err());
         
         // Find the actual obfuscated file that was created
@@ -322,8 +328,8 @@ mod tests {
         
         let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse obfuscated header");
         
-        // Derive key material
-        let params = Argon2Params::default();
+        // Derive key material (use test params for fast integration testing)
+        let params = Argon2Params::test_params();
         let key_material = derive_master_key(password, &header.salt, &params)
             .expect("Failed to derive key material for obfuscated file");
         
@@ -360,7 +366,7 @@ mod tests {
         let password = "unicode_test_password";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, password, false);
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, password, false, &Argon2Params::test_params());
         assert!(encrypt_result.is_ok(), "Unicode encryption failed: {:?}", encrypt_result.err());
         
         // Read the encrypted file and parse header
@@ -370,8 +376,8 @@ mod tests {
         
         let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse Unicode header");
         
-        // Derive key material
-        let params = Argon2Params::default();
+        // Derive key material (use test params for fast integration testing)
+        let params = Argon2Params::test_params();
         let key_material = derive_master_key(password, &header.salt, &params)
             .expect("Failed to derive key material for Unicode file");
         
@@ -407,7 +413,7 @@ mod tests {
         let wrong_password = "wrong_password_456";
         
         // Encrypt the file
-        let encrypt_result = encrypt_single_file(&original_path, &encrypted_path, correct_password, false);
+        let encrypt_result = encrypt_single_file_with_params(&original_path, &encrypted_path, correct_password, false, &Argon2Params::test_params());
         assert!(encrypt_result.is_ok(), "Password test encryption failed: {:?}", encrypt_result.err());
         
         // Read the encrypted file and parse header
@@ -417,8 +423,8 @@ mod tests {
         
         let (header, _) = Header::deserialize(&encrypted_data).expect("Failed to parse password test header");
         
-        // Derive key material with WRONG password
-        let params = Argon2Params::default();
+        // Derive key material with WRONG password (use test params for fast integration testing)
+        let params = Argon2Params::test_params();
         let wrong_key_material = derive_master_key(wrong_password, &header.salt, &params)
             .expect("Failed to derive wrong key material");
         
@@ -464,9 +470,9 @@ mod tests {
             metadata_auth_tag: [0u8; 16],
         };
         
-        // Create dummy key material
+        // Create dummy key material (use test params for fast integration testing)
         let password = "dummy_password";
-        let params = Argon2Params::default();
+        let params = Argon2Params::test_params();
         let key_material = derive_master_key(password, &header.salt, &params)
             .expect("Failed to derive dummy key material");
         
