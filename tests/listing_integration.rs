@@ -82,9 +82,11 @@ fn test_list_encrypted_files_wrong_password() -> Result<(), CryptoError> {
     // Should still find files but with encrypted names
     assert_eq!(files.len(), 4);
     
-    // Names should be the encrypted filenames (not original names)
+    // When password is wrong, original_name should be "[ENCRYPTED]" and obfuscated_name should contain the actual filename
     for file_info in &files {
-        assert!(file_info.original_name.ends_with(".enc"));
+        assert_eq!(file_info.original_name, "[ENCRYPTED]");
+        assert!(file_info.obfuscated_name.ends_with(".enc"));
+        assert!(!file_info.filename_decrypted);
     }
     
     Ok(())
@@ -183,13 +185,13 @@ fn test_format_file_size() {
 #[test]
 fn test_format_functions() {
     let header = format_header();
-    assert!(header.contains("ORIGINAL NAME"));
+    assert!(header.contains("OBFUSCATED → ORIGINAL FILENAME"));
     assert!(header.contains("SIZE"));
     assert!(header.contains("ENCRYPTED SIZE"));
     assert!(header.contains("MODIFIED"));
     
     let separator = format_separator();
-    assert_eq!(separator.len(), 80);
+    assert_eq!(separator.len(), 100);
     assert!(separator.chars().all(|c| c == '-'));
 }
 
@@ -217,6 +219,84 @@ fn test_format_file_info() -> Result<(), CryptoError> {
     // Should contain the filename and size information
     assert!(formatted.contains("test.txt"));
     assert!(formatted.contains("12 B")); // Content size
+    
+    Ok(())
+}
+
+#[test]
+fn test_enhanced_display_shows_both_filenames() -> Result<(), CryptoError> {
+    let temp_dir = TempDir::new().unwrap();
+    let temp_path = temp_dir.path();
+    
+    // Create test file
+    let content = "Test content for display format";
+    let file_path = temp_path.join("original_name.txt");
+    let mut file = File::create(&file_path)?;
+    file.write_all(content.as_bytes())?;
+    
+    // Encrypt with standard naming
+    let encrypted_path = temp_path.join("obfuscated_name.enc");
+    encrypt_single_file(&file_path, &encrypted_path, "testpassword123", false)?;
+    fs::remove_file(&file_path)?;
+    
+    // List files with correct password
+    let files = list_encrypted_files(temp_path, "testpassword123")?;
+    assert_eq!(files.len(), 1);
+    
+    let file_info = &files[0];
+    
+    // Check that we have both obfuscated and original filenames
+    assert!(file_info.obfuscated_name.len() > 0);
+    assert_eq!(file_info.original_name, "original_name.txt");
+    assert!(file_info.filename_decrypted);
+    
+    // Check formatted display shows both filenames
+    let formatted = format_file_info(file_info);
+    println!("Formatted output: {}", formatted);
+    
+    // Should show both obfuscated and original names with arrow
+    assert!(formatted.contains("→"));
+    assert!(formatted.contains(&file_info.obfuscated_name));
+    assert!(formatted.contains("original_name.txt"));
+    assert!(formatted.contains("✓")); // Success indicator
+    
+    Ok(())
+}
+
+#[test]
+fn test_enhanced_display_shows_encrypted_when_wrong_password() -> Result<(), CryptoError> {
+    let temp_dir = TempDir::new().unwrap();
+    let temp_path = temp_dir.path();
+    
+    // Create test file
+    let content = "Test content";
+    let file_path = temp_path.join("secret.txt");
+    let mut file = File::create(&file_path)?;
+    file.write_all(content.as_bytes())?;
+    
+    let encrypted_path = temp_path.join("secret.txt.enc");
+    encrypt_single_file(&file_path, &encrypted_path, "correctpassword", false)?;
+    fs::remove_file(&file_path)?;
+    
+    // List files with wrong password
+    let files = list_encrypted_files(temp_path, "wrongpassword")?;
+    assert_eq!(files.len(), 1);
+    
+    let file_info = &files[0];
+    
+    // Check that filename decryption failed
+    assert!(!file_info.filename_decrypted);
+    assert_eq!(file_info.original_name, "[ENCRYPTED]");
+    assert_eq!(file_info.obfuscated_name, "secret.txt.enc");
+    
+    // Check formatted display shows encrypted status
+    let formatted = format_file_info(file_info);
+    println!("Formatted output with wrong password: {}", formatted);
+    
+    assert!(formatted.contains("→"));
+    assert!(formatted.contains("secret.txt.enc"));
+    assert!(formatted.contains("[ENCRYPTED]"));
+    assert!(formatted.contains("?")); // Question mark indicator
     
     Ok(())
 }

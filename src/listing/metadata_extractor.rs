@@ -83,10 +83,17 @@ pub fn format_file_info(info: &FileInfo) -> String {
         "?"
     };
     
+    // Show both obfuscated and original filenames for clarity
+    let filename_display = if info.filename_decrypted {
+        format!("{} → {}", info.obfuscated_name, info.original_name)
+    } else {
+        format!("{} → [ENCRYPTED]", info.obfuscated_name)
+    };
+    
     format!(
-        "{} {:<38} {:>10} {:>15} {}",
+        "{} {:<50} {:>10} {:>15} {}",
         status_indicator,
-        info.original_name,
+        filename_display,
         format_file_size(info.size),
         format_file_size(info.encrypted_size),
         format_timestamp(info.modified)
@@ -96,14 +103,14 @@ pub fn format_file_info(info: &FileInfo) -> String {
 /// Format file listing header
 pub fn format_header() -> String {
     format!(
-        "{} {:<38} {:>10} {:>15} {}",
-        "✓", "FILENAME", "SIZE", "ENCRYPTED SIZE", "MODIFIED"
+        "{} {:<50} {:>10} {:>15} {}",
+        "✓", "OBFUSCATED → ORIGINAL FILENAME", "SIZE", "ENCRYPTED SIZE", "MODIFIED"
     )
 }
 
 /// Format separator line
 pub fn format_separator() -> String {
-    "-".repeat(80)
+    "-".repeat(100)
 }
 
 #[cfg(test)]
@@ -123,7 +130,7 @@ mod tests {
     #[test]
     fn test_format_header() {
         let header = format_header();
-        assert!(header.contains("ORIGINAL NAME"));
+        assert!(header.contains("OBFUSCATED → ORIGINAL FILENAME"));
         assert!(header.contains("SIZE"));
         assert!(header.contains("ENCRYPTED SIZE"));
         assert!(header.contains("MODIFIED"));
@@ -132,7 +139,7 @@ mod tests {
     #[test]
     fn test_format_separator() {
         let sep = format_separator();
-        assert_eq!(sep.len(), 80);
+        assert_eq!(sep.len(), 100);
         assert!(sep.chars().all(|c| c == '-'));
     }
 }

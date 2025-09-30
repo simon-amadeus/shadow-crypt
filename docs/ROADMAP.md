@@ -1,8 +1,8 @@
 # Implementation Roa- ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- 🔥 **Phase 8.5**: Critical user experience fixes (**NEW PRIORITY**)
-- 🚧 **Phase 9**: Multi-file encryption support (**NEXT AFTER 8.5**)
+- ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
+- 🚧 **Phase 9**: Multi-file encryption support (**CURRENT PRIORITY**)
 
 Complete 20-phase implementation plan for the crypto file encryption system.
 
@@ -25,8 +25,8 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- 🔥 **Phase 8.5**: Critical user experience fixes (**CURRENT PRIORITY**)
-- 🚧 **Phase 9**: Multi-file encryption support (**NEXT AFTER 8.5**)
+- ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
+- 🚧 **Phase 9**: Multi-file encryption support (**CURRENT PRIORITY**)
 - ⏸️ **Directory Encryption**: (**REMOVED** - user feedback: "will never be needed")
 
 ---

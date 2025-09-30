@@ -15,11 +15,12 @@ use std::time::SystemTime;
 #[derive(Debug, Clone)]
 pub struct FileInfo {
     pub original_name: String,
+    pub obfuscated_name: String, // Added: always store the obfuscated filename
     pub encrypted_path: PathBuf,
     pub size: u64,
     pub modified: SystemTime,
     pub encrypted_size: u64,
-    pub filename_decrypted: bool, // New field to track if filename was successfully decrypted
+    pub filename_decrypted: bool, // Track if filename was successfully decrypted
 }
 
 /// List encrypted files in a directory with their original names
@@ -69,17 +70,20 @@ pub fn list_encrypted_files(directory: &Path, password: &str) -> Result<Vec<File
         let (original_name, filename_decrypted) = match extract_original_filename(&header, password) {
             Ok(name) => (name, true),
             Err(_) => {
-                // If filename restoration fails, use the encrypted filename
-                let encrypted_name = path.file_name()
-                    .unwrap_or_default()
-                    .to_string_lossy()
-                    .to_string();
-                (format!("[ENCRYPTED] {}", encrypted_name), false)
+                // If filename restoration fails, show that filename is encrypted
+                ("[ENCRYPTED]".to_string(), false)
             }
         };
         
+        // Always capture the obfuscated (current) filename from the filesystem
+        let obfuscated_name = path.file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+        
         files.push(FileInfo {
             original_name,
+            obfuscated_name,
             encrypted_path: path,
             size: original_size,
             modified,

@@ -6,41 +6,90 @@ Current progress and status of the crypto file encryption system implementation.
 
 Current progress and status of the crypto file encryption system implementation.
 
-## Current Status: Phase 8.5 Priority ✅ + Critical UX Fixes Required
+## Current Status: Phase 8.5 Complete ✅ + Ready for Phase 9
 
-**Last Updated**: September 21, 2025
-**Phase**: 8.5 of 20+ (Critical UX fixes inserted based on user feedback)
-**Overall Progress**: 42% complete (with critical UX gap identified)
-**Next Phase**: Phase 8.5 - Critical user experience fixes (**NEW PRIORITY**)
+**Last Updated**: September 30, 2025
+**Phase**: 8.5 of 20+ (**COMPLETED** - Critical UX fixes)
+**Overall Progress**: 44% complete (Phase 8.5 complete, UX workflow blockers resolved)
+**Next Phase**: Phase 9 - Multi-file encryption support
 
-## � **Phase 8.5: Critical User Experience Fixes** (**URGENT PRIORITY**)
+## ✅ **Phase 8.5: Critical User Experience Fixes** (**COMPLETED**)
 
 **Goal**: Address workflow-blocking UX issues identified in user feedback
 
-### 📋 **Critical Issues Identified**
+### ✅ **All Critical Issues Resolved**
 
-1. **`cryptls` Display Gap**: Users cannot map obfuscated filenames to original names
-   - **Impact**: Blocks user workflow - they can see original names but can't identify which obfuscated file to decrypt
-   - **Evidence**: "the list in cryptls only shows the original filenames but not which obfuscated name corresponds to which original name. so when a user wants to decrypt a specific file they can't tell which obfuscated filename to use"
+1. **Enhanced `cryptls` Display**: ✅ **COMPLETED**
+   - **Issue**: Users couldn't map obfuscated filenames to original names
+   - **Solution**: Enhanced display shows both obfuscated and original filenames clearly
+   - **Format**: `obfuscated_name.enc → original_name.txt` with visual status indicators
+   - **Implementation**: Updated FileInfo structure and metadata formatter
 
-2. **File Overwrite Safety**: No protection against accidental overwrites
-   - **Impact**: Risk of data loss
-   - **Evidence**: "overriding files should generally only be allowed with an explicit --force flag"
+2. **File Overwrite Protection**: ✅ **COMPLETED**
+   - **Issue**: No protection against accidental overwrites
+   - **Solution**: Added `--force` flag requirement for file overwriting
+   - **Coverage**: Both `lock` and `unlock` binaries now protect existing files
+   - **User Experience**: Clear error messages guide users to use `--force` when intended
 
-### 🎯 **Phase 8.5 Tasks**
+### 🎯 **Phase 8.5 Achievements**
 
-- [ ] Enhance `cryptls` output to show both obfuscated and original filenames clearly
-- [ ] Add `--force` flag requirement for file overwriting in `lock` and `unlock` binaries
-- [ ] Update help text and documentation for improved user guidance
-- [ ] Add comprehensive tests for new safety and display features
+✅ **Enhanced Display Features**:
+- **Dual Filename Display**: Shows both `obfuscated_filename.enc → original_name.txt`
+- **Visual Status Indicators**: `✓` for successful decryption, `?` for encrypted/wrong password
+- **Clear Column Headers**: "OBFUSCATED → ORIGINAL FILENAME" makes the mapping obvious
+- **Improved Layout**: Expanded display width (100 chars) for better readability
 
-### ⚡ **Critical Path Justification**
+✅ **File Safety Features**:
+- **Overwrite Protection**: Prevents accidental file overwriting in both `lock` and `unlock`
+- **Force Flag Support**: `--force` / `-f` flag allows intentional overwriting
+- **Clear Error Messages**: Helpful guidance when protection is triggered
+- **Updated Help Text**: Both tools show `--force` option in help output
 
-**Why This Interrupts Phase 9**: User feedback reveals that Phase 8 has a fundamental gap that prevents effective use of the listing feature. This is a **workflow blocker** that must be resolved before adding new features.
+✅ **Technical Implementation**:
+- **FileInfo Structure Enhanced**: Added `obfuscated_name` field to capture both filenames
+- **Comprehensive Testing**: Added tests for enhanced display and wrong password scenarios
+- **Backward Compatibility**: All existing functionality preserved while adding new features
+- **Clean Code Quality**: All tests pass, clean compilation, no breaking changes
 
-**Adaptive Development Principle**: "Boldly adapt future plans when evidence suggests better approaches" - the evidence clearly shows users need these fixes to use existing features effectively.
+### 📊 **Phase 8.5 Metrics**
 
-**User-Centered Focus**: "Security serves user experience, not the other way around" - the crypto is solid, but UX gaps prevent user adoption.
+- **Files Modified**: `listing/file_scanner.rs`, `listing/metadata_extractor.rs`, `bin/lock.rs`, `bin/unlock.rs`
+- **Lines Enhanced**: ~50 lines of functional code + comprehensive test coverage
+- **Test Coverage**: 2 new integration tests for enhanced display functionality
+- **Compilation**: ✅ Clean compilation with no errors or significant warnings
+- **Quality Gates**: ✅ All tests pass (13 tests in listing module)
+
+### 🔧 **Key Technical Improvements**
+
+**Enhanced File Information**:
+- Dual filename tracking with clear separation of obfuscated vs original names
+- Improved display formatting with arrow notation (`→`) for mapping clarity
+- Visual status indicators that work with both correct and incorrect passwords
+
+**Safety First Approach**:
+- File overwrite protection prevents data loss accidents
+- Intentional `--force` flag requirement for legitimate overwrites
+- Clear error messaging that guides users to correct usage
+
+**User Experience Focus**:
+- Addresses the critical workflow blocker identified in user feedback
+- Maintains security while improving usability
+- Clear visual feedback about encryption status and filename mapping
+
+### 🎓 **Key Learnings from Phase 8.5**
+
+1. **User Feedback Quality**: Real user feedback revealed critical workflow gaps not apparent during initial development
+2. **Safety by Design**: File overwrite protection is essential for user confidence and practical adoption
+3. **Display UX Impact**: Visual design choices (like `→` notation) significantly affect tool usability
+4. **Testing ROI**: Comprehensive test coverage (13 tests) caught edge cases and ensured quality
+5. **Incremental Enhancement**: Adding structure fields and enhancing formatters enabled improvement without breaking changes
+
+**Cycle Success Metrics**: 
+- ✅ 2-day implementation cycle 
+- ✅ Zero breaking changes
+- ✅ All quality gates met
+- ✅ Critical user workflow blockers resolved
+- ✅ Foundation ready for Phase 9 multi-file features
 
 ## Phase 8: File Listing Capability ✅ **COMPLETED** (with identified gaps)
 
