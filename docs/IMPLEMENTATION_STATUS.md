@@ -9,9 +9,9 @@ Current progress and status of the crypto file encryption system implementation.
 ## Current Status: Phase 8.5 Complete ✅ + Ready for Phase 9
 
 **Last Updated**: September 30, 2025
-**Phase**: 8.5 of 20+ (**COMPLETED** - Critical UX fixes)
-**Overall Progress**: 44% complete (Phase 8.5 complete, UX workflow blockers resolved)
-**Next Phase**: Phase 9 - Source file removal support (**REPRIORITIZED** per user feedback)
+**Phase**: 9 of 20+ (**COMPLETED** - Source file removal support + CLI simplification)
+**Overall Progress**: 48% complete (Phase 9 complete, major UX improvement achieved)
+**Next Phase**: Phase 9.5 - Security audit (**NEXT PRIORITY**)
 
 ## ✅ **Phase 8.5: Critical User Experience Fixes** (**COMPLETED**)
 
@@ -90,6 +90,102 @@ Current progress and status of the crypto file encryption system implementation.
 - ✅ All quality gates met
 - ✅ Critical user workflow blockers resolved
 - ✅ Foundation ready for Phase 9 multi-file features
+
+## ✅ **Phase 9: Source File Removal Support + CLI Simplification** (**COMPLETED**)
+
+**Goal**: Add source file removal support with simplified CLI interface (user feedback priority)
+
+### ✅ **All Phase 9 Tasks Completed**
+
+#### 🚀 **Major CLI Simplification** (User Insight Implementation)
+   - **Insight**: User feedback revealed output file arguments are unnecessary and confusing
+   - **Solution**: Completely removed output file arguments from both `lock` and `unlock` binaries
+   - **New Behavior**: 
+     - `lock secret.txt` → automatically creates `secret.txt.enc`
+     - `lock --obfuscate doc.pdf` → creates obfuscated filename like `a1b2c3d4.enc`
+     - `unlock secret.txt.enc` → automatically restores original filename from header
+   - **Impact**: Much simpler and more intuitive user experience
+
+#### 🗑️ **Source File Removal Implementation**
+   - **New Flags**: Added `--remove-source`, `--inplace`, and `-r` flags to both binaries
+   - **Secure Deletion**: Implemented secure file deletion with random data overwriting
+   - **Safety First**: Added confirmation prompts for destructive operations
+   - **Atomic Operations**: Source removal only happens after successful encryption/decryption
+   - **Error Handling**: Graceful handling of removal failures with clear user guidance
+
+#### 🔒 **Security Features**
+   - **Secure Memory Handling**: Built on existing SecretVec foundation
+   - **Overwrite Before Delete**: Random data overwriting before filesystem removal
+   - **Confirmation Prompts**: User must explicitly confirm destructive operations
+   - **Error Recovery**: Partial failures handled gracefully (e.g., encryption succeeds but deletion fails)
+
+### 🎯 **Phase 9 Achievements**
+
+✅ **Simplified CLI Interface**:
+- **Lock Binary**: `lock [OPTIONS] <input_file>` (removed output file argument)
+- **Unlock Binary**: `unlock [OPTIONS] <input_file>` (removed output file argument)
+- **Auto-Generation**: Output paths automatically generated with smart logic
+- **Updated Help**: Clear documentation of new simplified interface
+
+✅ **Source Removal Features**:
+- **Multiple Flag Support**: `--remove-source`, `--inplace`, `-r` all work
+- **Cross-Binary Support**: Available in both `lock` and `unlock` binaries
+- **Secure Implementation**: `secure_delete_file()` with random overwriting
+- **User Confirmation**: `confirm_destructive_operation()` for safety
+
+✅ **Technical Implementation**:
+- **New Module**: `shared/secure_delete.rs` with comprehensive functionality
+- **Robust Testing**: 3 unit tests for secure deletion, 2 integration test suites
+- **Clean Integration**: Seamlessly integrated into existing workflow
+- **Error Handling**: Comprehensive error coverage with user-friendly messages
+
+### 📊 **Phase 9 Metrics**
+
+- **Files Modified**: 3 core files (`lock.rs`, `unlock.rs`, `secure_delete.rs`)
+- **New Module**: 1 complete security module with 150+ lines
+- **Tests Added**: 5 new tests specifically for Phase 9 functionality
+- **CLI Simplification**: Removed ~30 lines of argument parsing complexity
+- **Compilation**: ✅ Clean compilation with only minor warnings
+- **Quality Gates**: ✅ All tests pass, comprehensive functionality
+
+### 🔧 **Key Technical Improvements**
+
+**CLI Architecture Simplification**:
+- Removed complex output file argument handling
+- Automatic path generation with intelligent defaults
+- Consistent behavior across both encryption and decryption
+- Much clearer help text and examples
+
+**Security Enhancement**:
+- Secure random data generation for overwriting
+- Platform-appropriate file deletion techniques
+- User confirmation for irreversible operations
+- Atomic operation guarantees (encryption/decryption before deletion)
+
+**User Experience Focus**:
+- Intuitive CLI that "just works" without complex arguments
+- Clear visual feedback for all operations
+- Comprehensive error messages with actionable guidance
+- Safety-first approach with confirmation prompts
+
+### 🎓 **Key Learnings from Phase 9**
+
+1. **User Insight Value**: The suggestion to remove output arguments led to a dramatically better UX
+2. **CLI Design Philosophy**: "Smart defaults" are better than "flexible configuration" for most users
+3. **Security Integration**: Secure deletion integrates well with existing cryptographic foundation
+4. **Atomic Operations**: Source removal must be atomic with the primary operation for user trust
+5. **Safety vs. Convenience**: Confirmation prompts are essential for destructive operations
+
+**Major Architectural Insight**: The simplified CLI reveals the core value proposition much more clearly:
+- **Encryption**: Transform `file.txt` into `file.txt.enc` (optionally obfuscated)
+- **Decryption**: Transform `file.txt.enc` back into `file.txt` (restored from header)
+- **Source Removal**: Optional secure deletion of the input file
+
+**Cycle Success Metrics**: 
+- ✅ 1-day implementation cycle (faster than estimated)
+- ✅ Major UX improvement achieved beyond original scope
+- ✅ All quality gates met with enhanced security
+- ✅ Ready for security audit (Phase 9.5)
 
 ## Phase 8: File Listing Capability ✅ **COMPLETED** (with identified gaps)
 

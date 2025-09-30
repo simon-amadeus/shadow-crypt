@@ -28,21 +28,27 @@ The system provides five specialized command-line tools:
 cargo build --release
 
 # Encrypt a file (password prompted securely)
-./target/release/lock secret.txt secret.txt.enc
+./target/release/lock secret.txt
 
-# Encrypt with filename obfuscation (output filename optional)
+# Encrypt with filename obfuscation
 ./target/release/lock --obfuscate secret.txt
+
+# Encrypt and remove source file
+./target/release/lock --remove-source secret.txt
 
 # Decrypt a file (password prompted securely)
 ./target/release/unlock secret.txt.enc
 
+# Decrypt and remove encrypted file  
+./target/release/unlock --inplace secret.txt.enc
+
 # List encrypted files in directory (password prompted securely)
 ./target/release/cryptls encrypted_files/
 
-# View an encrypted file (Phase 9+)
+# View an encrypted file (Phase 10+)
 ./target/release/cryptview secret.txt.enc
 
-# Edit an encrypted file (Phase 10+)
+# Edit an encrypted file (Phase 11+)
 ./target/release/cryptedit secret.txt.enc
 ```
 
@@ -58,37 +64,39 @@ cargo build --release
 - ✅ **Phase 8**: File listing capability
 - ✅ **User Feedback Integration**: Security and UX improvements
 - ✅ **Phase 8.5**: Critical UX fixes (**COMPLETED** - Enhanced display and file safety)
-- 🚧 **Phase 9**: Source file removal support (**CURRENT PRIORITY** - User feedback: more important than multi-file)
-- ⏳ **Phase 10**: Multi-file encryption support (**REPRIORITIZED**)
-- ⏳ **Phase 11**: Multi-file decryption support (**REPRIORITIZED**)
-- ⏳ **Phase 11.5**: Security audit (**NEW** - User requested ASAP)
+- ✅ **Phase 9**: Source file removal support (**COMPLETED** - Major CLI simplification achieved)
+- 🚧 **Phase 9.5**: Security audit (**CURRENT PRIORITY** - User requested)
+- ⏳ **Phase 10**: Multi-file encryption support (**NEXT**)
+- ⏳ **Phase 11**: Multi-file decryption support (**NEXT**)
 - ⏳ **Phases 12-20**: Advanced features and optimization
 
-### Current Capabilities (Phases 1-8.5 Complete)
+### Current Capabilities (Phases 1-9 Complete)
 
 ✅ **Working Features:**
 - Single file encryption with AES-256-GCM
+- **Simplified CLI interface** (no output file arguments needed!)
 - **Secure password input** (no command-line password exposure)
-- **Simplified filename obfuscation workflow** (output filename optional)
+- **Source file removal** with `--remove-source`/`--inplace` flags
+- **Automatic output path generation** (smart defaults for all operations)
 - Password-based key derivation using Argon2id  
 - File metadata preservation (permissions, timestamps)
-- Complete file decryption with integrity verification
+- Complete file decryption with automatic filename restoration
 - Secure filename obfuscation with collision resistance
-- Intelligent filename restoration during decryption
 - Cross-platform command-line tools (`lock`, `unlock`, and `cryptls`)
 - **Enhanced directory scanning** with encrypted file listing
 - **Enhanced `cryptls` display** showing both obfuscated and original filenames with clear mapping
 - **File overwrite protection** with `--force` flag requirement for intentional overwrites
+- **Secure file deletion** with random data overwriting before removal
 - Comprehensive test coverage and validation
 
-🚧 **In Development (Phase 9):**
-- Source file removal support with `--remove-source`/`--inplace` flags (focus area per user feedback)
-- Enhanced single-file workflow with secure source deletion
+🚧 **In Development (Phase 9.5):**
+- Security audit and cryptographic review (focus area per user feedback)
+- Third-party validation of security implementation
 
 ⏳ **Next Priorities:**
 - Multi-file encryption and batch processing (Phase 10+)
 - File viewing and editing tools
-- Advanced CLI features and user experience improvements
+- Advanced CLI features and performance optimization
 
 ⏸️ **Postponed (Per User Feedback):**
 - Directory encryption (postponed to focus on single/multi-file support)

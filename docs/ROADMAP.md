@@ -1,10 +1,22 @@
-# Implementation Roa- ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
-- ✅ **Phase 7**: Filename restoration (**COMPLETE**)
-- ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
-- 🚧 **Phase 9**: Multi-file encryption support (**CURRENT PRIORITY**)
+# Implementation Roadmap
 
 Complete 20-phase implementation plan for the crypto file encryption system.
+
+## Latest Development Cycle Completion (September 30, 2025)
+
+**✅ Phase 9 Successfully Completed** - Source file removal support + Major CLI simplification
+
+**Key Achievement**: Exceeded scope by implementing user-suggested CLI simplification alongside planned source removal functionality.
+
+**Major Insight**: User feedback about removing output file arguments led to dramatically improved UX:
+- **Old CLI**: `lock input.txt output.txt.enc` (confusing, error-prone)  
+- **New CLI**: `lock input.txt` → auto-creates `input.txt.enc` (intuitive!)
+
+**Impact**: The simplified interface makes the tools much more approachable while maintaining all security features.
+
+**Next Focus**: Phase 9.5 (Security Audit) as prioritized by user feedback.
+
+---
 
 ## Overview
 
@@ -26,8 +38,8 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
 - ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
-- 🚧 **Phase 9**: Source file removal support for single-file operations (**CURRENT PRIORITY** - User feedback: more important than multi-file)
-- ⏳ **Phase 9.5**: Security audit (**NEW** - User requested ASAP)
+- ✅ **Phase 9**: Source file removal support for single-file operations (**COMPLETE** - Major CLI simplification achieved)
+- 🚧 **Phase 9.5**: Security audit (**CURRENT PRIORITY** - User requested ASAP)
 - ⏳ **Phase 10**: Multi-file encryption support (**REPRIORITIZED**)
 - ⏳ **Phase 11**: Multi-file decryption support (**REPRIORITIZED**)
 
@@ -293,39 +305,55 @@ The implementation is organized into 20 focused phases, each with specific goals
 
 ---
 
-### Phase 9: Source File Removal Support (**CURRENT PRIORITY** - **User Feedback Priority**)
+### Phase 9: Source File Removal Support ✅ **COMPLETED** + **Major CLI Simplification Achieved**
 
 **Goal**: Add source file removal support for single-file operations (`--remove-source`/`--inplace`)
 
 **User Insight**: Source file removal is more important than multi-file support and should be available for single-file operations. It's a generally useful feature that should be implemented first.
 
-**Tasks**:
-- [ ] Add `--remove-source` flag to `lock` binary for single-file encryption
-- [ ] Add `--remove-source` flag to `unlock` binary for single-file decryption  
-- [ ] Add `--inplace` alias flag for convenience
-- [ ] Implement secure file deletion (overwrite before removal on supported filesystems)
-- [ ] Add safety confirmation prompts for destructive operations
-- [ ] Implement atomic operation: ensure encryption/decryption succeeds before source removal
-- [ ] Add comprehensive error handling for removal failures
-- [ ] Update help text and documentation for new flags
-- [ ] Add comprehensive tests for source removal functionality
+**Actual Achievement**: Exceeded scope by implementing major CLI simplification based on user feedback
+
+**Completed Tasks**:
+- ✅ Add `--remove-source` flag to `lock` binary for single-file encryption
+- ✅ Add `--remove-source` flag to `unlock` binary for single-file decryption  
+- ✅ Add `--inplace` alias flag for convenience
+- ✅ Implement secure file deletion (overwrite before removal on supported filesystems)
+- ✅ Add safety confirmation prompts for destructive operations
+- ✅ Implement atomic operation: ensure encryption/decryption succeeds before source removal
+- ✅ Add comprehensive error handling for removal failures
+- ✅ Update help text and documentation for new flags
+- ✅ Add comprehensive tests for source removal functionality
+- ✅ **BONUS**: Major CLI simplification - removed confusing output file arguments
+- ✅ **BONUS**: Automatic output path generation with smart defaults
 
 **Dependencies**: Phase 8.5 ✅
 
-**Estimated Duration**: 1-2 days
+**Actual Duration**: 1 day (faster than estimated due to focused implementation)
 
-**Success Criteria**:
-- `lock --remove-source file.txt` encrypts and safely removes source
-- `unlock --remove-source file.txt.enc` decrypts and safely removes encrypted file
-- Atomic operations: removal only happens after successful encryption/decryption
-- Clear safety prompts and error messages
-- Comprehensive test coverage for all edge cases
+**Success Criteria**: ✅ **ALL MET**
+- ✅ `lock --remove-source file.txt` encrypts and safely removes source
+- ✅ `unlock --remove-source file.txt.enc` decrypts and safely removes encrypted file
+- ✅ Atomic operations: removal only happens after successful encryption/decryption
+- ✅ Clear safety prompts and error messages
+- ✅ Comprehensive test coverage for all edge cases
+- ✅ **BONUS**: Simplified CLI that "just works" without complex arguments
 
-**Security Considerations**:
-- Ensure file is fully written and verified before source removal
-- Use secure deletion where possible (overwrite before unlink)
-- Provide clear feedback about irreversible operations
-- Handle partial failures gracefully (e.g., successful encryption but failed removal)
+**Security Considerations**: ✅ **ALL ADDRESSED**
+- ✅ Ensure file is fully written and verified before source removal
+- ✅ Use secure deletion with random data overwriting before unlink
+- ✅ Provide clear feedback about irreversible operations
+- ✅ Handle partial failures gracefully (e.g., successful encryption but failed removal)
+
+**Major Architectural Improvement**:
+User feedback led to removing output file arguments entirely, resulting in much more intuitive CLI:
+- **Before**: `lock input.txt output.txt.enc` (confusing, error-prone)
+- **After**: `lock input.txt` → automatically creates `input.txt.enc` (intuitive!)
+
+**Key Learnings**:
+1. **User feedback quality**: Real user insight about output arguments being unnecessary was invaluable
+2. **CLI design philosophy**: "Smart defaults" are better than "flexible configuration" for crypto tools
+3. **Scope flexibility**: Being open to improvements beyond original scope led to better outcomes
+4. **Security integration**: Secure deletion integrates well with existing cryptographic foundation
 
 ---
 

@@ -7,6 +7,7 @@ use crypto::decryption::{decrypt_single_file, restore_original_filename};
 use crypto::shared::errors::CryptoError;
 use crypto::shared::header::Header;
 use crypto::shared::crypto::{derive_master_key, Argon2Params};
+use crypto::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -15,8 +16,8 @@ use std::io::Read;
 fn main() -> Result<(), CryptoError> {
     let args: Vec<String> = env::args().collect();
     
-    // Simple argument parsing for Phase 5 with --force flag support
-    let (force_overwrite, input_file, output_file_opt) = parse_args(&args);
+    // Simple argument parsing with flags
+    let (force_overwrite, remove_source, input_file) = parse_args(&args);
     let input_path = Path::new(&input_file);
     
     // Validate input file exists
@@ -43,14 +44,8 @@ fn main() -> Result<(), CryptoError> {
         return Err(CryptoError::CryptographicError("Empty password".to_string()));
     }
 
-    // Determine output file path with filename restoration
-    let output_path = if let Some(specified_output) = output_file_opt {
-        // User provided explicit output path
-        PathBuf::from(specified_output)
-    } else {
-        // Try to restore original filename, fall back to extension-based naming
-        determine_output_path_with_restoration(input_path, &password)?
-    };
+    // Determine output file path with automatic filename restoration
+    let output_path = determine_output_path_with_restoration(input_path, &password)?;
     
     // Check for file overwrite protection
     if output_path.exists() && !force_overwrite {
@@ -68,6 +63,25 @@ fn main() -> Result<(), CryptoError> {
         Ok(()) => {
             println!("✅ Decryption successful!");
             println!("   Output: {}", output_path.display());
+            
+            // Handle source file removal if requested
+            if remove_source {
+                println!();
+                if confirm_destructive_operation("Source file removal", input_path) {
+                    match secure_delete_file(input_path) {
+                        Ok(()) => {
+                            println!("🗑️  Source file securely deleted: {}", input_path.display());
+                        }
+                        Err(e) => {
+                            eprintln!("⚠️  Warning: Failed to delete source file: {}", e);
+                            eprintln!("   Decryption was successful, but source file remains");
+                            eprintln!("   You may need to delete it manually");
+                        }
+                    }
+                } else {
+                    println!("🔄 Source file removal cancelled - file remains at: {}", input_path.display());
+                }
+            }
         }
         Err(e) => {
             eprintln!("❌ Decryption failed: {}", e);
@@ -170,15 +184,15 @@ fn try_restore_filename_from_header(
 /// Parse command line arguments for unlock tool
 /// 
 /// Returns (force_overwrite, input_file, output_file_opt)
-fn parse_args(args: &[String]) -> (bool, String, Option<String>) {
+fn parse_args(args: &[String]) -> (bool, bool, String) {
     if args.len() < 2 || args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
         print_usage();
         std::process::exit(0);
     }
     
     let mut force = false;
+    let mut remove_source = false;
     let mut input_file = None;
-    let mut output_file = None;
     
     let mut i = 1;
     while i < args.len() {
@@ -187,15 +201,18 @@ fn parse_args(args: &[String]) -> (bool, String, Option<String>) {
                 force = true;
                 i += 1;
             }
+            "--remove-source" | "--inplace" | "-r" => {
+                remove_source = true;
+                i += 1;
+            }
             "--help" | "-h" => {
                 print_usage();
                 std::process::exit(0);
             }
             _ => {
+                // Only one positional argument: input file
                 if input_file.is_none() {
                     input_file = Some(args[i].clone());
-                } else if output_file.is_none() {
-                    output_file = Some(args[i].clone());
                 } else {
                     eprintln!("Error: Too many arguments");
                     print_usage();
@@ -212,23 +229,27 @@ fn parse_args(args: &[String]) -> (bool, String, Option<String>) {
         std::process::exit(1);
     }
     
-    (force, input_file.unwrap(), output_file)
+    (force, remove_source, input_file.unwrap())
 }
 
 fn print_usage() {
     println!("unlock - File decryption tool");
     println!("");
     println!("USAGE:");
-    println!("    unlock [OPTIONS] <input-file> [output-file]");
+    println!("    unlock [OPTIONS] <input-file>");
     println!("");
     println!("ARGUMENTS:");
     println!("    <input-file>     Path to the encrypted file");
-    println!("    [output-file]    Path for the decrypted file (optional)");
-    println!("                     If not provided, removes .enc extension or adds .dec");
     println!("");
     println!("OPTIONS:");
-    println!("    -f, --force     Overwrite existing output files without prompting");
-    println!("    -h, --help      Show this help message");
+    println!("    -f, --force           Overwrite existing output files without prompting");
+    println!("    -r, --remove-source   Remove source file after successful decryption");
+    println!("        --inplace         Alias for --remove-source");
+    println!("    -h, --help            Show this help message");
+    println!("");
+    println!("Behavior:");
+    println!("    Automatically restores original filename from encrypted file header");
+    println!("    'secret.txt.enc' → 'secret.txt' (restored from header)");
     println!("");
     println!("Security:");
     println!("    Password will be prompted securely and not shown on screen");
@@ -236,8 +257,9 @@ fn print_usage() {
     println!("");
     println!("EXAMPLES:");
     println!("    unlock secret.txt.enc");
-    println!("    unlock document.enc document.txt");
     println!("    unlock --force encrypted_file.enc");
+    println!("    unlock --remove-source secret.txt.enc");
+    println!("    unlock --inplace document.enc");
     println!("");
     println!("The tool will prompt for the password interactively.");
 }

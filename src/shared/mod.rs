@@ -10,6 +10,7 @@ pub mod crypto;
 pub mod header;
 pub mod file_detection;
 pub mod errors;
+pub mod secure_delete;
 
 // Re-export commonly used types for convenience
 pub use errors::CryptoError;
