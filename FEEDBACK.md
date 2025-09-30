@@ -6,6 +6,32 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## New Feedback
 
+### September 30, 2025 - Project Rebranding to "Shadow"
+
+**Project Name Change**: Rename from "crypto" to "shadow" or "shadow-crypt"
+
+**Command Rebranding Decision**:
+- **`shadow`** - Encrypt files (was `lock`)
+- **`unshadow`** - Decrypt files (was `unlock`)  
+- **`shadows`** - List encrypted files (was `cryptls`)
+- **`shadowview`** - View encrypted files (was `cryptview`)
+- **`shadowedit`** - Edit encrypted files (was `cryptedit`)
+
+**File Format Changes**:
+- **Magic bytes**: Change from `CRYPTO` to `SHADOW`
+- **File extension**: Change from `.enc` to `.shadow`
+- **Header identifier**: Update to reflect shadow branding
+
+**Rationale**: 
+- "Shadow" perfectly captures the essence of hiding/protecting files while keeping them accessible
+- Commands are conflict-free with existing CLI tools
+- Consistent branding with clear shadow metaphor
+- Fast to type and expressive
+- Leaves room for future "shadowcast" functionality
+- Professional and memorable naming
+
+**Implementation Impact**: Requires updates to Cargo.toml, file magic, documentation, error messages, file detection, and all references throughout codebase.
+
 *(Add new items here)*
 
 ---
