@@ -39,15 +39,13 @@ src/
 │   └── errors.rs              // ✅ Comprehensive error types
 ├── encryption/                // ✅ Everything needed for lock binary
 │   ├── mod.rs                 // ✅ Encryption module exports
-│   ├── encrypt_file.rs        // ✅ Single file encryption (placeholder)
-│   ├── encrypt_directory.rs   // ✅ Directory encryption (placeholder)
-│   ├── filename_obfuscation.rs// ✅ Filename obfuscation (placeholder)
-│   └── cli.rs                 // ✅ CLI interface (placeholder)
+│   ├── encrypt_file.rs        // ✅ Single file encryption (COMPLETE)
+│   ├── filename_obfuscation.rs// ✅ Filename obfuscation (COMPLETE)
+│   └── cli.rs                 // ✅ CLI interface (COMPLETE)
 ├── decryption/                // ✅ Everything needed for unlock binary
 │   ├── mod.rs                 // ✅ Decryption module exports
-│   ├── decrypt_file.rs        // ✅ Single file decryption (placeholder)
-│   ├── decrypt_directory.rs   // ✅ Directory decryption (placeholder)
-│   ├── filename_restoration.rs// ✅ Filename restoration (placeholder)
+│   ├── decrypt_file.rs        // ✅ Single file decryption (COMPLETE)
+│   ├── filename_restoration.rs// ✅ Filename restoration (COMPLETE)
 │   └── cli.rs                 // ✅ CLI interface (placeholder)
 ├── listing/                   // ✅ Everything needed for cryptls binary
 │   ├── mod.rs                 // ✅ Listing module exports

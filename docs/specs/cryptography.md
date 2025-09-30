@@ -128,7 +128,7 @@ User Password
      v
 Master Key (256 bits)
      |
-     +-- Directory Encryption Key
+     +-- File Path Encryption Key
      +-- Filename Encryption Key  
      +-- Metadata Encryption Key
      +-- Content Encryption Key

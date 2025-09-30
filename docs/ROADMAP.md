@@ -693,7 +693,7 @@ User feedback led to removing output file arguments entirely, resulting in much 
 
 ### Medium Risk Phases
 - Phases 4-8: Core crypto functionality
-- Phases 12-14: Directory and multi-file support
+- Phases 12-14: Advanced features and multi-file support
 
 ### High Risk Phases
 - Phases 15-16: Secure viewing/editing (complex security requirements)

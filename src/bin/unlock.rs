@@ -30,7 +30,7 @@ fn main() -> Result<(), CryptoError> {
     
     if !input_path.is_file() {
         eprintln!("Error: '{}' is not a regular file", input_file);
-        eprintln!("Note: Directory decryption is not yet supported");
+        eprintln!("Note: Only individual files are supported");
         return Err(CryptoError::FileSystemError(
             std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not a regular file")
         ));

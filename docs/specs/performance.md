@@ -10,7 +10,7 @@ Detailed performance characteristics, optimization strategies, and benchmarking 
 - Large files (>100MB): Target 500+ MB/s sustained throughput
 - Medium files (1-100MB): Target 200+ MB/s average throughput  
 - Small files (<1MB): Target 50+ files/second batch processing
-- Directory encryption: Target 1000+ files/minute
+- Multi-file operations: Target 1000+ files/minute
 
 **Decryption Performance:**
 - Same targets as encryption (symmetric operations)

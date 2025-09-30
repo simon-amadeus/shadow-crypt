@@ -8,8 +8,8 @@
 //! 
 //! # Binaries
 //! 
-//! - `lock`: File and directory encryption
-//! - `unlock`: File and directory decryption
+//! - `lock`: File encryption
+//! - `unlock`: File decryption
 //! - `cryptls`: List encrypted files with original names
 //! - `cryptview`: Securely view encrypted files
 //! - `cryptedit`: Securely edit encrypted files

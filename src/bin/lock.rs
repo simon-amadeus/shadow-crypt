@@ -21,7 +21,7 @@ fn main() {
     
     if !input_path.is_file() {
         eprintln!("Error: '{}' is not a regular file", input_path.display());
-        eprintln!("Note: Directory encryption is not yet supported");
+        eprintln!("Note: Only individual files are supported");
         process::exit(1);
     }
     

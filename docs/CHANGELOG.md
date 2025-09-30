@@ -12,6 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File viewing and editing tools
 - External professional security audit
 
+## [0.9.8] - 2025-09-30
+
+### Removed
+- **CLEANUP**: Removed directory encryption/decryption modules - Dropped planned feature that was never needed
+- Cleaned up codebase by removing `encrypt_directory.rs` and `decrypt_directory.rs` modules
+- Updated documentation and error messages to reflect focus on individual file operations
+- Maintained backward compatibility - existing file format and cryptls directory listing unchanged
+
+### Changed
+- Updated error messages to clarify support for individual files only
+- Simplified module structure by focusing on core file encryption/decryption
+
 ## [0.9.7] - 2025-09-30
 
 ### Changed
