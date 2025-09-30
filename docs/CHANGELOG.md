@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
+- **PRIORITY**: Critical security hardening (Phase 9.9) - Statistical timing analysis, cryptographic fuzzing, filename authentication, nonce reuse detection
 - Multi-file encryption and decryption support
 - File viewing and editing tools
 - External professional security audit
