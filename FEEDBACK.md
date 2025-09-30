@@ -32,6 +32,34 @@ Add your feedback here. Keep it simple - just write what you think.
 
 **Implementation Impact**: Requires updates to Cargo.toml, file magic, documentation, error messages, file detection, and all references throughout codebase.
 
+### September 30, 2025 - Future Migration System for Cryptographic Agility
+
+**Migration Feature Request**: Add capability to migrate old encrypted files to latest/most secure algorithms and header formats
+
+**Current State**:
+- Only one header format exists (should be confirmed as version 1)
+- Need to prepare for future algorithm upgrades and header format evolution
+
+**Proposed Migration System**:
+- **Version Detection**: Ensure current header format is properly marked as version 1
+- **Migration Tool**: New command (e.g., `shadowmigrate` or `shadow --migrate`) to upgrade files
+- **Algorithm Transitions**: Support migrating between different encryption algorithms
+- **Header Format Evolution**: Handle changes in header structure/metadata
+- **Batch Migration**: Support migrating entire directories of encrypted files
+- **Safety Features**: Backup original files during migration, verification of successful migration
+
+**Benefits**:
+- **Cryptographic Agility**: Easy adoption of new, more secure algorithms
+- **Future-Proofing**: Smooth transitions as cryptographic best practices evolve
+- **Security Evolution**: Ability to upgrade from deprecated algorithms
+- **User Experience**: Seamless migration without manual re-encryption
+
+**Design Considerations**:
+- Version numbering scheme for headers
+- Backward compatibility during transition periods
+- Migration verification and rollback capabilities
+- Performance optimization for large file migrations
+
 *(Add new items here)*
 
 ---
