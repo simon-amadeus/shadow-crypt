@@ -107,7 +107,9 @@ pub fn confirm_destructive_operation(operation: &str, file_path: &Path) -> bool 
     
     print!("⚠️  {} will permanently delete: {}\n", operation, file_path.display());
     print!("This operation cannot be undone. Continue? (y/N): ");
-    io::stdout().flush().unwrap();
+    if let Err(_) = io::stdout().flush() {
+        eprintln!("Warning: Failed to flush output");
+    }
     
     let mut input = String::new();
     match io::stdin().read_line(&mut input) {

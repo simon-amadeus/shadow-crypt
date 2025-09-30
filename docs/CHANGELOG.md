@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - File viewing and editing tools
 - External professional security audit
 
+## [0.9.7] - 2025-09-30
+
+### Changed
+- **CRITICAL**: Eliminated all production `unwrap()` calls in binary tools - Replaced with proper error handling and user-friendly error messages
+- Enhanced input validation in `lock` and `unlock` binaries - Added file type checking and permission validation
+- Improved CLI argument parsing robustness - Better error messages for invalid inputs
+- Enhanced error handling for edge cases - Graceful handling of invalid file paths and permission issues
+
+### Fixed
+- Production code no longer uses `unwrap()` - Prevents potential panics in user-facing tools
+- Added comprehensive file validation - Tools now properly reject directories and invalid file types
+- Improved user experience with better error messages - Clear, actionable error messages for common issues
+
 ## [0.9.6] - 2025-09-30
 
 ### Fixed

@@ -28,6 +28,20 @@ fn main() -> Result<(), CryptoError> {
         ));
     }
     
+    if !input_path.is_file() {
+        eprintln!("Error: '{}' is not a regular file", input_file);
+        eprintln!("Note: Directory decryption is not yet supported");
+        return Err(CryptoError::FileSystemError(
+            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not a regular file")
+        ));
+    }
+    
+    // Check if file is readable
+    if let Err(e) = std::fs::File::open(&input_path) {
+        eprintln!("Error: Cannot read input file '{}': {}", input_file, e);
+        return Err(CryptoError::FileSystemError(e));
+    }
+    
     // Get password securely from user
     let password = match rpassword::prompt_password("Enter password for decryption: ") {
         Ok(pass) => pass,
@@ -229,7 +243,9 @@ fn parse_args(args: &[String]) -> (bool, bool, String) {
         std::process::exit(1);
     }
     
-    (force, remove_source, input_file.unwrap())
+    let input_file_path = input_file.expect("Input file was validated as Some() above");
+    
+    (force, remove_source, input_file_path)
 }
 
 fn print_usage() {

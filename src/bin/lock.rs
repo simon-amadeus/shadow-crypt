@@ -19,6 +19,21 @@ fn main() {
         process::exit(1);
     }
     
+    if !input_path.is_file() {
+        eprintln!("Error: '{}' is not a regular file", input_path.display());
+        eprintln!("Note: Directory encryption is not yet supported");
+        process::exit(1);
+    }
+    
+    // Check if file is readable
+    match std::fs::File::open(&input_path) {
+        Ok(_) => {}, // File is readable
+        Err(e) => {
+            eprintln!("Error: Cannot read input file '{}': {}", input_path.display(), e);
+            process::exit(1);
+        }
+    }
+    
     // Get password securely from user
     let password = match rpassword::prompt_password("Enter password for encryption: ") {
         Ok(pass) => pass,
@@ -37,7 +52,14 @@ fn main() {
     let output_path = if obfuscate_filename {
         // When obfuscating, use input file directory with .enc extension
         let parent_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
-        parent_dir.join(format!("{}.enc", input_path.file_name().unwrap().to_string_lossy()))
+        let file_name = match input_path.file_name() {
+            Some(name) => name.to_string_lossy(),
+            None => {
+                eprintln!("Error: Unable to determine filename from path: {}", input_path.display());
+                process::exit(1);
+            }
+        };
+        parent_dir.join(format!("{}.enc", file_name))
     } else {
         // Simple case: add .enc extension to the full filename
         format!("{}.enc", input_path.to_string_lossy()).into()
@@ -151,8 +173,10 @@ fn parse_args(args: &[String]) -> (std::path::PathBuf, bool, bool, bool) {
         process::exit(1);
     }
     
+    let input_file_path = input_file.expect("Input file was validated as Some() above");
+    
     (
-        Path::new(&input_file.unwrap()).to_path_buf(),
+        Path::new(&input_file_path).to_path_buf(),
         obfuscate,
         force,
         remove_source,
