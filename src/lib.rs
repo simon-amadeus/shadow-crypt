@@ -27,6 +27,7 @@ pub mod decryption;
 pub mod listing;
 pub mod viewing;
 pub mod editing;
+pub mod migration;
 
 // Shared functionality used across all use cases
 pub mod shared;

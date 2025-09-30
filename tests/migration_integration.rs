@@ -3,59 +3,56 @@
 //! These tests verify that the migration system foundation is working correctly
 //! and ready for future format versions.
 
-use shadow_crypt::shared::{MigrationSystem, VersionInfo, CURRENT_VERSION};
-use shadow_crypt::shared::migration::MigrationPlan;
+use shadow_crypt::shared::{VersionInfo, CURRENT_VERSION};
+use shadow_crypt::migration::migration_planner::{MigrationPlan, MigrationPlanner};
+use shadow_crypt::migration::file_analyzer::{analyze_shadow_file, analyze_directory};
+use shadow_crypt::migration::safety_checker::{SafetyCheck, verify_migration_safety};
 use std::path::Path;
 use tempfile::TempDir;
 
 #[test]
-fn test_migration_system_basic_functionality() {
-    let migration_system = MigrationSystem::new();
+fn test_migration_planner_basic_functionality() {
+    let migration_planner = MigrationPlanner::new();
     
-    // Test that the migration system can be created with default settings
-    assert!(migration_system.create_backups);
-    assert!(migration_system.verify_after_migration);
-    assert_eq!(migration_system.batch_size, 100);
+    // Test that the migration planner can be created with default settings
+    assert!(migration_planner.create_backups);
+    assert!(migration_planner.verify_after_migration);
+    assert_eq!(migration_planner.batch_size, 100);
 }
 
 #[test]
-fn test_migration_system_custom_settings() {
-    let migration_system = MigrationSystem::with_settings(false, false, 50);
+fn test_migration_planner_custom_settings() {
+    let migration_planner = MigrationPlanner::with_settings(false, false, 50);
     
     // Test custom settings
-    assert!(!migration_system.create_backups);
-    assert!(!migration_system.verify_after_migration);
-    assert_eq!(migration_system.batch_size, 50);
+    assert!(!migration_planner.create_backups);
+    assert!(!migration_planner.verify_after_migration);
+    assert_eq!(migration_planner.batch_size, 50);
 }
 
 #[test]
 fn test_analyze_empty_directory() {
-    let migration_system = MigrationSystem::new();
     let temp_dir = TempDir::new().unwrap();
     
     // Test analyzing an empty directory
-    let result = migration_system.analyze_directory(temp_dir.path());
+    let result = analyze_directory(temp_dir.path());
     assert!(result.is_ok());
     
-    let plans = result.unwrap();
-    assert!(plans.is_empty());
+    let analyses = result.unwrap();
+    assert!(analyses.is_empty());
 }
 
 #[test]
 fn test_analyze_nonexistent_file() {
-    let migration_system = MigrationSystem::new();
-    
     // Test analyzing a file that doesn't exist
-    let result = migration_system.analyze_file(Path::new("/nonexistent/file.shadow"));
+    let result = analyze_shadow_file(Path::new("/nonexistent/file.shadow"));
     assert!(result.is_err());
 }
 
 #[test]
 fn test_analyze_nonexistent_directory() {
-    let migration_system = MigrationSystem::new();
-    
     // Test analyzing a directory that doesn't exist
-    let result = migration_system.analyze_directory(Path::new("/nonexistent/directory"));
+    let result = analyze_directory(Path::new("/nonexistent/directory"));
     assert!(result.is_err());
 }
 
@@ -85,9 +82,7 @@ fn test_version_info_structure() {
 }
 
 #[test]
-fn test_migration_execution_placeholder() {
-    let migration_system = MigrationSystem::new();
-    
+fn test_safety_verification() {
     // Create a dummy migration plan
     let plan = MigrationPlan {
         source_path: Path::new("/dummy").to_path_buf(),
@@ -95,15 +90,25 @@ fn test_migration_execution_placeholder() {
         target_version: 1,
         requires_backup: true,
         estimated_steps: 5,
-        safety_checks: vec![],
+        safety_checks: vec![SafetyCheck::VerifyFileIntegrity],
     };
     
-    // Test that migration execution returns appropriate error (not yet implemented)
-    let result = migration_system.execute_migration(&plan);
-    assert!(result.is_err());
+    // Test that safety verification works (should fail for non-existent file)
+    let result = verify_migration_safety(&plan);
+    assert!(result.is_ok());
     
-    // Check that it's the expected "not implemented" error
-    if let Err(e) = result {
-        assert!(format!("{}", e).contains("not yet implemented"));
-    }
+    let safety_report = result.unwrap();
+    assert!(!safety_report.safe_to_proceed);
+    assert_eq!(safety_report.checks_failed, 1);
+}
+
+#[test]
+fn test_safety_checks_enum() {
+    // Test that safety checks can be compared
+    let check1 = SafetyCheck::VerifyFileIntegrity;
+    let check2 = SafetyCheck::VerifyFileIntegrity;
+    assert_eq!(check1, check2);
+    
+    let check3 = SafetyCheck::CreateBackup;
+    assert_ne!(check1, check3);
 }
