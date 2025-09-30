@@ -286,7 +286,7 @@ mod tests {
     fn test_encrypt_single_file_basic() {
         let temp_dir = tempdir().unwrap();
         let input_path = temp_dir.path().join("test.txt");
-        let output_path = temp_dir.path().join("test.enc");
+        let output_path = temp_dir.path().join("test.shadow");
         
         // Create test file
         std::fs::write(&input_path, "Hello, World!").unwrap();
@@ -304,14 +304,14 @@ mod tests {
         assert!(encrypted.len() > original.len(), "Encrypted file should be larger");
         
         // Check that encrypted file starts with magic number
-        assert_eq!(&encrypted[0..4], b"ENC3", "Should start with ENC3 magic number");
+        assert_eq!(&encrypted[0..6], b"SHADOW", "Should start with SHADOW magic number");
     }
 
     #[test]
     fn test_encrypt_nonexistent_file() {
         let temp_dir = tempdir().unwrap();
         let input_path = temp_dir.path().join("nonexistent.txt");
-        let output_path = temp_dir.path().join("test.enc");
+        let output_path = temp_dir.path().join("test.shadow");
         
         let result = encrypt_single_file(&input_path, &output_path, "password123", false);
         assert!(result.is_err(), "Should fail for nonexistent file");

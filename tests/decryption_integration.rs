@@ -5,9 +5,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
-    use crypto::shared::crypto::argon2::Argon2Params;
-    use crypto::decryption::decrypt_file::decrypt_single_file_with_params;
+    use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
+    use shadow_crypt::shared::crypto::argon2::Argon2Params;
+    use shadow_crypt::decryption::decrypt_file::decrypt_single_file_with_params;
     use std::fs;
     use tempfile::tempdir;
 
@@ -16,7 +16,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().unwrap();
         let original_path = temp_dir.path().join("test_file.txt");
-        let encrypted_path = temp_dir.path().join("test_file.txt.enc");
+        let encrypted_path = temp_dir.path().join("test_file.txt.shadow");
         let decrypted_path = temp_dir.path().join("decrypted_file.txt");
         
         // Create original file
@@ -50,7 +50,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("original.txt");
-        let encrypted_path = temp_dir.path().join("encrypted.enc");
+        let encrypted_path = temp_dir.path().join("encrypted.shadow");
         let decrypted_path = temp_dir.path().join("decrypted.txt");
         
         // Create a test file
@@ -71,7 +71,7 @@ mod tests {
         
         // Verify the error is cryptographic (authentication failure)
         match decrypt_result.err().unwrap() {
-            crypto::shared::errors::CryptoError::CryptographicError(_) => {
+            shadow_crypt::shared::errors::CryptoError::CryptographicError(_) => {
                 println!("✅ Correctly rejected wrong password with cryptographic error");
             },
             other_error => {
@@ -88,8 +88,8 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("original.txt");
-        let encrypted_path = temp_dir.path().join("encrypted.enc");
-        let corrupted_path = temp_dir.path().join("corrupted.enc");
+        let encrypted_path = temp_dir.path().join("encrypted.shadow");
+        let corrupted_path = temp_dir.path().join("corrupted.shadow");
         let decrypted_path = temp_dir.path().join("decrypted.txt");
         
         // Create a test file
@@ -119,7 +119,7 @@ mod tests {
         
         // Verify the error is cryptographic (authentication failure)
         match decrypt_result.err().unwrap() {
-            crypto::shared::errors::CryptoError::CryptographicError(_) => {
+            shadow_crypt::shared::errors::CryptoError::CryptographicError(_) => {
                 println!("✅ Correctly detected file corruption with cryptographic error");
             },
             other_error => {
@@ -136,7 +136,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("empty.txt");
-        let encrypted_path = temp_dir.path().join("empty.enc");
+        let encrypted_path = temp_dir.path().join("empty.shadow");
         let decrypted_path = temp_dir.path().join("empty_decrypted.txt");
         
         // Create an empty test file
@@ -165,7 +165,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("large.txt");
-        let encrypted_path = temp_dir.path().join("large.enc");
+        let encrypted_path = temp_dir.path().join("large.shadow");
         let decrypted_path = temp_dir.path().join("large_decrypted.txt");
         
         // Create a larger test file (1MB)
@@ -198,7 +198,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("special_chars.txt");
-        let encrypted_path = temp_dir.path().join("special_chars.enc");
+        let encrypted_path = temp_dir.path().join("special_chars.shadow");
         let decrypted_path = temp_dir.path().join("special_chars_decrypted.txt");
         
         // Create a test file with various special characters and Unicode
@@ -236,16 +236,16 @@ mod tests {
 
     #[test]
     fn test_filename_restoration_basic() {
-        use crypto::decryption::restore_original_filename;
-        use crypto::shared::header::Header;
-        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::decryption::restore_original_filename;
+        use shadow_crypt::shared::header::Header;
+        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("my_document.txt");
-        let encrypted_path = temp_dir.path().join("encrypted.enc");
+        let encrypted_path = temp_dir.path().join("encrypted.shadow");
         
         // Create a test file
         let test_content = "Test content for filename restoration";
@@ -282,16 +282,16 @@ mod tests {
 
     #[test]
     fn test_filename_restoration_with_obfuscation() {
-        use crypto::decryption::restore_original_filename;
-        use crypto::shared::header::Header;
-        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::decryption::restore_original_filename;
+        use shadow_crypt::shared::header::Header;
+        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
         use std::fs::{File, read_dir};
         use std::io::Read;
 
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("secret_file.txt");
-        let output_base_path = temp_dir.path().join("obfuscated.enc");
+        let output_base_path = temp_dir.path().join("obfuscated.shadow");
         
         // Create a test file
         let test_content = "Secret content that needs obfuscated filename";
@@ -304,7 +304,7 @@ mod tests {
         assert!(encrypt_result.is_ok(), "Obfuscated encryption failed: {:?}", encrypt_result.err());
         
         // Find the actual obfuscated file that was created
-        // (since obfuscation changes the filename, we need to find the .enc file in the directory)
+        // (since obfuscation changes the filename, we need to find the .shadow file in the directory)
         let encrypted_file_path = {
             let dir_entries = read_dir(temp_dir.path()).expect("Failed to read temp directory");
             let mut enc_files: Vec<_> = dir_entries
@@ -312,12 +312,12 @@ mod tests {
                 .filter(|entry| {
                     entry.path().extension()
                         .and_then(|ext| ext.to_str())
-                        .map(|ext| ext == "enc")
+                        .map(|ext| ext == "shadow")
                         .unwrap_or(false)
                 })
                 .collect();
             
-            assert_eq!(enc_files.len(), 1, "Expected exactly one .enc file, found {}", enc_files.len());
+            assert_eq!(enc_files.len(), 1, "Expected exactly one .shadow file, found {}", enc_files.len());
             enc_files.pop().unwrap().path()
         };
         
@@ -347,9 +347,9 @@ mod tests {
 
     #[test]
     fn test_filename_restoration_unicode() {
-        use crypto::decryption::restore_original_filename;
-        use crypto::shared::header::Header;
-        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::decryption::restore_original_filename;
+        use shadow_crypt::shared::header::Header;
+        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
@@ -357,7 +357,7 @@ mod tests {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let unicode_filename = "測試文件_тест_файл_🔒.txt";
         let original_path = temp_dir.path().join(unicode_filename);
-        let encrypted_path = temp_dir.path().join("unicode_encrypted.enc");
+        let encrypted_path = temp_dir.path().join("unicode_encrypted.shadow");
         
         // Create a test file with Unicode filename
         let test_content = "Unicode filename test content";
@@ -394,16 +394,16 @@ mod tests {
 
     #[test]
     fn test_filename_restoration_wrong_password() {
-        use crypto::decryption::restore_original_filename;
-        use crypto::shared::header::Header;
-        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::decryption::restore_original_filename;
+        use shadow_crypt::shared::header::Header;
+        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let original_path = temp_dir.path().join("password_test.txt");
-        let encrypted_path = temp_dir.path().join("password_encrypted.enc");
+        let encrypted_path = temp_dir.path().join("password_encrypted.shadow");
         
         // Create a test file
         let test_content = "Content for password test";
@@ -448,13 +448,13 @@ mod tests {
 
     #[test]
     fn test_filename_restoration_empty_header() {
-        use crypto::decryption::restore_original_filename;
-        use crypto::shared::header::{Header, AlgorithmId};
-        use crypto::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::decryption::restore_original_filename;
+        use shadow_crypt::shared::header::{Header, AlgorithmId};
+        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
 
         // Create a header with empty encrypted filename
         let header = Header {
-            magic: *b"ENC3",
+            magic: *b"SHADOW",
             version: 3,
             algorithm_id: AlgorithmId::AesGcm256,
             salt: [1u8; 16],

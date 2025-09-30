@@ -5,10 +5,10 @@
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
-use crypto::shared::crypto::argon2::Argon2Params;
-use crypto::decryption::decrypt_file::decrypt_single_file_with_params;
-use crypto::shared::secure_delete::secure_delete_file;
+use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
+use shadow_crypt::shared::crypto::argon2::Argon2Params;
+use shadow_crypt::decryption::decrypt_file::decrypt_single_file_with_params;
+use shadow_crypt::shared::secure_delete::secure_delete_file;
 
 #[test]
 fn test_source_removal_workflow() {
@@ -21,7 +21,7 @@ fn test_source_removal_workflow() {
     let password = "test_password_123";
     
     // Test 1: Normal encryption with automatic output path generation
-    let auto_output_path = format!("{}.enc", original_file.to_string_lossy());
+    let auto_output_path = format!("{}.shadow", original_file.to_string_lossy());
     let encrypted_file = Path::new(&auto_output_path);
     
     // Encrypt the file (simulating simplified CLI: lock secret_document.txt)
@@ -30,7 +30,7 @@ fn test_source_removal_workflow() {
     // Verify encrypted file exists and original still exists
     assert!(encrypted_file.exists(), "Encrypted file should be created");
     assert!(original_file.exists(), "Original file should still exist");
-    assert_eq!(encrypted_file.extension().unwrap(), "enc", "Should have .enc extension");
+    assert_eq!(encrypted_file.extension().unwrap(), "shadow", "Should have .shadow extension");
     
     // Test 2: Simulate source removal after encryption
     // (This simulates: lock --remove-source secret_document.txt)
@@ -52,7 +52,7 @@ fn test_source_removal_workflow() {
     assert_eq!(restored_content, test_content, "Content should match original");
     
     // Test 4: Simulate source removal after decryption
-    // (This simulates: unlock --remove-source secret_document.txt.enc)
+    // (This simulates: unlock --remove-source secret_document.txt.shadow)
     secure_delete_file(encrypted_file).unwrap();
     
     // Verify encrypted file is gone, decrypted file remains
@@ -66,10 +66,10 @@ fn test_simplified_cli_behavior() {
     
     // Test different file types and extensions
     let test_cases = vec![
-        ("document.pdf", "document.pdf.enc"),
-        ("image.jpg", "image.jpg.enc"),
-        ("data", "data.enc"),
-        ("script.sh", "script.sh.enc"),
+        ("document.pdf", "document.pdf.shadow"),
+        ("image.jpg", "image.jpg.shadow"),
+        ("data", "data.shadow"),
+        ("script.sh", "script.sh.shadow"),
     ];
     
     for (input_name, expected_output) in test_cases {
@@ -77,7 +77,7 @@ fn test_simplified_cli_behavior() {
         fs::write(&input_file, "test content").unwrap();
         
         // Test auto-generated output path logic
-        let auto_output = format!("{}.enc", input_file.to_string_lossy());
+        let auto_output = format!("{}.shadow", input_file.to_string_lossy());
         let expected_path = temp_dir.path().join(expected_output);
         
         assert_eq!(Path::new(&auto_output), expected_path, 
@@ -115,9 +115,9 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     let password = "obfuscation_test";
     
     // Test obfuscated encryption (simulating: lock --obfuscate private_doc.pdf)
-    // When obfuscating, the output should be in the same directory with .enc extension
+    // When obfuscating, the output should be in the same directory with .shadow extension
     let parent_dir = input_file.parent().unwrap();
-    let temp_output = parent_dir.join("temp_obfuscated.enc"); // Placeholder name
+    let temp_output = parent_dir.join("temp_obfuscated.shadow"); // Placeholder name
     
     encrypt_single_file_with_params(&input_file, &temp_output, password, true, &Argon2Params::test_params()).unwrap();
     
@@ -125,16 +125,16 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     let enc_files: Vec<_> = fs::read_dir(parent_dir).unwrap()
         .filter_map(|entry| entry.ok())
         .map(|entry| entry.path())
-        .filter(|path| path.extension().map(|ext| ext == "enc").unwrap_or(false))
+        .filter(|path| path.extension().map(|ext| ext == "shadow").unwrap_or(false))
         .collect();
     
-    assert_eq!(enc_files.len(), 1, "Should have exactly one .enc file");
+    assert_eq!(enc_files.len(), 1, "Should have exactly one .shadow file");
     let obfuscated_file = &enc_files[0];
     
     // Verify encrypted file exists and has obfuscated name
     assert!(obfuscated_file.exists(), "Obfuscated encrypted file should exist");
     assert_ne!(obfuscated_file.file_name().unwrap().to_str().unwrap(), 
-              "private_doc.pdf.enc", "Filename should be obfuscated, not original");
+              "private_doc.pdf.shadow", "Filename should be obfuscated, not original");
     
     // Test that we can decrypt and restore original filename
     let restored_file = temp_dir.path().join("restored_private_doc.pdf");

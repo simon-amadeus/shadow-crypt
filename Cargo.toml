@@ -1,32 +1,32 @@
 [package]
-name = "crypto"
+name = "shadow-crypt"
 version = "0.1.0"
 edition = "2024"
-description = "High-security file encryption system with filename obfuscation"
+description = "High-security file encryption system"
 license = "MIT OR Apache-2.0"
-repository = "https://github.com/user/crypto"
+repository = "https://github.com/user/shadow"
 authors = ["Your Name <your.email@example.com>"]
 
 # Binary targets for each use case
 [[bin]]
-name = "lock"
-path = "src/bin/lock.rs"
+name = "shadow"
+path = "src/bin/shadow.rs"
 
 [[bin]]
-name = "unlock"
-path = "src/bin/unlock.rs"
+name = "unshadow"
+path = "src/bin/unshadow.rs"
 
 [[bin]]
-name = "cryptls"
-path = "src/bin/cryptls.rs"
+name = "shadows"
+path = "src/bin/shadows.rs"
 
 [[bin]]
-name = "cryptview"
-path = "src/bin/cryptview.rs"
+name = "shadowview"
+path = "src/bin/shadowview.rs"
 
 [[bin]]
-name = "cryptedit"
-path = "src/bin/cryptedit.rs"
+name = "shadowedit"
+path = "src/bin/shadowedit.rs"
 
 [dependencies]
 # Cryptographic dependencies for Phase 3

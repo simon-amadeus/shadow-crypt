@@ -9,7 +9,7 @@ The encrypted file format uses a comprehensive header that stores all necessary 
 ### Header Structure
 
 ```
-[Magic: 4 bytes = "ENC3"]
+[Magic: 6 bytes = "SHADOW"]
 [Version: 2 bytes = 3]
 [Algorithm ID: 2 bytes]                   // Crypto agility (0x0001 = AES-256-GCM)
 [Salt: 16 bytes]
@@ -64,8 +64,8 @@ const MAX_METADATA_LENGTH: usize = 256;     // Pad all metadata to this size
 
 The header is serialized in little-endian format:
 
-1. **Fixed Fields** (first 38 bytes):
-   - Magic: 4 bytes (ASCII "ENC3")
+1. **Fixed Fields** (first 40 bytes):
+   - Magic: 6 bytes (ASCII "SHADOW")
    - Version: 2 bytes (little-endian u16)
    - Algorithm ID: 2 bytes (little-endian u16)
    - Salt: 16 bytes (random)
@@ -122,7 +122,7 @@ pub enum CompressionType {
 
 - **Replaced CBC+HMAC with GCM**: Single-pass authenticated encryption eliminates padding oracle vulnerabilities
 - **Added algorithm identifier**: Enables cryptographic agility for future upgrades
-- **Upgraded magic to "ENC3"**: Distinguishes from previous insecure formats
+- **Upgraded magic to "SHADOW"**: Distinguishes from previous insecure formats and reflects project rebranding
 - **Length padding**: All variable-length fields padded to prevent information leakage
 - **GCM nonces**: 96-bit nonces provide optimal performance and security
 - **Backward compatibility**: Version field allows detection of older formats
@@ -176,7 +176,7 @@ The header format includes comprehensive error detection:
 
 ### Current Version (3)
 
-- Magic: "ENC3"
+- Magic: "SHADOW"
 - Algorithm agility support
 - GCM authenticated encryption
 - Comprehensive metadata storage

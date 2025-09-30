@@ -12,10 +12,10 @@ use std::path::Path;
 /// Check if a file is encrypted by examining its magic number
 pub fn is_encrypted_file(path: &Path) -> Result<bool, CryptoError> {
     let mut file = File::open(path)?;
-    let mut magic = [0u8; 4];
+    let mut magic = [0u8; 6];
     
     match file.read_exact(&mut magic) {
-        Ok(()) => Ok(&magic == b"ENC3"),
+        Ok(()) => Ok(&magic == b"SHADOW"),
         Err(_) => Ok(false), // File too small or other read error
     }
 }

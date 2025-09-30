@@ -99,7 +99,7 @@ mod format_tests {
     #[test]
     fn test_header_serialization_roundtrip() {
         let original_header = FileHeader {
-            magic: *b"ENC3",
+            magic: *b"SHADOW",
             version: 3,
             algorithm_id: AlgorithmId::AesGcm256,
             salt: [1u8; 16],
@@ -118,8 +118,8 @@ mod format_tests {
         let invalid_headers = vec![
             vec![],                          // Empty
             b"INVALID".to_vec(),            // Wrong magic
-            b"ENC3\x00\x00".to_vec(),       // Truncated
-            b"ENC3\xFF\xFF".to_vec(),       // Invalid version
+            b"SHADOW\x00\x00".to_vec(),     // Truncated
+            b"SHADOW\xFF\xFF".to_vec(),     // Invalid version
         ];
         
         for invalid_header in invalid_headers {
@@ -193,7 +193,7 @@ mod integration_tests {
     fn test_complete_file_encryption_workflow() {
         let temp_dir = TempDir::new().unwrap();
         let test_file = temp_dir.path().join("test.txt");
-        let encrypted_file = temp_dir.path().join("test.txt.enc");
+        let encrypted_file = temp_dir.path().join("test.txt.shadow");
         
         // Create test file
         std::fs::write(&test_file, b"Hello, world!").unwrap();
@@ -231,8 +231,8 @@ mod integration_tests {
         encrypt_directory(&source_dir, &encrypted_dir, "test_password").unwrap();
         
         // Verify structure is preserved
-        assert!(encrypted_dir.join("file1.txt.enc").exists());
-        assert!(encrypted_dir.join("subdir/file2.txt.enc").exists());
+        assert!(encrypted_dir.join("file1.txt.shadow").exists());
+        assert!(encrypted_dir.join("subdir/file2.txt.shadow").exists());
         
         // Decrypt and verify
         let decrypted_dir = temp_dir.path().join("decrypted");
@@ -270,10 +270,10 @@ mod integration_tests {
             .output()
             .unwrap();
         assert!(output.status.success());
-        assert!(String::from_utf8_lossy(&output.stdout).contains("test.bin.enc"));
+        assert!(String::from_utf8_lossy(&output.stdout).contains("test.bin.shadow"));
         
-        let output = std::process::Command::new("./target/debug/unlock")
-            .arg(&format!("{}.enc", test_file.display()))
+        let output = std::process::Command::new("./target/debug/unshadow")
+            .arg(&format!("{}.shadow", test_file.display()))
             .arg("--password").arg("test123")
             .output()
             .unwrap();

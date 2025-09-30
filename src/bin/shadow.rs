@@ -5,8 +5,8 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use crypto::encryption::encrypt_single_file;
-use crypto::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
+use shadow_crypt::encryption::encrypt_single_file;
+use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -50,7 +50,7 @@ fn main() {
     
     // Determine output path automatically
     let output_path = if obfuscate_filename {
-        // When obfuscating, use input file directory with .enc extension
+        // When obfuscating, use input file directory with .shadow extension
         let parent_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
         let file_name = match input_path.file_name() {
             Some(name) => name.to_string_lossy(),
@@ -59,10 +59,10 @@ fn main() {
                 process::exit(1);
             }
         };
-        parent_dir.join(format!("{}.enc", file_name))
+        parent_dir.join(format!("{}.shadow", file_name))
     } else {
-        // Simple case: add .enc extension to the full filename
-        format!("{}.enc", input_path.to_string_lossy()).into()
+        // Simple case: add .shadow extension to the full filename
+        format!("{}.shadow", input_path.to_string_lossy()).into()
     };
     
     // Check for file overwrite protection
@@ -198,8 +198,8 @@ fn print_usage(program_name: &str) {
     eprintln!("  -h, --help            Show this help message");
     eprintln!();
     eprintln!("Behavior:");
-    eprintln!("  Normal mode: 'secret.txt' → 'secret.txt.enc'");
-    eprintln!("  Obfuscated:  'secret.txt' → 'a1b2c3d4.enc' (random name)");
+    eprintln!("  Normal mode: 'secret.txt' → 'secret.txt.shadow'");
+    eprintln!("  Obfuscated:  'secret.txt' → 'a1b2c3d4.shadow' (random name)");
     eprintln!();
     eprintln!("Security:");
     eprintln!("  Password will be prompted securely and not shown on screen");

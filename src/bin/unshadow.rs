@@ -3,11 +3,11 @@
 //! This binary provides command-line interface for decrypting files with automatic
 //! filename restoration and metadata preservation.
 
-use crypto::decryption::{decrypt_single_file, restore_original_filename};
-use crypto::shared::errors::CryptoError;
-use crypto::shared::header::Header;
-use crypto::shared::crypto::{derive_master_key, Argon2Params};
-use crypto::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
+use shadow_crypt::decryption::{decrypt_single_file, restore_original_filename};
+use shadow_crypt::shared::errors::CryptoError;
+use shadow_crypt::shared::header::Header;
+use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::fs::File;
@@ -148,7 +148,7 @@ fn determine_output_path_with_restoration(
         Err(_) => {
             // Fall back to extension-based naming
             if let Some(stem) = input_path.file_stem() {
-                if input_path.to_string_lossy().ends_with(".enc") {
+                if input_path.to_string_lossy().ends_with(".shadow") {
                     Ok(input_path.with_file_name(stem))
                 } else {
                     Ok(input_path.with_extension("dec"))
@@ -265,17 +265,17 @@ fn print_usage() {
     println!("");
     println!("Behavior:");
     println!("    Automatically restores original filename from encrypted file header");
-    println!("    'secret.txt.enc' → 'secret.txt' (restored from header)");
+    println!("    'secret.txt.shadow' → 'secret.txt' (restored from header)");
     println!("");
     println!("Security:");
     println!("    Password will be prompted securely and not shown on screen");
     println!("    Existing files are protected from accidental overwrite");
     println!("");
     println!("EXAMPLES:");
-    println!("    unlock secret.txt.enc");
-    println!("    unlock --force encrypted_file.enc");
-    println!("    unlock --remove-source secret.txt.enc");
-    println!("    unlock --inplace document.enc");
+    println!("    unshadow secret.txt.shadow");
+    println!("    unshadow --force encrypted_file.shadow");
+    println!("    unshadow --remove-source secret.txt.shadow");
+    println!("    unshadow --inplace document.shadow");
     println!("");
     println!("The tool will prompt for the password interactively.");
 }

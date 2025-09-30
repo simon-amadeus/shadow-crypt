@@ -28,9 +28,9 @@ use crate::shared::crypto::{KeyMaterial, decrypt_aes_gcm};
 /// 
 /// # Usage
 /// ```rust,no_run
-/// use crypto::decryption::restore_original_filename;
-/// use crypto::shared::header::Header;
-/// use crypto::shared::crypto::{derive_master_key, Argon2Params};
+/// use shadow_crypt::decryption::restore_original_filename;
+/// use shadow_crypt::shared::header::Header;
+/// use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
 /// 
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// # let encrypted_data = vec![]; // dummy data

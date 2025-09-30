@@ -55,7 +55,7 @@ impl FileMetadata {
             accessed: now,
             file_hash: [0u8; 32],  // Will be filled during encryption
             compression: None,
-            created_by: format!("crypto-v{}", env!("CARGO_PKG_VERSION")),
+            created_by: format!("shadow-v{}", env!("CARGO_PKG_VERSION")),
             custom_attributes: HashMap::new(),
         }
     }
@@ -260,7 +260,7 @@ pub const MAX_METADATA_LENGTH: usize = 256;     // Pad all metadata to this size
 /// File header structure with all encrypted components
 #[derive(Debug)]
 pub struct Header {
-    pub magic: [u8; 4],              // "ENC3"
+    pub magic: [u8; 6],              // "SHADOW"
     pub version: u16,                // Version 3
     pub algorithm_id: AlgorithmId,   // Cryptographic algorithm identifier
     pub salt: [u8; 16],              // Unique per file
@@ -285,7 +285,7 @@ impl Header {
         nonce: [u8; 12],
     ) -> Self {
         Self {
-            magic: *b"ENC3",
+            magic: *b"SHADOW",
             version: 3,
             algorithm_id,
             salt,
@@ -333,7 +333,7 @@ impl Header {
     
     /// Deserialize header from bytes read from file
     pub fn deserialize(data: &[u8]) -> Result<(Header, usize), CryptoError> {
-        const FIXED_HEADER_SIZE: usize = 38; // magic(4) + version(2) + algorithm(2) + salt(16) + nonce(12) + 2 length bytes
+        const FIXED_HEADER_SIZE: usize = 40; // magic(6) + version(2) + algorithm(2) + salt(16) + nonce(12) + 2 length bytes
         
         if data.len() < FIXED_HEADER_SIZE {
             return Err(CryptoError::HeaderParsingError(
@@ -344,16 +344,16 @@ impl Header {
         let mut offset = 0;
         
         // Parse magic with bounds check
-        if offset + 4 > data.len() {
+        if offset + 6 > data.len() {
             return Err(CryptoError::HeaderParsingError("Cannot read magic number".to_string()));
         }
-        let magic = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3]];
-        offset += 4;
+        let magic = [data[offset], data[offset + 1], data[offset + 2], data[offset + 3], data[offset + 4], data[offset + 5]];
+        offset += 6;
         
         // Validate magic number early
-        if magic != *b"ENC3" {
+        if magic != *b"SHADOW" {
             return Err(CryptoError::HeaderParsingError(
-                format!("Invalid magic number: expected 'ENC3', got {:?}", 
+                format!("Invalid magic number: expected 'SHADOW', got {:?}", 
                     String::from_utf8_lossy(&magic))
             ));
         }
@@ -510,7 +510,7 @@ impl Header {
     
     /// Validate magic number
     pub fn validate_magic(&self) -> bool { 
-        self.magic == *b"ENC3" 
+        self.magic == *b"SHADOW" 
     }
     
     /// Check if algorithm is supported
@@ -592,12 +592,12 @@ impl Header {
     
     /// Get the minimum header size for this version
     pub fn minimum_size() -> usize {
-        38 + 18 + 18 + 18  // Fixed fields + 3 sections (each: 2 bytes length + 16 bytes auth tag)
+        40 + 18 + 18 + 18  // Fixed fields + 3 sections (each: 2 bytes length + 16 bytes auth tag)
     }
     
     /// Calculate the total size of this header when serialized
     pub fn serialized_size(&self) -> usize {
-        38  // Fixed fields: magic(4) + version(2) + algorithm(2) + salt(16) + nonce(12) + 2 bytes
+        40  // Fixed fields: magic(6) + version(2) + algorithm(2) + salt(16) + nonce(12) + 2 bytes
             + 2 + self.directory_path_length as usize + 16  // Directory path section
             + 2 + self.filename_length as usize + 16       // Filename section  
             + 2 + self.metadata_length as usize + 16       // Metadata section
@@ -676,7 +676,7 @@ mod tests {
         let metadata = FileMetadata::new();
         assert_eq!(metadata.permissions, 0o644);
         assert_eq!(metadata.compression, None);
-        assert!(metadata.created_by.starts_with("crypto-v"));
+        assert!(metadata.created_by.starts_with("shadow-v"));
         assert!(metadata.custom_attributes.is_empty());
     }
     
@@ -736,7 +736,7 @@ mod tests {
     #[test]
     fn test_header_creation() {
         let header = create_test_header();
-        assert_eq!(header.magic, *b"ENC3");
+        assert_eq!(header.magic, *b"SHADOW");
         assert_eq!(header.version, 3);
         assert_eq!(header.algorithm_id, AlgorithmId::AesGcm256);
         assert_eq!(header.salt, [1u8; 16]);
@@ -800,9 +800,9 @@ mod tests {
     #[test]
     fn test_header_deserialization_unsupported_version() {
         let mut data = vec![0u8; 100];
-        data[0..4].copy_from_slice(b"ENC3"); // Correct magic
-        data[4] = 99; // Version 99 (unsupported)
-        data[5] = 0;
+        data[0..6].copy_from_slice(b"SHADOW"); // Correct magic
+        data[6] = 99; // Version 99 (unsupported)
+        data[7] = 0;
         let result = Header::deserialize(&data);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Unsupported version"));
@@ -811,14 +811,14 @@ mod tests {
     #[test]
     fn test_header_deserialization_length_overflow() {
         let mut data = vec![0u8; 100];
-        data[0..4].copy_from_slice(b"ENC3");
-        data[4] = 3; // Version 3
-        data[5] = 0;
-        data[6] = 1; // Algorithm AES-256-GCM
+        data[0..6].copy_from_slice(b"SHADOW");
+        data[6] = 3; // Version 3
         data[7] = 0;
-        // Salt (16 bytes at offset 8-23) and nonce (12 bytes at offset 24-35) - all zeros are fine
-        data[36] = 0xFF; // Directory path length = 65535 (too large for remaining data)
-        data[37] = 0xFF;
+        data[8] = 1; // Algorithm AES-256-GCM
+        data[9] = 0;
+        // Salt (16 bytes at offset 10-25) and nonce (12 bytes at offset 26-37) - all zeros are fine
+        data[38] = 0xFF; // Directory path length = 65535 (too large for remaining data)
+        data[39] = 0xFF;
         
         let result = Header::deserialize(&data);
         assert!(result.is_err());
@@ -840,7 +840,7 @@ mod tests {
     #[test]
     fn test_header_validation_invalid_magic() {
         let mut header = create_test_header();
-        header.magic = *b"BAAD";
+        header.magic = *b"BADMAG";
         
         assert!(!header.validate_magic());
         assert!(header.is_valid().is_err());
@@ -870,13 +870,13 @@ mod tests {
     fn test_header_size_calculations() {
         let header = create_test_header();
         
-        assert_eq!(Header::minimum_size(), 92); // 38 + 18 + 18 + 18
-        assert_eq!(header.serialized_size(), 92); // Empty sections: 38 + (2+0+16)*3
+        assert_eq!(Header::minimum_size(), 94); // 40 + 18 + 18 + 18
+        assert_eq!(header.serialized_size(), 94); // Empty sections: 40 + (2+0+16)*3
         
         let mut header_with_data = header;
         header_with_data.filename_length = 10;
         header_with_data.encrypted_filename = vec![0u8; 10];
-        assert_eq!(header_with_data.serialized_size(), 102); // 92 + 10
+        assert_eq!(header_with_data.serialized_size(), 104); // 94 + 10
     }
     
     #[test]

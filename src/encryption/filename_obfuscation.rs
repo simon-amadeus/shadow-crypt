@@ -67,7 +67,7 @@ pub fn obfuscate_filename(obfuscation_key: &[u8], original_name: &str) -> Result
     let obfuscated = engine.encode(&hash);
     
     // Add file extension for recognition
-    Ok(format!("{}.enc", obfuscated))
+    Ok(format!("{}.shadow", obfuscated))
 }
 
 /// Obfuscate filename with collision resistance
@@ -100,14 +100,14 @@ pub fn obfuscate_name_with_collision_resistance(
     }
     
     // Handle collision by appending counter
-    let base_without_ext = if base_name.ends_with(".enc") {
-        &base_name[..base_name.len() - 4]
+    let base_without_ext = if base_name.ends_with(".shadow") {
+        &base_name[..base_name.len() - 7]
     } else {
         &base_name
     };
     
     for counter in 1..=9999 {
-        let candidate = format!("{}_{}.enc", base_without_ext, counter);
+        let candidate = format!("{}_{}.shadow", base_without_ext, counter);
         if !existing_names.contains(&candidate) {
             return Ok(candidate);
         }
@@ -140,13 +140,13 @@ pub fn verify_obfuscated_filename(
 ) -> Result<bool, CryptoError> {
     // Strip collision counter if present
     let normalized_obfuscated = if let Some(pos) = obfuscated_name.rfind('_') {
-        if let Some(ext_pos) = obfuscated_name.rfind(".enc") {
+        if let Some(ext_pos) = obfuscated_name.rfind(".shadow") {
             if pos < ext_pos {
-                // Check if everything between _ and .enc is numeric
+                // Check if everything between _ and .shadow is numeric
                 let counter_part = &obfuscated_name[pos + 1..ext_pos];
                 if counter_part.chars().all(|c| c.is_ascii_digit()) {
                     // This has a collision counter, use base name
-                    format!("{}.enc", &obfuscated_name[..pos])
+                    format!("{}.shadow", &obfuscated_name[..pos])
                 } else {
                     obfuscated_name.to_string()
                 }
@@ -191,7 +191,7 @@ mod tests {
         assert!(result.is_ok());
         
         let obfuscated = result.unwrap();
-        assert!(obfuscated.ends_with(".enc"));
+        assert!(obfuscated.ends_with(".shadow"));
         assert!(obfuscated.len() > filename.len());
         println!("Obfuscated '{}' -> '{}'", filename, obfuscated);
     }
@@ -240,7 +240,7 @@ mod tests {
         assert!(result.is_ok());
         
         let obfuscated = result.unwrap();
-        assert!(obfuscated.ends_with(".enc"));
+        assert!(obfuscated.ends_with(".shadow"));
         println!("Unicode obfuscated '{}' -> '{}'", unicode_name, obfuscated);
     }
 
@@ -254,7 +254,7 @@ mod tests {
         
         let obfuscated = result.unwrap();
         // Obfuscated name should be shorter and safe
-        assert!(obfuscated.len() < 100); // Base64-encoded SHA256 + .enc should be ~48 chars
+        assert!(obfuscated.len() < 100); // Base64-encoded SHA256  + .shadow should be ~48 chars
     }
 
     #[test]
@@ -301,7 +301,7 @@ mod tests {
         
         // Should get a modified name with counter
         assert_ne!(result, base_name);
-        assert!(result.contains("_1.enc"));
+        assert!(result.contains("_1.shadow"));
         println!("Collision resolved: '{}' -> '{}'", base_name, result);
     }
 
@@ -311,17 +311,17 @@ mod tests {
         let filename = "popular.txt";
         
         let base_name = obfuscate_filename(&key, filename).unwrap();
-        let base_without_ext = &base_name[..base_name.len() - 4];
+        let base_without_ext = &base_name[..base_name.len() - 7];
         
         // Create set with multiple existing collisions
         let mut existing = HashSet::new();
         existing.insert(base_name.clone());
-        existing.insert(format!("{}_1.enc", base_without_ext));
-        existing.insert(format!("{}_2.enc", base_without_ext));
+        existing.insert(format!("{}_1.shadow", base_without_ext));
+        existing.insert(format!("{}_2.shadow", base_without_ext));
         
         let result = obfuscate_name_with_collision_resistance(&key, filename, &existing).unwrap();
         
-        assert!(result.contains("_3.enc"), "Should use next available counter");
+        assert!(result.contains("_3.shadow"), "Should use next available counter");
     }
 
     #[test]
@@ -341,8 +341,8 @@ mod tests {
         let filename = "verify_collision.txt";
         
         let base_obfuscated = obfuscate_filename(&key, filename).unwrap();
-        let base_without_ext = &base_obfuscated[..base_obfuscated.len() - 4];
-        let collision_name = format!("{}_42.enc", base_without_ext);
+        let base_without_ext = &base_obfuscated[..base_obfuscated.len() - 7];
+        let collision_name = format!("{}_42.shadow", base_without_ext);
         
         let verified = verify_obfuscated_filename(&key, filename, &collision_name).unwrap();
         
@@ -353,7 +353,7 @@ mod tests {
     fn test_verification_failure() {
         let key = test_key();
         let filename = "correct.txt";
-        let wrong_obfuscated = "totally_wrong_name.enc";
+        let wrong_obfuscated = "totally_wrong_name.shadow";
         
         let verified = verify_obfuscated_filename(&key, filename, wrong_obfuscated).unwrap();
         
@@ -387,7 +387,7 @@ mod tests {
         let obf2 = obfuscate_filename(&key, medium_file).unwrap();
         let obf3 = obfuscate_filename(&key, &long_file).unwrap();
         
-        // All obfuscated names should have similar lengths (hash + .enc)
+        // All obfuscated names should have similar lengths (hash  + .shadow)
         let len1 = obf1.len();
         let len2 = obf2.len();
         let len3 = obf3.len();

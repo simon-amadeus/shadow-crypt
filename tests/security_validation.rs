@@ -4,8 +4,8 @@
 
 #[cfg(test)]
 mod security_validation_tests {
-    use crypto::shared::crypto::argon2::{Argon2Params, derive_master_key, generate_salt};
-    use crypto::encryption::filename_obfuscation::{obfuscate_filename, verify_obfuscated_filename};
+    use shadow_crypt::shared::crypto::argon2::{Argon2Params, derive_master_key, generate_salt};
+    use shadow_crypt::encryption::filename_obfuscation::{obfuscate_filename, verify_obfuscated_filename};
     
     #[test]
     fn test_adaptive_argon2_parameters() {

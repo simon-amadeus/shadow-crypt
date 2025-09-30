@@ -8,12 +8,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- **PRIORITY**: Project rebranding to "Shadow" (Phase 9.95) - Complete branding overhaul with new command names and file format
 - **PRIORITY**: Migration system foundation (Phase 9.98) - Cryptographic agility infrastructure for future algorithm upgrades
 - Critical security hardening (Phase 9.9) - Statistical timing analysis, cryptographic fuzzing, filename authentication, nonce reuse detection
 - Multi-file encryption and decryption support
 - File viewing and editing tools
 - External professional security audit
+
+## [0.9.95] - 2025-09-30
+
+### Added - Project Rebranding to "Shadow" (Phase 9.95 Complete)
+- **BREAKING**: Complete project rebranding from "crypto" to "shadow"
+- New shadow-branded binaries: `shadow`, `unshadow`, `shadows`, `shadowview`, `shadowedit`
+- Updated file format: Magic bytes changed from `ENC3` (4 bytes) to `SHADOW` (6 bytes)
+- Updated header structure: Increased from 38 to 40 bytes to accommodate new magic bytes
+- File extension changed from `.enc` to `.shadow` throughout system
+
+### Changed
+- **Cargo.toml**: Updated package name and all binary definitions to shadow branding
+- **File detection**: Updated magic byte detection logic for new `SHADOW` format
+- **Documentation**: Comprehensive update of all docs to reflect shadow branding
+- **Test suite**: Updated all tests to use new magic bytes and file extensions
+- **CLI help text**: Updated all command descriptions and examples
+
+### Technical Details
+- Header format migration preserves all functionality while updating branding
+- Backward compatibility maintained through version field detection
+- Complete test coverage for new file format including doctests
+- All 47 test cases pass with new shadow-branded implementation
+
+### Development Insights
+- **Text replacement challenges**: Aggressive find/replace operations (`sed`) caused unintended field name corruption (e.g., "encryption" → "shadowryption")
+- **Documentation coherence**: Complete rebranding requires systematic updates across code, tests, and documentation
+- **Magic byte sizing**: Expanding from 4-byte to 6-byte magic bytes requires careful header size recalculation and test updates
+- **Test reliability**: Doctests provide additional validation layer beyond unit and integration tests
+- **Branding impact**: Complete rebranding affects binary names, file extensions, magic bytes, documentation, and user-facing text
 
 ### Roadmap Updates
 - **NEW**: Added Phase 9.95 for complete "Shadow" rebranding based on user feedback
@@ -97,8 +125,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **BREAKING**: Simplified CLI interface - removed output file arguments
-- `lock input.txt output.txt.enc` → `lock input.txt` (auto-creates `input.txt.enc`)
-- `unlock file.enc output.txt` → `unlock file.enc` (auto-restores original filename)
+- `lock input.txt output.txt.shadow` → `shadow input.txt` (auto-creates `input.txt.shadow`)
+- `unlock file.shadow output.txt` → `unshadow file.shadow` (auto-restores original filename)
 - Much more intuitive user experience with smart defaults
 
 ### Security
@@ -206,8 +234,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 **Major UX improvement** - `--remove-source`/`--inplace` flags, simplified CLI interface
 
 **Key Achievement**: Removed confusing output file arguments
-- **Before**: `lock input.txt output.txt.enc` 
-- **After**: `lock input.txt` → auto-creates `input.txt.enc`
+- **Before**: `lock input.txt output.txt.shadow` 
+- **After**: `shadow input.txt` → auto-creates `input.txt.shadow`
 
 **Features**: Secure deletion, confirmation prompts, atomic operations
 

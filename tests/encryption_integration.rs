@@ -5,9 +5,9 @@
 
 #[cfg(test)]
 mod tests {
-    use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
-    use crypto::shared::crypto::argon2::Argon2Params;
-    use crypto::shared::file_detection::is_encrypted_file;
+    use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
+    use shadow_crypt::shared::crypto::argon2::Argon2Params;
+    use shadow_crypt::shared::file_detection::is_encrypted_file;
     use std::fs;
     use tempfile::tempdir;
 
@@ -16,7 +16,7 @@ mod tests {
         // Create a temporary directory for test files
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let input_path = temp_dir.path().join("test_input.txt");
-        let output_path = temp_dir.path().join("test_output.enc");
+        let output_path = temp_dir.path().join("test_output.shadow");
         
         // Create a test file
         let test_content = "This is a test file for encryption testing.\nMultiple lines\nWith special chars: @#$%^&*()";
@@ -55,8 +55,8 @@ mod tests {
     fn test_encryption_with_different_passwords() {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let input_path = temp_dir.path().join("test_input.txt");
-        let output1_path = temp_dir.path().join("test_output1.enc");
-        let output2_path = temp_dir.path().join("test_output2.enc");
+        let output1_path = temp_dir.path().join("test_output1.shadow");
+        let output2_path = temp_dir.path().join("test_output2.shadow");
         
         let test_content = "Same content, different passwords";
         fs::write(&input_path, test_content).expect("Failed to write test file");
@@ -82,7 +82,7 @@ mod tests {
     fn test_encryption_preserves_metadata() {
         let temp_dir = tempdir().expect("Failed to create temp directory");
         let input_path = temp_dir.path().join("test_input.txt");
-        let output_path = temp_dir.path().join("test_output.enc");
+        let output_path = temp_dir.path().join("test_output.shadow");
         
         let test_content = "Testing metadata preservation";
         fs::write(&input_path, test_content).expect("Failed to write test file");

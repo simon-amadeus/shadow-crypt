@@ -3,8 +3,8 @@
 //! This binary provides command-line interface for listing encrypted files
 //! and showing their original names and metadata.
 
-use crypto::listing::{file_scanner, metadata_extractor};
-use crypto::shared::errors::CryptoError;
+use shadow_crypt::listing::{file_scanner, metadata_extractor};
+use shadow_crypt::shared::errors::CryptoError;
 use std::env;
 use std::path::Path;
 

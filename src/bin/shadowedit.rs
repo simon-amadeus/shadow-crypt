@@ -3,7 +3,7 @@
 //! This binary provides command-line interface for securely editing encrypted files
 //! with atomic updates and backup/rollback functionality.
 
-use crypto::shared::errors::CryptoError;
+use shadow_crypt::shared::errors::CryptoError;
 
 fn main() -> Result<(), CryptoError> {
     // TODO: Implement CLI argument parsing and main editing logic

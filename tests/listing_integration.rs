@@ -3,11 +3,11 @@
 //! These tests verify the file listing functionality works correctly
 //! with encrypted files from previous phases.
 
-use crypto::listing::file_scanner::list_encrypted_files_with_params;
-use crypto::listing::metadata_extractor::{format_file_size, format_header, format_separator, format_file_info};
-use crypto::encryption::encrypt_file::encrypt_single_file_with_params;
-use crypto::shared::crypto::argon2::Argon2Params;
-use crypto::shared::errors::CryptoError;
+use shadow_crypt::listing::file_scanner::list_encrypted_files_with_params;
+use shadow_crypt::listing::metadata_extractor::{format_file_size, format_header, format_separator, format_file_info};
+use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
+use shadow_crypt::shared::crypto::argon2::Argon2Params;
+use shadow_crypt::shared::errors::CryptoError;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
@@ -32,7 +32,7 @@ fn create_test_files(temp_dir: &Path) -> Result<(), CryptoError> {
         file.write_all(content.as_bytes())?;
         
         // Encrypt the file with fast test parameters
-        let encrypted_path = temp_dir.join(format!("{}.enc", filename));
+        let encrypted_path = temp_dir.join(format!("{}.shadow", filename));
         encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
         
         // Remove the original file
@@ -91,7 +91,7 @@ fn test_list_encrypted_files_wrong_password() -> Result<(), CryptoError> {
     // When password is wrong, original_name should be "[ENCRYPTED]" and obfuscated_name should contain the actual filename
     for file_info in &files {
         assert_eq!(file_info.original_name, "[ENCRYPTED]");
-        assert!(file_info.obfuscated_name.ends_with(".enc"));
+        assert!(file_info.obfuscated_name.ends_with(".shadow"));
         assert!(!file_info.filename_decrypted);
     }
     
@@ -161,7 +161,7 @@ fn test_file_info_structure() -> Result<(), CryptoError> {
     let mut file = File::create(&file_path)?;
     file.write_all(content.as_bytes())?;
     
-    let encrypted_path = temp_path.join("test.txt.enc");
+    let encrypted_path = temp_path.join("test.txt.shadow");
     let params = Argon2Params::test_params();
     encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
@@ -176,7 +176,7 @@ fn test_file_info_structure() -> Result<(), CryptoError> {
     assert_eq!(file_info.original_name, "test.txt");
     assert_eq!(file_info.size, content.len() as u64);
     assert!(file_info.encrypted_size > file_info.size); // Should be larger due to encryption overhead
-    assert!(file_info.encrypted_path.ends_with("test.txt.enc"));
+    assert!(file_info.encrypted_path.ends_with("test.txt.shadow"));
     
     Ok(())
 }
@@ -216,7 +216,7 @@ fn test_format_file_info() -> Result<(), CryptoError> {
     let mut file = File::create(&file_path)?;
     file.write_all(content.as_bytes())?;
     
-    let encrypted_path = temp_path.join("test.txt.enc");
+    let encrypted_path = temp_path.join("test.txt.shadow");
     let params = Argon2Params::test_params();
     encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
@@ -246,7 +246,7 @@ fn test_enhanced_display_shows_both_filenames() -> Result<(), CryptoError> {
     file.write_all(content.as_bytes())?;
     
     // Encrypt with standard naming
-    let encrypted_path = temp_path.join("obfuscated_name.enc");
+    let encrypted_path = temp_path.join("obfuscated_name.shadow");
     let params = Argon2Params::test_params();
     encrypt_single_file_with_params(&file_path, &encrypted_path, "testpassword123", false, &params)?;
     fs::remove_file(&file_path)?;
@@ -286,7 +286,7 @@ fn test_enhanced_display_shows_encrypted_when_wrong_password() -> Result<(), Cry
     let mut file = File::create(&file_path)?;
     file.write_all(content.as_bytes())?;
     
-    let encrypted_path = temp_path.join("secret.txt.enc");
+    let encrypted_path = temp_path.join("secret.txt.shadow");
     let params = Argon2Params::test_params();
     encrypt_single_file_with_params(&file_path, &encrypted_path, "correctpassword", false, &params)?;
     fs::remove_file(&file_path)?;
@@ -300,14 +300,14 @@ fn test_enhanced_display_shows_encrypted_when_wrong_password() -> Result<(), Cry
     // Check that filename decryption failed
     assert!(!file_info.filename_decrypted);
     assert_eq!(file_info.original_name, "[ENCRYPTED]");
-    assert_eq!(file_info.obfuscated_name, "secret.txt.enc");
+    assert_eq!(file_info.obfuscated_name, "secret.txt.shadow");
     
     // Check formatted display shows encrypted status
     let formatted = format_file_info(file_info);
     println!("Formatted output with wrong password: {}", formatted);
     
     assert!(formatted.contains("→"));
-    assert!(formatted.contains("secret.txt.enc"));
+    assert!(formatted.contains("secret.txt.shadow"));
     assert!(formatted.contains("[ENCRYPTED]"));
     assert!(formatted.contains("?")); // Question mark indicator
     

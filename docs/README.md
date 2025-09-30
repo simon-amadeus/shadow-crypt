@@ -49,12 +49,14 @@ cargo build --release
 ./target/release/shadowview secret.txt.shadow
 
 # Edit an encrypted file (Phase 11+)
-./target/release/cryptedit secret.txt.enc
+./target/release/shadowedit secret.txt.shadow
 ```
 
 ## Status
 
-This is a production-ready file encryption system with completed core features, comprehensive security audit, and production-quality error handling. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
+This is a production-ready file encryption system with completed core features, comprehensive security audit, production-quality error handling, and complete shadow branding. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
+
+**Latest Update**: ✅ **Phase 9.95 Complete** - Full project rebranding to "Shadow" with new command names and file format implemented.
 
 **Security Status**: ✅ **Internal security audit completed** - No critical or high-risk vulnerabilities identified. Ready for external professional audit.
 
