@@ -44,8 +44,8 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
 - ✅ **Phase 9**: Source file removal support for single-file operations (**COMPLETE** - Major CLI simplification achieved)
 - ✅ **Phase 9.5**: Security audit (**COMPLETE** - Comprehensive internal audit completed)
-- 🚧 **Phase 10**: Multi-file encryption support (**CURRENT PRIORITY**)
-- ⏳ **Phase 11**: Multi-file decryption support (**NEXT**)
+- 🚧 **Phase 9.75**: Code quality improvements (**CURRENT PRIORITY** - Address unwrap() usage and error handling)
+- ⏳ **Phase 10**: Multi-file encryption support (**NEXT**)
 
 ---
 
@@ -403,7 +403,43 @@ User feedback led to removing output file arguments entirely, resulting in much 
 
 ---
 
-### Phase 10: Multi-File Encryption Support (**REPRIORITIZED** after source removal)
+### Phase 9.75: Code Quality Improvements (**NEW PRIORITY** based on quality assessment)
+
+**Goal**: Address medium priority code quality issues identified in comprehensive assessment
+
+**Critical Quality Issues to Address**:
+- **Excessive `unwrap()` usage**: Replace 47 instances with proper error handling, especially in production code
+- **Missing error propagation**: Improve CLI argument handling robustness
+- **Input validation**: Add comprehensive validation for CLI arguments
+
+**Tasks**:
+- [ ] Audit and replace all production `unwrap()` calls with proper error handling
+- [ ] Enhance CLI argument validation in all binary tools
+- [ ] Add comprehensive input sanitization and validation
+- [ ] Improve error messages for better user experience
+- [ ] Add defensive programming practices throughout codebase
+- [ ] Review and improve error propagation patterns
+
+**Dependencies**: Phase 9.5 ✅ (Security audit)
+
+**Estimated Duration**: 1-2 days
+
+**Success Criteria**:
+- Zero `unwrap()` calls in production code paths
+- Comprehensive CLI input validation
+- Improved error messages and user experience
+- All tests continue to pass
+- Code quality assessment shows significant improvement
+
+**Quality Focus Areas**:
+1. **Error Handling**: Replace panics with graceful error handling
+2. **Input Validation**: Validate all user inputs thoroughly
+3. **User Experience**: Clear, helpful error messages
+4. **Defensive Programming**: Assume invalid inputs and handle gracefully
+
+---
+
+### Phase 10: Multi-File Encryption Support (**REPRIORITIZED** after code quality)
 
 **Goal**: Support encrypting multiple individual files (not directories)
 
@@ -421,7 +457,7 @@ User feedback led to removing output file arguments entirely, resulting in much 
 - [ ] Add parallel processing for performance
 - [ ] Extend `--remove-source` support to multi-file operations
 
-**Dependencies**: Phase 9 ✅ (Source file removal)
+**Dependencies**: Phase 9.75 ✅ (Code quality improvements)
 
 **Estimated Duration**: 2-3 days
 
