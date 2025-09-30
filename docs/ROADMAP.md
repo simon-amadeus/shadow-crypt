@@ -25,8 +25,9 @@ The implementation is organized into 20 focused phases, each with specific goals
 - ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
 - ✅ **Phase 7**: Filename restoration (**COMPLETE**)
 - ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- � **Phase 9**: Multi-file encryption support (**NEXT**)
-- ⏸️ **Phase 10+**: Directory encryption (**POSTPONED** per user feedback)
+- 🔥 **Phase 8.5**: Critical user experience fixes (**CURRENT PRIORITY**)
+- 🚧 **Phase 9**: Multi-file encryption support (**NEXT AFTER 8.5**)
+- ⏸️ **Directory Encryption**: (**REMOVED** - user feedback: "will never be needed")
 
 ---
 
@@ -369,84 +370,13 @@ single file and multi-file (individual files) support only.
 
 ---
 
-### ⏸️ **POSTPONED PHASES** (Per User Feedback)
-
-The following phases have been postponed to focus on single and multi-file support:
-
-#### Phase 11+: Directory Encryption (POSTPONED)
-- Directory structure encryption
-- Recursive directory processing  
-- Directory-level obfuscation
-
-#### Phase 12+: Directory Decryption (POSTPONED)
-- Directory structure restoration
-- Batch directory decryption
-- Format detection is reliable
+## Advanced Features (12-17)
 
 ---
 
-### Phase 11: Create `cryptls` Binary
+### Phase 11: File Editing Support (`cryptedit`)
 
-**Goal**: Build CLI binary for file listing
-
-**Tasks**:
-- [ ] Create `bin/cryptls.rs` with argument parsing
-- [ ] Integrate with `listing/` module
-- [ ] List encrypted files in directory with original names
-- [ ] Display file information in user-friendly format
-- [ ] Add various output formats (table, JSON, etc.)
-
-**Dependencies**: Phase 10 ✅
-
-**Estimated Duration**: 1-2 days
-
-**Success Criteria**:
-- Listing output is clear and informative
-- Multiple output formats work correctly
-- Performance is good for large directories
-- Integration with standard tools works
-
----
-
-## Advanced Features (12-16)
-
-### Phase 12: Add Directory Support to `lock`
-
-**Goal**: Extend encryption to handle directories
-
-**Tasks**:
-- [ ] Add directory traversal and recursive file discovery
-- [ ] Flatten directory structure to single output directory
-- [ ] Store original directory paths in each file header
-- [ ] Handle multiple files with batch processing
-- [ ] Add progress reporting for large operations
-
-**Dependencies**: Phase 11 ✅
-
-**Estimated Duration**: 3-4 days
-
----
-
-### Phase 13: Add Directory Support to `unlock`
-
-**Goal**: Extend decryption to handle directories
-
-**Tasks**:
-- [ ] Auto-detect encrypted files in directory
-- [ ] Restore original directory structure from headers
-- [ ] Handle batch decryption with error aggregation
-- [ ] Skip non-encrypted files gracefully
-- [ ] Add parallel processing for performance
-
-**Dependencies**: Phase 12 ✅
-
-**Estimated Duration**: 3-4 days
-
----
-
-### Phase 14: Add Multi-File Support
-
-**Goal**: Support multiple file arguments in CLI binaries
+**Goal**: Implement secure in-place editing of encrypted files
 
 **Tasks**:
 - [ ] Update `lock` to accept multiple file/directory arguments
@@ -461,7 +391,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-### Phase 15: Add Secure Viewing (`cryptview`)
+### Phase 12: Add Secure Viewing (`cryptview`)
 
 **Goal**: View encrypted files without persistent decryption
 
@@ -478,7 +408,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-### Phase 16: Add Secure Editing (`cryptedit`)
+### Phase 13: Add Secure Editing (`cryptedit`)
 
 **Goal**: Edit encrypted text files in-place
 
@@ -497,7 +427,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ## Production Readiness (17-20)
 
-### Phase 17: Performance Optimization
+### Phase 14: Performance Optimization
 
 **Goal**: Optimize for production use
 
@@ -514,7 +444,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-### Phase 18: Comprehensive Testing
+### Phase 15: Comprehensive Testing
 
 **Goal**: Ensure reliability and security
 
@@ -531,7 +461,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-### Phase 19: Documentation and Polish
+### Phase 16: Documentation and Polish
 
 **Goal**: Prepare for release
 
@@ -548,7 +478,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-### Phase 20: Release Preparation
+### Phase 17: Release Preparation
 
 **Goal**: Package and distribute
 
@@ -565,7 +495,7 @@ The following phases have been postponed to focus on single and multi-file suppo
 
 ---
 
-## Future Enhancements (21+)
+## Future Enhancements (18+)
 
 ### Post-Quantum Cryptography (Phase 21+)
 - CRYSTALS-Kyber key encapsulation

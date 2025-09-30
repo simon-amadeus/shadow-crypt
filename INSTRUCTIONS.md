@@ -24,12 +24,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - Understand project goals, architecture, and user needs
 - Review implementation status and current roadmap
 
-### 3. **UNDERSTAND CURRENT CODE** 🔍
-- Examine existing implementation and architecture
-- Check compilation status and test coverage
-- Identify technical debt and improvement opportunities
-
-### 3.5. **CHECK FEEDBACK & ADAPT IF NEEDED** 🔄
+### 2.5. **CHECK FEEDBACK & ADAPT IF NEEDED** 🔄
 - **Check `FEEDBACK.md` for NEW customer feedback**
 - **IMPORTANT**: Only consider items in the "New Feedback" section
 - **IGNORE**: Items already marked as "Addressed" or "ROADMAP UPDATED" 
@@ -39,7 +34,12 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Feedback Processing Rules:**
 - NEW feedback = items in "New Feedback" section only
 - ADDRESSED feedback = moved to "Addressed" section, should be ignored
-- When jumping to Step 6, mark feedback items as "ROADMAP UPDATED" and move to "Addressed"
+- When jumping to Step 6, mark feedback items as "ROADMAP UPDATED" and move to "Addressed" and end the current cycle after Step 6.
+
+### 3. **UNDERSTAND CURRENT CODE** 🔍
+- Examine existing implementation and architecture
+- Check compilation status and test coverage
+- Identify technical debt and improvement opportunities
 
 ### 4. **IMPLEMENT NEXT ROADMAP PHASE** ⚡
 **Execute with focus on learning and user value:**

@@ -8,12 +8,17 @@ Add your feedback here. Keep it simple - just write what you think.
 
 *(Add new items here)*
 
-
 ---
 
 ## Addressed
 
 *(Completed items move here)*
+
+### September 21, 2025 - Roadmap Simplification
+
+- **ROADMAP UPDATED**: the planned directory support for recursive encryption/decryption will never be needed.
+  - **Status**: Integrated into roadmap - directory phases removed/postponed
+  - **Action**: Focused roadmap on single/multi-file operations instead of directory recursion
 
 ### Phase 8.5 Roadmap Integration (September 21, 2025)
 
