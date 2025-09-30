@@ -1,4 +1,4 @@
-# Crypto - High-Security File Encryption System
+# Shadow - High-Security File Encryption System
 
 A high-security, high-performance file encryption system written in Rust with reversible filename obfuscation and state-of-the-art cryptographic protections.
 
@@ -15,11 +15,11 @@ A high-security, high-performance file encryption system written in Rust with re
 
 The system provides five specialized command-line tools:
 
-- **`lock`** - Encrypt files and directories
-- **`unlock`** - Decrypt files and directories  
-- **`cryptls`** - List encrypted files with original names
-- **`cryptview`** - Securely view encrypted files
-- **`cryptedit`** - Securely edit encrypted files
+- **`shadow`** - Encrypt files and directories
+- **`unshadow`** - Decrypt files and directories  
+- **`shadows`** - List encrypted files with original names
+- **`shadowview`** - Securely view encrypted files
+- **`shadowedit`** - Securely edit encrypted files
 
 ## Quick Start
 
@@ -28,25 +28,25 @@ The system provides five specialized command-line tools:
 cargo build --release
 
 # Encrypt a file (password prompted securely)
-./target/release/lock secret.txt
+./target/release/shadow secret.txt
 
 # Encrypt with filename obfuscation
-./target/release/lock --obfuscate secret.txt
+./target/release/shadow --obfuscate secret.txt
 
 # Encrypt and remove source file
-./target/release/lock --remove-source secret.txt
+./target/release/shadow --remove-source secret.txt
 
 # Decrypt a file (password prompted securely)
-./target/release/unlock secret.txt.enc
+./target/release/unshadow secret.txt.shadow
 
 # Decrypt and remove encrypted file  
-./target/release/unlock --inplace secret.txt.enc
+./target/release/unshadow --inplace secret.txt.shadow
 
 # List encrypted files in directory (password prompted securely)
-./target/release/cryptls encrypted_files/
+./target/release/shadows encrypted_files/
 
 # View an encrypted file (Phase 10+)
-./target/release/cryptview secret.txt.enc
+./target/release/shadowview secret.txt.shadow
 
 # Edit an encrypted file (Phase 11+)
 ./target/release/cryptedit secret.txt.enc

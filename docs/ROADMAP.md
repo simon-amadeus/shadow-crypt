@@ -1,8 +1,11 @@
 # Implementation Roadmap
 
 ---
-
-## Overview
+- ✅ **Phase 9.75**: Code quality improvements (**COMPLETE** - Production-ready error handling implemented)
+- 🚧 **Phase 9.95**: Project rebranding to "Shadow" (**CURRENT PRIORITY** - Critical branding update)
+- 📋 **Phase 9.98**: Migration system foundation (**NEW** - Cryptographic agility preparation)
+- 📋 **Phase 9.9**: Critical security hardening (Based on comprehensive security assessment)
+- 📋 **Phase 10**: Multi-file encryption supportverview
 
 The implementation is organized into 20- Add parallel processing for performance
 
@@ -29,7 +32,9 @@ The implementation is organized into 20- Add parallel processing for performance
 - ✅ **Phase 9**: Source file removal support for single-file operations (**COMPLETE** - Major CLI simplification achieved)
 - ✅ **Phase 9.5**: Security audit (**COMPLETE** - Comprehensive internal audit completed)
 - ✅ **Phase 9.75**: Code quality improvements (**COMPLETE** - Production-ready error handling implemented)
-- 🚧 **Phase 9.9**: Critical security hardening (**CURRENT PRIORITY** - Based on comprehensive security assessment)
+- � **Phase 9.95**: Project rebranding to "Shadow" (**NEW PRIORITY** - Critical branding update)
+- �🚧 **Phase 9.9**: Critical security hardening (**CURRENT PRIORITY** - Based on comprehensive security assessment)
+- 📋 **Phase 9.98**: Migration system foundation (**NEW** - Cryptographic agility preparation)
 - 📋 **Phase 10**: Multi-file encryption support
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
@@ -38,6 +43,84 @@ The implementation is organized into 20- Add parallel processing for performance
 - 📋 **Phase 15**: Comprehensive testing
 - 📋 **Phase 16**: Documentation and polish
 - 📋 **Phase 17**: Release preparation
+
+---
+
+### Phase 9.95: Project Rebranding to "Shadow"
+
+**Goal**: Complete project rebranding from "crypto" to "shadow" with enhanced user experience
+
+**Critical Branding Changes**:
+- [ ] **Command Rebranding**:
+  - `lock` → `shadow` (encrypt files)
+  - `unlock` → `unshadow` (decrypt files)
+  - `cryptls` → `shadows` (list encrypted files)
+  - `cryptview` → `shadowview` (view encrypted files)
+  - `cryptedit` → `shadowedit` (edit encrypted files)
+
+- [ ] **File Format Updates**:
+  - Change magic bytes from `CRYPTO` to `SHADOW`
+  - Change file extension from `.enc` to `.shadow`
+  - Update header identifier to reflect shadow branding
+
+- [ ] **Codebase Updates**:
+  - Update `Cargo.toml` project name and binary names
+  - Update all file detection logic for `.shadow` extension
+  - Update magic bytes in header implementation
+  - Update error messages and CLI help text
+  - Update documentation and examples
+
+- [ ] **Compatibility Considerations**:
+  - no backward compatibility needed as this tool is in early stages
+
+**Dependencies**: Current work can continue in parallel
+
+**Estimated Duration**: 2-3 days
+
+**Success Criteria**:
+- All commands renamed and functional
+- File format uses "shadow" branding consistently
+- Legacy file support maintains backward compatibility
+- Documentation reflects new branding
+- No regression in functionality
+
+---
+
+### Phase 9.98: Migration System Foundation
+
+**Goal**: Implement cryptographic agility infrastructure for future algorithm upgrades
+
+**Migration System Components**:
+- [ ] **Version Detection**:
+  - Ensure current header format is properly marked as version 1
+  - Add version detection logic for header parsing
+  - Implement forward compatibility for future versions
+
+- [ ] **Migration Tool Architecture**:
+  - Design command structure (`shadowmigrate` or `shadow --migrate`)
+  - Plan batch migration for directories
+  - Design safety features (backup, verification, rollback)
+
+- [ ] **Algorithm Transition Support**:
+  - Prepare infrastructure for algorithm upgrades
+  - Design header evolution patterns
+  - Plan backward compatibility strategies
+
+- [ ] **Safety and Verification**:
+  - Implement migration verification processes
+  - Add backup creation during migration
+  - Design rollback capabilities for failed migrations
+
+**Dependencies**: Phase 9.95 ✅ (Shadow rebranding for consistent tooling)
+
+**Estimated Duration**: 3-4 days
+
+**Success Criteria**:
+- Header versioning system implemented
+- Migration tool foundation ready
+- Safety mechanisms designed and tested
+- Future algorithm transition path clear
+- Backward compatibility preserved
 
 ---
 

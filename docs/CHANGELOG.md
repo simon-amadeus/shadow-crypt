@@ -8,10 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Planned
-- **PRIORITY**: Critical security hardening (Phase 9.9) - Statistical timing analysis, cryptographic fuzzing, filename authentication, nonce reuse detection
+- **PRIORITY**: Project rebranding to "Shadow" (Phase 9.95) - Complete branding overhaul with new command names and file format
+- **PRIORITY**: Migration system foundation (Phase 9.98) - Cryptographic agility infrastructure for future algorithm upgrades
+- Critical security hardening (Phase 9.9) - Statistical timing analysis, cryptographic fuzzing, filename authentication, nonce reuse detection
 - Multi-file encryption and decryption support
 - File viewing and editing tools
 - External professional security audit
+
+### Roadmap Updates
+- **NEW**: Added Phase 9.95 for complete "Shadow" rebranding based on user feedback
+- **NEW**: Added Phase 9.98 for migration system foundation to enable cryptographic agility
+- Reprioritized phases to complete branding first, then security hardening
+- Updated command names: `lock`→`shadow`, `unlock`→`unshadow`, `cryptls`→`shadows`, etc.
+- Updated file format: `.enc`→`.shadow`, magic bytes `CRYPTO`→`SHADOW`
 
 ## [0.9.8] - 2025-09-30
 
