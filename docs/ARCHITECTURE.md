@@ -22,182 +22,134 @@ All architectural decisions prioritize security:
 - **Cryptographic agility** enables future algorithm upgrades
 - **Side-channel mitigation** throughout the system
 
-## Module Structure ✅ **IMPLEMENTED**
+## System Overview
+
+```
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│    lock     │  │   unlock    │  │  cryptls    │  │ cryptview   │  │ cryptedit   │
+│  (encrypt)  │  │  (decrypt)  │  │   (list)    │  │   (view)    │  │   (edit)    │
+└─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+       │                │                │                │                │
+       ▼                ▼                ▼                ▼                ▼
+┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+│ encryption/ │  │ decryption/ │  │  listing/   │  │  viewing/   │  │  editing/   │
+│   module    │  │   module    │  │   module    │  │   module    │  │   module    │
+└─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘
+       │                │                │                │                │
+       └────────────────┼────────────────┼────────────────┼────────────────┘
+                        │                │                │
+                        ▼                ▼                ▼
+                ┌─────────────────────────────────────────────┐
+                │              shared/ module                │
+                │  ┌─────────┐ ┌─────────┐ ┌─────────────┐    │
+                │  │ crypto/ │ │header.rs│ │ errors.rs   │    │
+                │  │         │ │         │ │             │    │
+                │  │ aes.rs  │ │file_    │ │secure_      │    │
+                │  │argon2.rs│ │detection│ │delete.rs    │    │
+                │  │secure_  │ │.rs      │ │             │    │
+                │  │memory.rs│ │         │ │             │    │
+                │  └─────────┘ └─────────┘ └─────────────┘    │
+                └─────────────────────────────────────────────┘
+```
+
+## Module Structure
+
+The system follows a vertical slice architecture where each binary has its own module containing all necessary functionality:
 
 ```
 src/
-├── lib.rs                     // ✅ Public API for shared functionality
-├── shared/                    // ✅ Core shared components
-│   ├── mod.rs                 // ✅ Module exports and re-exports
-│   ├── crypto/                // ✅ Cryptographic primitives (IMPLEMENTED)
-│   │   ├── mod.rs             // ✅ Crypto module exports
-│   │   ├── aes.rs             // ✅ AES-GCM implementation (PRODUCTION-READY)
-│   │   ├── argon2.rs          // ✅ Argon2 key derivation (PRODUCTION-READY)
-│   │   └── secure_memory.rs   // ✅ SecretVec and secure memory handling
-│   ├── header.rs              // ✅ File header format with serialization
-│   ├── file_detection.rs      // ✅ Detect encrypted files by magic number
-│   └── errors.rs              // ✅ Comprehensive error types
-├── encryption/                // ✅ Everything needed for lock binary
-│   ├── mod.rs                 // ✅ Encryption module exports
-│   ├── encrypt_file.rs        // ✅ Single file encryption (COMPLETE)
-│   ├── filename_obfuscation.rs// ✅ Filename obfuscation (COMPLETE)
-│   └── cli.rs                 // ✅ CLI interface (COMPLETE)
-├── decryption/                // ✅ Everything needed for unlock binary
-│   ├── mod.rs                 // ✅ Decryption module exports
-│   ├── decrypt_file.rs        // ✅ Single file decryption (COMPLETE)
-│   ├── filename_restoration.rs// ✅ Filename restoration (COMPLETE)
-│   └── cli.rs                 // ✅ CLI interface (placeholder)
-├── listing/                   // ✅ Everything needed for cryptls binary
-│   ├── mod.rs                 // ✅ Listing module exports
-│   ├── file_scanner.rs        // ✅ File scanning (placeholder)
-│   ├── metadata_extractor.rs  // ✅ Metadata extraction (placeholder)
-│   └── cli.rs                 // ✅ CLI interface (placeholder)
-├── viewing/                   // ✅ Everything needed for cryptview binary
-│   ├── mod.rs                 // ✅ Viewing module exports
-│   ├── viewer_integration.rs  // ✅ Viewer integration (placeholder)
-│   ├── streaming_decrypt.rs   // ✅ Streaming decryption (placeholder)
-│   └── cli.rs                 // ✅ CLI interface (placeholder)
-├── editing/                   // ✅ Everything needed for cryptedit binary
-│   ├── mod.rs                 // ✅ Editing module exports
-│   ├── editor_integration.rs  // ✅ Editor integration (placeholder)
-│   ├── atomic_updates.rs      // ✅ Atomic updates (placeholder)
-│   └── cli.rs                 // ✅ CLI interface (placeholder)
-└── bin/                       // ✅ Binary entry points
-    ├── lock.rs                // ✅ use crate::encryption
-    ├── unlock.rs              // ✅ use crate::decryption
-    ├── cryptls.rs             // ✅ use crate::listing
-    ├── cryptview.rs           // ✅ use crate::viewing
-    └── cryptedit.rs           // ✅ use crate::editing
+├── lib.rs                     // Public API for shared functionality
+├── shared/                    // Core shared components
+│   ├── crypto/                // Cryptographic primitives
+│   │   ├── aes.rs             // AES-256-GCM implementation
+│   │   ├── argon2.rs          // Argon2id key derivation
+│   │   └── secure_memory.rs   // SecretVec and secure memory handling
+│   ├── header.rs              // File header format with serialization
+│   ├── file_detection.rs      // Detect encrypted files by magic number
+│   ├── errors.rs              // Comprehensive error types
+│   └── secure_delete.rs       // Secure file deletion
+├── encryption/                // Lock binary functionality
+│   ├── encrypt_file.rs        // File encryption logic
+│   ├── filename_obfuscation.rs// Filename obfuscation
+│   └── cli.rs                 // CLI interface
+├── decryption/                // Unlock binary functionality
+│   ├── decrypt_file.rs        // File decryption logic
+│   ├── filename_restoration.rs// Filename restoration
+│   └── cli.rs                 // CLI interface
+├── listing/                   // Cryptls binary functionality
+│   ├── file_scanner.rs        // File scanning
+│   ├── metadata_extractor.rs  // Metadata extraction
+│   └── cli.rs                 // CLI interface
+├── viewing/                   // Cryptview binary functionality
+│   ├── streaming_decrypt.rs   // Streaming decryption
+│   ├── viewer_integration.rs  // External viewer integration
+│   └── cli.rs                 // CLI interface
+├── editing/                   // Cryptedit binary functionality
+│   ├── atomic_updates.rs      // Atomic file updates
+│   ├── editor_integration.rs  // External editor integration
+│   └── cli.rs                 // CLI interface
+└── bin/                       // Binary entry points
+    ├── lock.rs                // Encryption binary
+    ├── unlock.rs              // Decryption binary
+    ├── cryptls.rs             // Listing binary
+    ├── cryptview.rs           // Viewing binary
+    └── cryptedit.rs           // Editing binary
 ```
 
-**Implementation Notes:**
-- All modules compile cleanly with proper trait bounds
-- Placeholder implementations in later phases are marked with TODO comments
-- Error handling is consistent across all modules
-- SecretVec implements proper zeroization with Clone and Debug traits
-- Binary targets are configured in Cargo.toml for all five tools
-- **Phase 3 Complete**: Production-ready cryptographic operations (AES-256-GCM, Argon2id)
-
-## Dependency Architecture
-
-```
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│   lock      │  │   unlock    │  │  cryptls    │
-│   binary    │  │   binary    │  │   binary    │
-└─────────────┘  └─────────────┘  └─────────────┘
-       │                │                │
-       ▼                ▼                ▼
-┌─────────────┐  ┌─────────────┐  ┌─────────────┐
-│ encryption/ │  │ decryption/ │  │  listing/   │
-│   module    │  │   module    │  │   module    │
-└─────────────┘  └─────────────┘  └─────────────┘
-       │                │                │
-       └────────────────┼────────────────┘
-                        ▼
-                ┌─────────────┐
-                │   shared/   │
-                │   module    │
-                └─────────────┘
-```
-
-## Benefits of This Architecture
+## Architecture Benefits
 
 ### Feature-Complete Modules
-
 Each module contains everything needed for its use case:
-- Business logic
+- Business logic and algorithms
 - File I/O operations  
-- CLI handling
-- Specific error handling
+- CLI handling and user interaction
+- Specific error handling and recovery
 
 ### Independent Development
+- Work on encryption without affecting decryption code
+- Add new features to specific tools without cross-contamination
+- Deploy and update binaries independently
+- Clear feature ownership and responsibility
 
-- Work on `lock` without touching `unlock` code
-- Add new features to `cryptview` without affecting other binaries
-- Deploy/update binaries independently
-- Clear feature ownership
-
-### Optimized Compilation
-
+### Optimized Performance
 - Each binary only compiles what it needs
-- Faster build times
-- Smaller binary sizes
-- Reduced dependencies per tool
-
-### Clear Ownership
-
-- Each feature has a clear "home"
-- No confusion about where code belongs
-- Easy reasoning about dependencies
-- Simplified testing and maintenance
+- Faster build times and smaller binary sizes
+- Reduced runtime dependencies per tool
+- Efficient resource utilization
 
 ## Core Shared Components
 
-### Cryptographic Primitives (`shared/crypto/`)
+For detailed specifications, see the `docs/specs/` directory:
 
-- **AES-GCM encryption** with proper nonce handling ✅ **IMPLEMENTED**
-- **Argon2id key derivation** with adaptive parameters ✅ **IMPLEMENTED**
-- **Secure memory abstractions** with automatic zeroization ✅ **IMPLEMENTED**
-- **Hardware acceleration** support where available ✅ **READY**
+### Cryptographic Layer (`shared/crypto/`)
+- **AES-256-GCM** for authenticated encryption (see `specs/cryptography.md`)
+- **Argon2id** for password-based key derivation
+- **Secure memory** abstractions with automatic zeroization
+- **Hardware acceleration** support where available
 
 ### File Format (`shared/header.rs`)
-
-- **Magic number detection** ("ENC3")
+- **Magic number** detection for encrypted files (see `specs/file-format.md`)
 - **Algorithm identifiers** for cryptographic agility
-- **Serialization/deserialization** with proper padding
-- **Metadata storage** with authentication
+- **Metadata storage** with integrity protection
+- **Version handling** for future compatibility
 
-### Error Handling (`shared/errors.rs`)
+### Security Infrastructure
+- **Comprehensive error types** with proper information isolation (see `specs/security.md`)
+- **Timing attack protection** using constant-time operations
+- **Secure file deletion** with multiple overwrite passes
+- **Memory protection** against swap and core dumps
 
-- **Comprehensive error types** covering all failure modes
-- **Proper error chaining** with source information
-- **Consistent error messages** across all modules
-- **Security-conscious error handling** (no information leakage)
+## Implementation Status
 
-## Phase 9.5 Security Audit Achievements ✅
+The system is currently in **Phase 10** of development with core single-file operations complete and multi-file support in progress. See:
 
-**Comprehensive Security Validation**: Complete internal security audit with professional-grade analysis covering cryptographic implementation, memory safety, timing attacks, and dependency security.
+- `ROADMAP.md` - Detailed development phases and timeline
+- `CHANGELOG.md` - Version history and completed features
+- `specs/` directory - Technical specifications for each component
 
-**System-Adaptive Cryptographic Parameters**: Dynamic Argon2id parameter detection based on actual system memory (1/8 of available RAM with 32MB-512MB bounds) and CPU count (1-8 threads) for optimal security and performance.
+## References
 
-**Timing Attack Protection**: Implementation of constant-time cryptographic operations using the `subtle` crate for filename obfuscation verification, preventing timing side-channel attacks.
-
-**Security Validation Infrastructure**: Comprehensive security test suite with 5 specialized tests and automated security audit script (`security_audit.sh`) for ongoing validation throughout development.
-
-**Professional Security Documentation**: Detailed security audit report identifying no critical or high-risk vulnerabilities, with comprehensive analysis of cryptographic primitives, memory safety, and attack resistance.
-
-**Production Security Readiness**: All identified medium-priority security improvements implemented, establishing strong foundation for external professional audit and production deployment.
-
-## Phase 3 Implementation Achievements ✅
-
-**Core Cryptographic Operations**: Complete production-ready implementations of AES-256-GCM authenticated encryption and Argon2id key derivation with comprehensive testing.
-
-**AES-256-GCM Implementation**: Full encrypt/decrypt functionality with proper validation, secure nonce generation, and comprehensive error handling. 8 unit tests covering all functionality.
-
-**Argon2id Key Derivation**: Complete password-based key derivation with adaptive parameters, HKDF-based file key derivation, and MasterKeyManager with intelligent caching. 10 unit tests with full coverage.
-
-**Security Features**: Input validation, secure randomness, automatic memory zeroization, and comprehensive error handling throughout the crypto stack.
-
-**Testing Coverage**: 18 new cryptographic tests (40 total) with 100% pass rate, covering success paths, error conditions, and edge cases.
-
-**Production Readiness**: All cryptographic operations are production-ready and follow industry best practices for security and performance.
-
-## Phase 1-2 Implementation Achievements ✅
-
-**Module Structure**: Complete vertical slicing architecture implemented exactly as designed with all directories, files, and module exports in place.
-
-**Error Handling**: Comprehensive `CryptoError` enum with proper error chaining and `From` trait implementations for seamless error propagation.
-
-**Secure Memory**: `SecretVec<T>` implementation with automatic zeroization, proper trait bounds (`Clone`, `Debug`), and memory protection abstractions.
-
-**Header Format**: Complete `Header` struct with serialization/deserialization methods, algorithm agility support, and magic number validation.
-
-**File Detection**: Utility functions for detecting encrypted files by magic number and parsing headers without full decryption.
-
-**Binary Configuration**: All five binaries (`lock`, `unlock`, `cryptls`, `cryptview`, `cryptedit`) configured in Cargo.toml with proper entry points.
-
-**Compilation Success**: All code compiles cleanly with no warnings or errors, ready for cryptographic implementation in Phase 2.
-
-## Next Steps
-
-See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for detailed implementation phases.
+- [Technical Specifications](specs/) - Detailed component specifications
+- [Development Roadmap](ROADMAP.md) - Implementation phases and progress
+- [Change History](CHANGELOG.md) - Version history and features
+- [Project Overview](README.md) - Getting started and usage examples
