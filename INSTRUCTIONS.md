@@ -22,7 +22,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 ### 2. **UNDERSTAND PROJECT VISION** 🎯
 - Read all documentation in `docs/` directory
 - Understand project goals, architecture, and user needs
-- Review implementation status and current roadmap
+- Review changelog and current roadmap
 
 ### 2.5. **CHECK FEEDBACK & ADAPT IF NEEDED** 🔄
 - **Check `FEEDBACK.md` for NEW customer feedback**
@@ -51,7 +51,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 
 ### 5. **REFLECT AND UPDATE DOCUMENTATION** 🔄
 **Most critical phase - extract learnings and adapt:**
-- Update `docs/IMPLEMENTATION_STATUS.md` with completed work
+- Update `docs/CHANGELOG.md` with completed work following semantic versioning
 - Update `docs/README.md` progress indicators  
 - Document key insights about technical and user aspects
 - Assess what was accomplished vs. planned

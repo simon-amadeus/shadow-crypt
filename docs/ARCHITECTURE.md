@@ -188,4 +188,4 @@ Each module contains everything needed for its use case:
 
 ## Next Steps
 
-See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for current progress and [ROADMAP.md](ROADMAP.md) for detailed implementation phases.
+See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for detailed implementation phases.

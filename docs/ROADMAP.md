@@ -630,4 +630,4 @@ User feedback led to removing output file arguments entirely, resulting in much 
 - Performance targets met
 - Documentation complete
 
-See [IMPLEMENTATION_STATUS.md](IMPLEMENTATION_STATUS.md) for current progress and [ARCHITECTURE.md](ARCHITECTURE.md) for system design details.
+See [CHANGELOG.md](CHANGELOG.md) for version history and [ARCHITECTURE.md](ARCHITECTURE.md) for system design details.
