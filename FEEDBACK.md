@@ -8,6 +8,9 @@ Add your feedback here. Keep it simple - just write what you think.
 
 *(Add new items here)*
 
+- add some option to remove the source file after encryption/decryption. maybe use --inplace or --remove-source flag? not sure about the name.
+- a strong security audit is requested ASAP.
+
 ---
 
 ## Addressed
