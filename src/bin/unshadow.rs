@@ -9,6 +9,7 @@
 use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files, expand_glob_patterns, try_restore_filename_from_header};
 use shadow_crypt::shared::errors::CryptoError;
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
+use shadow_crypt::shared::cli_utils::{display_error_and_exit, display_validation_error_and_exit, io_error_with_context, display_error_and_return};
 use std::env;
 use std::path::{Path, PathBuf};
 use std::process;
@@ -22,34 +23,35 @@ fn main() -> Result<(), CryptoError> {
     // Expand glob patterns into file paths
     let file_paths = match expand_glob_patterns(&input_patterns) {
         Ok(paths) => paths,
-        Err(e) => {
-            eprintln!("Error: Failed to expand file patterns: {}", e);
-            process::exit(1);
-        }
+        Err(e) => display_error_and_exit(e, 1),
     };
 
     if file_paths.is_empty() {
-        eprintln!("Error: No files found matching the specified patterns");
-        process::exit(1);
+        display_validation_error_and_exit("No files found matching the specified patterns");
     }
 
     // Validate all files exist and are readable
     for file_path in &file_paths {
         if !file_path.exists() {
-            eprintln!("Error: Input file '{}' does not exist", file_path.display());
-            process::exit(1);
+            display_error_and_exit(
+                CryptoError::FileNotFound(file_path.display().to_string()), 
+                1
+            );
         }
         
         if !file_path.is_file() {
-            eprintln!("Error: '{}' is not a regular file", file_path.display());
-            eprintln!("Note: Only individual files are supported");
-            process::exit(1);
+            display_validation_error_and_exit(&format!(
+                "'{}' is not a regular file. Only individual files are supported", 
+                file_path.display()
+            ));
         }
         
         // Check if file is readable
         if let Err(e) = std::fs::File::open(&file_path) {
-            eprintln!("Error: Cannot read input file '{}': {}", file_path.display(), e);
-            process::exit(1);
+            display_error_and_exit(
+                io_error_with_context(e, &format!("reading file '{}'", file_path.display())),
+                1
+            );
         }
     }
     
@@ -57,14 +59,15 @@ fn main() -> Result<(), CryptoError> {
     let password = match rpassword::prompt_password("Enter password for decryption: ") {
         Ok(pass) => pass,
         Err(e) => {
-            eprintln!("Error reading password: {}", e);
-            process::exit(1);
+            display_error_and_exit(
+                CryptoError::CryptographicError(format!("Failed to read password: {}", e)),
+                1
+            );
         }
     };
     
     if password.is_empty() {
-        eprintln!("Error: Password cannot be empty");
-        process::exit(1);
+        display_validation_error_and_exit("Password cannot be empty");
     }
 
     // Handle single vs multiple files
@@ -92,10 +95,11 @@ fn handle_single_file(
     
     // Check for file overwrite protection
     if output_path.exists() && !force_overwrite {
-        eprintln!("Error: Output file '{}' already exists", output_path.display());
-        eprintln!("Use --force flag to overwrite existing files");
-        return Err(CryptoError::FileSystemError(
-            std::io::Error::new(std::io::ErrorKind::AlreadyExists, "Output file exists")
+        return Err(display_error_and_return(
+            CryptoError::FileSystemError(
+                std::io::Error::new(std::io::ErrorKind::AlreadyExists, 
+                                    format!("Output file '{}' already exists. Use --force flag to overwrite existing files", output_path.display()))
+            )
         ));
     }
     
@@ -129,24 +133,7 @@ fn handle_single_file(
             }
         }
         Err(e) => {
-            eprintln!("❌ Decryption failed: {}", e);
-            
-            // Provide helpful error messages
-            match &e {
-                CryptoError::CryptographicError(msg) if msg.contains("decrypt") => {
-                    eprintln!("   This could be due to:");
-                    eprintln!("   - Incorrect password");
-                    eprintln!("   - Corrupted file");
-                    eprintln!("   - File was not encrypted with this tool");
-                }
-                CryptoError::HeaderParsingError(_) => {
-                    eprintln!("   The file does not appear to be properly encrypted");
-                    eprintln!("   or may be corrupted.");
-                }
-                _ => {}
-            }
-            
-            return Err(e);
+            return Err(display_error_and_return(e));
         }
     }
     
