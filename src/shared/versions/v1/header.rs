@@ -3,7 +3,7 @@
 //! This module provides the main Header struct that coordinates
 //! metadata, algorithms, and version information for encrypted files.
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use crate::shared::algorithms::{AlgorithmId, VersionInfo, CURRENT_VERSION, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION, MAX_FILENAME_LENGTH, MAX_DIRECTORY_PATH_LENGTH, MAX_METADATA_LENGTH};
 
 /// File header structure with all encrypted components

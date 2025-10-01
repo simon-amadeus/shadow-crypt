@@ -7,19 +7,22 @@
 //! - File detection utilities
 
 pub mod core;
+pub mod versions;
 pub mod crypto;
 pub mod metadata;
 pub mod algorithms;
-pub mod header_core;
 pub mod header;
 pub mod versioning;
 pub mod version_dispatch;
-pub mod filename_auth;
 
 // Re-export from core for backward compatibility
 pub use core::errors;
 pub use core::file_detection;
 pub use core::secure_delete;
+
+// Re-export from versions for backward compatibility
+pub use versions::v1::filename_auth;
+pub use versions::v1::header as header_core;
 
 // Re-export commonly used types for convenience
 pub use core::errors::CryptoError;

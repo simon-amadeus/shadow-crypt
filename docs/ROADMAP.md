@@ -2,12 +2,11 @@
 
 ## 🎯 NEXT PRIORITIES (Work in Progress)
 
-- ⚡ **Phase 9.94.4**: Version-Specific Module Creation (**NEXT PRIORITY** - Encapsulate V1 logic in `versions/v1/`)
+- ⚡ **Phase 9.94.5**: Algorithm-Specific Module Organization (**NEXT PRIORITY** - Separate AES-GCM algorithm for clean ChaCha20 addition)
 - ⚡ **Phase 10**: Multi-file encryption support (**HIGH PRIORITY** - CORE user functionality)
 
 ## 📋 FUTURE PHASES (Planned Work)
 
-- 📋 **Phase 9.94.5**: Algorithm-specific module organization  
 - 📋 **Phase 9.94.6**: Integration testing and cleanup
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
@@ -34,56 +33,34 @@ When a phase is completed:
 This keeps the roadmap focused on "what's next" rather than "what's done"
 -->
 
-## Phase 9.94.4: Version-Specific Module Creation (NEXT PRIORITY)
+## Phase 9.94.5: Algorithm-Specific Module Organization (NEXT PRIORITY)
 
-**Goal**: Encapsulate Version 1 specific code in `src/shared/versions/v1/` to enable clean V2 addition
+**Goal**: Separate AES-GCM algorithm into dedicated module to enable adding ChaCha20-Poly1305 cleanly
 
-**Rationale**: With core utilities cleanly separated, now move V1-specific code (header_core.rs, filename_auth.rs) into version-specific modules. This enables adding V2 later without touching V1 code.
+**Rationale**: With versions cleanly separated, now separate algorithms. Current `crypto/` module mixes general crypto utilities with AES-GCM specific implementation. Moving AES-GCM to `algorithms/aes_gcm/` enables adding ChaCha20-Poly1305 later without touching existing code.
 
 **Current Focus - Implementation Tasks**:
-- [ ] **Create `src/shared/versions/v1/` directory structure**
-- [ ] **Move V1-specific modules**:
-  - [ ] `header_core.rs` → `versions/v1/header.rs` (V1 header format and serialization)  
-  - [ ] `filename_auth.rs` → `versions/v1/filename_auth.rs` (V1 authentication logic)
-  - [ ] Extract V1 parts from `versioning.rs` → `versions/v1/format.rs`
-- [ ] **Create version interface modules**:
-  - [ ] `versions/v1/crypto_integration.rs` (V1 crypto workflow integration)
-  - [ ] `versions/v1/mod.rs` (V1 public interface implementing VersionHandler trait)
-  - [ ] `versions/detection.rs` (version detection from file headers)  
-  - [ ] `versions/dispatch.rs` (runtime version dispatch)
-  - [ ] `versions/mod.rs` (version management interface)
-- [ ] **Update imports throughout codebase** to use `versions::v1::` paths
-- [ ] **Maintain backward compatibility** through re-exports in main modules
+- [ ] **Create `src/shared/algorithms/aes_gcm/` directory structure**
+- [ ] **Move AES-specific modules**:
+  - [ ] `crypto/aes.rs` → `algorithms/aes_gcm/encryption.rs` + `decryption.rs` (split operations)
+  - [ ] `crypto/argon2.rs` → `algorithms/aes_gcm/key_derivation.rs` (Argon2 integration for AES)
+- [ ] **Create algorithm interface modules**:
+  - [ ] `algorithms/aes_gcm/mod.rs` (AES-GCM interface implementing Algorithm trait)
+  - [ ] `algorithms/selection.rs` (algorithm choice logic)
+  - [ ] `algorithms/registry.rs` (algorithm capability registration)
+  - [ ] `algorithms/mod.rs` (algorithm management interface)
+- [ ] **Update crypto operations** to use algorithm modules instead of direct crypto calls
+- [ ] **Maintain backward compatibility** through re-exports in crypto module
 - [ ] **Validate all functionality preserved** - all 130 tests must pass
 
-**Dependencies**: Phase 9.94.3 ✅ (core utilities extraction complete)
+**Dependencies**: Phase 9.94.4 ✅ (version-specific module creation complete)
 
 **Success Criteria**:
-- **V1 Logic Encapsulated**: All version 1 specific code contained in `versions/v1/` module
-- **Clean Interfaces**: `VersionHandler` trait enables uniform version operations
+- **AES-GCM Logic Encapsulated**: All AES-256-GCM specific code contained in `algorithms/aes_gcm/` module
+- **Clean Algorithm Interface**: `Algorithm` trait enables uniform algorithm operations
 - **No Functionality Loss**: All existing tests continue to pass
-- **Easy V2 Addition**: Adding `versions/v2/` should require no changes to V1 or core code
-- **Maintained Compatibility**: Public APIs unchanged for end users
-
----
-
-## Phase 9.94.5: Algorithm-Specific Module Organization
-
-**Goal**: Separate AES-GCM algorithm into dedicated module to enable adding ChaCha20-Poly1305
-
-**Tasks** (After 9.94.4 completes):
-- [ ] Create `src/shared/algorithms/aes_gcm/` directory
-- [ ] Move AES-specific code from `crypto/`:
-  - [ ] `crypto/aes.rs` → `algorithms/aes_gcm/encryption.rs` + `decryption.rs`
-  - [ ] `crypto/argon2.rs` → `algorithms/aes_gcm/key_derivation.rs`
-- [ ] Create algorithm interface:
-  - [ ] `algorithms/aes_gcm/mod.rs` implementing `Algorithm` trait
-  - [ ] `algorithms/selection.rs` for algorithm choice logic
-  - [ ] `algorithms/registry.rs` for capability registration
-- [ ] Update crypto operations to use algorithm modules
-- [ ] Validate all crypto functionality preserved
-
-**Dependencies**: Phase 9.94.4 ✅
+- **Easy Algorithm Addition**: Adding `algorithms/chacha20_poly1305/` should require no changes to AES or core code
+- **Maintained Compatibility**: Public crypto APIs unchanged for end users
 
 ---
 

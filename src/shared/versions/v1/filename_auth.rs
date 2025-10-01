@@ -8,7 +8,7 @@
 //! obfuscated file with a different encrypted file. This module prevents such
 //! attacks by binding the obfuscated filename to the file's cryptographic identity.
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use crate::shared::crypto::KeyMaterial;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
