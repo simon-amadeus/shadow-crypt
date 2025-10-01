@@ -658,6 +658,7 @@ dependencies = [
  "hmac",
  "proptest",
  "rand 0.8.5",
+ "rayon",
  "rpassword",
  "serde_json",
  "sha2",

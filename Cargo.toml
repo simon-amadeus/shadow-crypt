@@ -48,6 +48,7 @@ sysinfo = "0.29"         # System information for memory detection
 subtle = "2.5"           # Constant-time cryptographic operations
 hmac = "0.12"            # HMAC for filename authentication
 glob = "0.3"             # Glob pattern matching for multi-file support
+rayon = "1.8"            # Parallel processing for multi-file operations
 # clap = "4.0"  # For CLI parsing in later phases
 
 [dev-dependencies]

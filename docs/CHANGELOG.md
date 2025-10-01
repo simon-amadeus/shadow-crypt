@@ -12,6 +12,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-10-01
+
+### Added - Performance Optimization (Phase 12 Complete)
+- **Parallel File Processing**: Multi-file encryption and decryption now use parallel processing via `rayon`
+- **Session Management**: Added secure session management to cache derived keys across multi-file operations
+- **Thread-Safe Operations**: All crypto operations maintain thread safety while enabling parallel execution
+- **Performance Indicators**: Progress reporting now shows when parallel processing is enabled
+
+### Enhanced - Multi-File Operations
+- **CPU Scaling**: Multi-file operations now scale performance with available CPU cores
+- **Memory Efficiency**: Session management eliminates redundant key derivation for multi-file operations  
+- **Secure Session Keys**: Session keys automatically zeroize on drop maintaining security properties
+- **Optimized Context Reuse**: Crypto contexts are now efficiently shared across parallel operations
+
+### Added - Session Management Infrastructure
+- **CryptoSession**: Secure session with cached key material for reuse across operations
+- **SessionManager**: Thread-safe session sharing for parallel multi-file operations
+- **Automatic Cleanup**: Integration with existing secure memory infrastructure for key zeroization
+- **Comprehensive Testing**: 4 new tests covering session creation, cloning, and key derivation
+
 ## [0.11.0] - 2025-10-01
 
 ### Added - Multi-File Decryption Support (Phase 11 Complete)

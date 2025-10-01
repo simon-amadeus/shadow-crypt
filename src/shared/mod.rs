@@ -13,6 +13,7 @@ pub mod metadata;
 pub mod header;
 pub mod versioning;
 pub mod version_dispatch;
+pub mod session;
 
 // Re-export from core for backward compatibility
 pub use core::errors;

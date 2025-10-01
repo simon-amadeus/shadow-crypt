@@ -3,19 +3,19 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- **Performance Optimization**: Optimize for production use with parallel processing and memory efficiency
+- **Secure Viewing (`shadowview`)**: View encrypted files without persistent decryption
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Secure Viewing (`shadowview`)**: View encrypted files without persistent decryption
-2. **Secure Editing (`shadowedit`)**: Edit encrypted text files in-place  
-3. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Secure Editing (`shadowedit`)**: Edit encrypted text files in-place  
+2. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 
 - **Advanced Security Hardening**: Secure memory handling, timing attack protection
 - **Post-Quantum Cryptography**: Future-proof encryption algorithms  
 - **Cloud Storage Integration**: Seamless encrypted backup and sync
+- **Streaming I/O Optimization**: Large file handling with chunked processing *(when needed)*
 
 ---
 

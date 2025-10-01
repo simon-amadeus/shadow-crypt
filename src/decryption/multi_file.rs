@@ -1,12 +1,14 @@
 //! Multi-file decryption functionality
 //! 
 //! This module provides support for decrypting multiple files in a single operation,
-//! with progress reporting and graceful error handling.
+//! with progress reporting and graceful error handling. Uses parallel processing
+//! for improved performance when decrypting multiple files.
 
 use crate::shared::errors::CryptoError;
 use crate::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
+use rayon::prelude::*;
 
 /// Results from a multi-file decryption operation
 #[derive(Debug)]
@@ -64,46 +66,59 @@ pub fn decrypt_multiple_files_with_params(
 
     println!("🔓 Starting decryption of {} files...", total_files);
     println!("🔑 Using password-based decryption with AES-256-GCM");
+    if total_files > 1 {
+        println!("⚡ Parallel processing enabled for multiple files");
+    }
     println!();
 
+    // Use parallel processing for multiple files to improve performance
+    let results: Vec<(PathBuf, Result<PathBuf, String>)> = file_paths
+        .par_iter()
+        .enumerate()
+        .map(|(index, input_path)| {
+            let progress = index + 1;
+            println!("🔄 [{}/{}] Decrypting: {}", progress, total_files, input_path.display());
+
+            // Generate output path with automatic filename restoration
+            let output_path = match generate_output_path_with_params(input_path, password, argon2_params) {
+                Ok(path) => path,
+                Err(e) => {
+                    let error_msg = format!("Failed to determine output path: {}", e);
+                    println!("❌ Failed: {}", error_msg);
+                    return (input_path.clone(), Err(error_msg));
+                }
+            };
+
+            // Check for file overwrite protection
+            if output_path.exists() && !force_overwrite {
+                let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
+                println!("❌ Skipped: {}", error_msg);
+                return (input_path.clone(), Err(error_msg));
+            }
+
+            // Attempt decryption with custom parameters
+            match crate::decryption::decrypt_single_file_with_params(input_path, &output_path, password, argon2_params) {
+                Ok(()) => {
+                    println!("✅ Success: {} → {}", input_path.display(), output_path.display());
+                    (input_path.clone(), Ok(output_path))
+                }
+                Err(e) => {
+                    let error_msg = format!("Decryption failed: {}", e);
+                    println!("❌ Failed: {}", error_msg);
+                    (input_path.clone(), Err(error_msg))
+                }
+            }
+        })
+        .collect();
+
+    // Collect results from parallel processing
     let mut successful = Vec::new();
     let mut failed = Vec::new();
 
-    // Process each file individually with progress reporting
-    for (index, input_path) in file_paths.iter().enumerate() {
-        let progress = index + 1;
-        println!("🔄 [{}/{}] Decrypting: {}", progress, total_files, input_path.display());
-
-        // Generate output path with automatic filename restoration
-        let output_path = match generate_output_path_with_params(input_path, password, argon2_params) {
-            Ok(path) => path,
-            Err(e) => {
-                let error_msg = format!("Failed to determine output path: {}", e);
-                println!("❌ Failed: {}", error_msg);
-                failed.push((input_path.clone(), error_msg));
-                continue;
-            }
-        };
-
-        // Check for file overwrite protection
-        if output_path.exists() && !force_overwrite {
-            let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
-            println!("❌ Skipped: {}", error_msg);
-            failed.push((input_path.clone(), error_msg));
-            continue;
-        }
-
-        // Attempt decryption with custom parameters
-        match crate::decryption::decrypt_single_file_with_params(input_path, &output_path, password, argon2_params) {
-            Ok(()) => {
-                println!("✅ Success: {} → {}", input_path.display(), output_path.display());
-                successful.push(input_path.clone());
-            }
-            Err(e) => {
-                let error_msg = format!("Decryption failed: {}", e);
-                println!("❌ Failed: {}", error_msg);
-                failed.push((input_path.clone(), error_msg));
-            }
+    for (input_path, result) in results {
+        match result {
+            Ok(_output_path) => successful.push(input_path),
+            Err(error_msg) => failed.push((input_path, error_msg)),
         }
     }
 
