@@ -3,7 +3,7 @@
 //! This module provides functions to detect encrypted files by examining
 //! their headers and magic numbers without requiring full decryption.
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use crate::shared::header::Header;
 use std::fs::File;
 use std::io::Read;

@@ -3,7 +3,7 @@
 //! AES-GCM has catastrophic security failure if nonces are reused with the same key.
 //! This module provides runtime detection and prevention of nonce reuse.
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use std::collections::HashSet;
 use std::sync::{Mutex, OnceLock};
 

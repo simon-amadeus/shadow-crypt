@@ -2,11 +2,13 @@
 
 ## 🎯 NEXT PRIORITIES (Work in Progress)
 
-- ⚡ **Phase 9.94**: Shared Module Architecture Refactoring (**NEXT PRIORITY** - ARCHITECTURE foundation for future versions/algorithms)
+- ⚡ **Phase 9.94.4**: Version-Specific Module Creation (**NEXT PRIORITY** - Encapsulate V1 logic in `versions/v1/`)
 - ⚡ **Phase 10**: Multi-file encryption support (**HIGH PRIORITY** - CORE user functionality)
 
 ## 📋 FUTURE PHASES (Planned Work)
 
+- 📋 **Phase 9.94.5**: Algorithm-specific module organization  
+- 📋 **Phase 9.94.6**: Integration testing and cleanup
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
 - 📋 **Phase 13**: Secure viewing (`cryptview`)
@@ -32,61 +34,56 @@ When a phase is completed:
 This keeps the roadmap focused on "what's next" rather than "what's done"
 -->
 
-## Phase 9.94: Shared Module Architecture Refactoring (NEXT PRIORITY)
+## Phase 9.94.4: Version-Specific Module Creation (NEXT PRIORITY)
 
-**Goal**: Design and plan vertical slicing architecture for versions and algorithms to enable clean future expansion
+**Goal**: Encapsulate Version 1 specific code in `src/shared/versions/v1/` to enable clean V2 addition
 
-**Rationale**: Customer feedback identified that current shared module mixes version-specific logic with general utilities. As we add more file format versions and cryptographic algorithms, we need better separation of concerns through vertical slicing.
+**Rationale**: With core utilities cleanly separated, now move V1-specific code (header_core.rs, filename_auth.rs) into version-specific modules. This enables adding V2 later without touching V1 code.
 
-**Phase 9.94.2: Detailed Architecture Design** (CURRENT FOCUS)
-- [ ] **Design target architecture** - Create detailed module hierarchy specification
-- [ ] **Migration strategy** - Plan incremental refactoring approach to avoid breaking changes
-- [ ] **Testing strategy** - Ensure no functionality regression during refactoring
-- [ ] **Import dependency mapping** - Map all current cross-module dependencies
-- [ ] **Risk assessment update** - Refine risks based on Phase 9.94.1 learnings
+**Current Focus - Implementation Tasks**:
+- [ ] **Create `src/shared/versions/v1/` directory structure**
+- [ ] **Move V1-specific modules**:
+  - [ ] `header_core.rs` → `versions/v1/header.rs` (V1 header format and serialization)  
+  - [ ] `filename_auth.rs` → `versions/v1/filename_auth.rs` (V1 authentication logic)
+  - [ ] Extract V1 parts from `versioning.rs` → `versions/v1/format.rs`
+- [ ] **Create version interface modules**:
+  - [ ] `versions/v1/crypto_integration.rs` (V1 crypto workflow integration)
+  - [ ] `versions/v1/mod.rs` (V1 public interface implementing VersionHandler trait)
+  - [ ] `versions/detection.rs` (version detection from file headers)  
+  - [ ] `versions/dispatch.rs` (runtime version dispatch)
+  - [ ] `versions/mod.rs` (version management interface)
+- [ ] **Update imports throughout codebase** to use `versions::v1::` paths
+- [ ] **Maintain backward compatibility** through re-exports in main modules
+- [ ] **Validate all functionality preserved** - all 130 tests must pass
 
-**Future Sub-phases** (9.94.3+):
-- **Phase 9.94.3**: Incremental module extraction (version-specific code)
-- **Phase 9.94.4**: Algorithm-specific module organization  
-- **Phase 9.94.5**: Import path updates and validation
-- **Phase 9.94.6**: Integration testing and cleanup
-
-**Target Architecture** (Detailed Design Required):
-```
-shared/
-├── core/                   // Truly shared utilities
-│   ├── errors.rs           // Error types used across all versions/algorithms
-│   ├── file_detection.rs   // File type detection utilities
-│   ├── secure_delete.rs    // Security utilities
-│   └── crypto/             // Core crypto primitives
-├── versions/               // Version-specific implementations
-│   ├── v1/                 // Version 1 specific code
-│   │   ├── header.rs       // V1 header format and operations
-│   │   ├── format.rs       // V1-specific format handling
-│   │   └── mod.rs
-│   ├── v2/                 // Future version 2
-│   └── mod.rs              // Version dispatch and detection
-├── algorithms/             // Algorithm-specific implementations  
-│   ├── aes_gcm/           // AES-256-GCM implementation
-│   │   ├── encryption.rs   // Algorithm-specific encryption
-│   │   ├── decryption.rs   // Algorithm-specific decryption
-│   │   └── mod.rs
-│   ├── chacha20_poly1305/ // Future algorithm
-│   └── mod.rs             // Algorithm selection and dispatch
-└── mod.rs                 // Clean unified public API
-```
-
-**Dependencies**: Phase 9.93 ✅ (filename authentication complete)
-
-**Estimated Duration**: 3-4 days (multi-phase approach)
+**Dependencies**: Phase 9.94.3 ✅ (core utilities extraction complete)
 
 **Success Criteria**:
-- **Completed design specification** with detailed module hierarchy
-- **Migration strategy** that preserves functionality at each step
-- **Clear separation** between version-specific, algorithm-specific, and core shared code
-- **Maintainable architecture** that supports easy addition of new versions/algorithms
-- **No functionality regression** - all existing tests continue to pass
-- **Updated documentation** reflecting new architecture
+- **V1 Logic Encapsulated**: All version 1 specific code contained in `versions/v1/` module
+- **Clean Interfaces**: `VersionHandler` trait enables uniform version operations
+- **No Functionality Loss**: All existing tests continue to pass
+- **Easy V2 Addition**: Adding `versions/v2/` should require no changes to V1 or core code
+- **Maintained Compatibility**: Public APIs unchanged for end users
+
+---
+
+## Phase 9.94.5: Algorithm-Specific Module Organization
+
+**Goal**: Separate AES-GCM algorithm into dedicated module to enable adding ChaCha20-Poly1305
+
+**Tasks** (After 9.94.4 completes):
+- [ ] Create `src/shared/algorithms/aes_gcm/` directory
+- [ ] Move AES-specific code from `crypto/`:
+  - [ ] `crypto/aes.rs` → `algorithms/aes_gcm/encryption.rs` + `decryption.rs`
+  - [ ] `crypto/argon2.rs` → `algorithms/aes_gcm/key_derivation.rs`
+- [ ] Create algorithm interface:
+  - [ ] `algorithms/aes_gcm/mod.rs` implementing `Algorithm` trait
+  - [ ] `algorithms/selection.rs` for algorithm choice logic
+  - [ ] `algorithms/registry.rs` for capability registration
+- [ ] Update crypto operations to use algorithm modules
+- [ ] Validate all crypto functionality preserved
+
+**Dependencies**: Phase 9.94.4 ✅
 
 ---
 

@@ -3,7 +3,7 @@
 //! Tests the timing attack detection and analysis functionality 
 //! with real cryptographic operations to ensure no timing vulnerabilities exist.
 
-use shadow_crypt::shared::crypto::timing_analysis::run_timing_security_tests;
+use shadow_crypt::shared::crypto::run_timing_security_tests;
 
 #[test]
 fn test_timing_attack_security_comprehensive() {
@@ -52,7 +52,7 @@ fn test_timing_attack_security_comprehensive() {
 
 #[test]
 fn test_nonce_generation_timing_consistency() {
-    use shadow_crypt::shared::crypto::{generate_secure_nonce, timing_analysis::TimingAnalyzer};
+    use shadow_crypt::shared::crypto::{generate_secure_nonce, TimingAnalyzer};
     use std::collections::HashSet;
     
     println!("\n🔬 Testing nonce generation timing consistency...");
@@ -99,7 +99,7 @@ fn test_nonce_generation_timing_consistency() {
 
 #[test] 
 fn test_password_timing_independence() {
-    use shadow_crypt::shared::crypto::{derive_master_key, generate_salt, Argon2Params, timing_analysis::TimingAnalyzer};
+    use shadow_crypt::shared::crypto::{derive_master_key, generate_salt, Argon2Params, TimingAnalyzer};
     
     println!("\n🔬 Testing password timing independence...");
     

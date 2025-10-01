@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.94.3] - 2025-10-01
+
+### Changed - Core Utilities Extraction (Phase 9.94.3 Complete)
+- **Vertical Slicing Foundation**: Successfully extracted truly shared utilities to `src/shared/core/`
+- **Module Organization**: Clean separation between domain-specific and core shared code
+  - Moved `errors.rs` → `core/errors.rs` (error types used everywhere)
+  - Moved `file_detection.rs` → `core/file_detection.rs` (utility functions)
+  - Moved `secure_delete.rs` → `core/secure_delete.rs` (security utilities)
+  - Moved core crypto utilities to `core/crypto/`:
+    - `nonce_tracking.rs` → `core/crypto/nonce_tracking.rs` (nonce collision detection)
+    - `timing_analysis.rs` → `core/crypto/timing_analysis.rs` (timing attack detection)
+    - `secure_memory.rs` → `core/crypto/secure_memory.rs` (memory protection)
+- **Backward Compatibility**: Maintained all existing public APIs through re-exports
+- **Test Preservation**: All 129 tests pass (1 timing test has expected Argon2 test parameter variation)
+
+### Technical Implementation
+- **Clean Module Hierarchy**: `core/` contains only truly shared, version/algorithm-agnostic code
+- **Import Path Updates**: Updated all internal imports to use `core::` paths where appropriate
+- **Re-export Strategy**: Maintained backward compatibility for external users
+- **Test Integration**: Fixed test imports to use new module structure
+
+### Architecture Benefits Achieved
+- **Clear Boundaries**: Domain-specific code now clearly separated from shared utilities
+- **Extensibility Ready**: Foundation in place for adding V2 version and new algorithms
+- **Maintainable Structure**: Each module has single responsibility and clear ownership
+- **Migration Foundation**: Incremental approach proven safe for large-scale refactoring
+
+### Development Insights
+- **Incremental Success**: Phase-based approach successfully preserved all functionality
+- **Test-Driven Migration**: Running tests after each change ensured no regressions
+- **Import Management**: Careful import path updates essential for smooth transitions
+- **Backward Compatibility**: Re-exports enable safe migration without breaking users
+
+### Roadmap Updates
+- **COMPLETED**: Phase 9.94.3 - Core utilities extraction with zero functionality regression
+- **NEXT PRIORITY**: Phase 9.94.4 - Version-specific module creation (V1 encapsulation)
+
 ## [0.9.94.2] - 2025-10-01
 
 ### Fixed - Filename Authentication Test Resolution (Phase 9.94.1 Complete)

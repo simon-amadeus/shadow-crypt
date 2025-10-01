@@ -3,8 +3,8 @@
 //! This module provides secure password-based key derivation using Argon2id
 //! with adaptive parameters and master key management for performance.
 
-use crate::shared::errors::CryptoError;
-use crate::shared::crypto::secure_memory::{SecretVec, KeyMaterial};
+use crate::shared::core::errors::CryptoError;
+use crate::shared::core::crypto::secure_memory::{SecretVec, KeyMaterial};
 use argon2::{Argon2, Algorithm, Version, Params};
 use hkdf::Hkdf;
 use sha2::Sha256;

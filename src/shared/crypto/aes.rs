@@ -3,7 +3,7 @@
 //! This module provides the core AES-GCM encryption and decryption functions
 //! with proper nonce generation and authentication tag handling.
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
 use aes_gcm::aead::Aead;
 use getrandom::getrandom;
@@ -21,7 +21,7 @@ use getrandom::getrandom;
 /// - Validated for proper entropy patterns
 /// - Tracked to prevent session reuse
 pub fn generate_secure_nonce() -> Result<[u8; 12], CryptoError> {
-    use crate::shared::crypto::nonce_tracking::{check_nonce_reuse, validate_nonce_entropy};
+    use crate::shared::core::crypto::nonce_tracking::{check_nonce_reuse, validate_nonce_entropy};
     
     // Generate nonce with OS entropy
     let mut nonce = [0u8; 12];
