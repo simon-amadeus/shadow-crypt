@@ -44,6 +44,8 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 ### 4. **IMPLEMENT NEXT ROADMAP PHASE** ⚡
 **Execute with focus on learning and user value:**
 - Start with minimum viable implementation
+- Always prioritize the best possible outcome
+- Breaking changes should be preferred if they lead to better design
 - Use tests to drive design and validate behavior
 - Maintain security-first approach throughout
 - Keep code compiling and tests passing
@@ -61,7 +63,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Actively shape future direction based on new understanding:**
 - **Critically evaluate current roadmap** against learnings
 - **Boldly adapt future plans** when evidence suggests better approaches
-- Update `docs/ROADMAP.md` with refined priorities and timelines
+- Update `docs/ROADMAP.md` with refined priorities and timelines. Remove finished phases and add new ones if needed.
 - Question assumptions and be willing to pivot when warranted
 - Balance technical debt against user-facing improvements
 - Plan experiments to test new hypotheses about user needs
