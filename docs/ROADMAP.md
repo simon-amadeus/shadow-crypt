@@ -34,56 +34,60 @@ This keeps the roadmap focused on "what's next" rather than "what's done"
 
 ## Phase 9.94: Shared Module Architecture Refactoring (NEXT PRIORITY)
 
-**Goal**: Refactor shared modules with vertical slicing for versions and algorithms to enable clean future expansion
+**Goal**: Design and plan vertical slicing architecture for versions and algorithms to enable clean future expansion
 
-**Rationale**: Current shared module mixes version-specific logic with general utilities. As we add more file format versions and cryptographic algorithms, we need better separation of concerns through vertical slicing.
+**Rationale**: Customer feedback identified that current shared module mixes version-specific logic with general utilities. As we add more file format versions and cryptographic algorithms, we need better separation of concerns through vertical slicing.
 
-**Tasks**:
-- [ ] **Analyze current shared module structure** and identify version/algorithm-specific vs general code
-- [ ] **Design vertical slicing architecture** with separate modules for each version/algorithm combination
-- [ ] **Create `shared/versions/` module hierarchy** for version-specific implementations
-- [ ] **Create `shared/algorithms/` module hierarchy** for algorithm-specific implementations  
-- [ ] **Refactor `shared/core/` for truly shared utilities** (errors, file detection, secure delete, etc.)
-- [ ] **Update all imports and dependencies** across encryption/decryption/listing modules
-- [ ] **Validate no functionality regression** with comprehensive testing
-- [ ] **Update architecture documentation** to reflect new structure
+**Phase 9.94.1: Architecture Design and Analysis** (CURRENT FOCUS)
+- [x] **Customer feedback integration** - Analyzed need for vertical slicing architecture 
+- [x] **Current code analysis** - Identified mixing of concerns in shared modules
+- [x] **Impact assessment** - Determined this requires multi-phase approach due to extensive import changes
+- [ ] **Design target architecture** - Create detailed module hierarchy specification
+- [ ] **Migration strategy** - Plan incremental refactoring approach to avoid breaking changes
+- [ ] **Testing strategy** - Ensure no functionality regression during refactoring
 
-**Target Architecture**:
+**Future Sub-phases** (9.94.2+):
+- **Phase 9.94.2**: Incremental module extraction (version-specific code)
+- **Phase 9.94.3**: Algorithm-specific module organization  
+- **Phase 9.94.4**: Import path updates and validation
+- **Phase 9.94.5**: Integration testing and cleanup
+
+**Target Architecture** (Detailed Design Required):
 ```
 shared/
 ├── core/                   // Truly shared utilities
-│   ├── errors.rs
-│   ├── file_detection.rs
-│   ├── secure_delete.rs
-│   └── mod.rs
+│   ├── errors.rs           // Error types used across all versions/algorithms
+│   ├── file_detection.rs   // File type detection utilities
+│   ├── secure_delete.rs    // Security utilities
+│   └── crypto/             // Core crypto primitives
 ├── versions/               // Version-specific implementations
 │   ├── v1/                 // Version 1 specific code
-│   │   ├── header.rs       // V1 header format
-│   │   ├── crypto.rs       // V1 crypto operations
+│   │   ├── header.rs       // V1 header format and operations
+│   │   ├── format.rs       // V1-specific format handling
 │   │   └── mod.rs
 │   ├── v2/                 // Future version 2
-│   └── mod.rs
+│   └── mod.rs              // Version dispatch and detection
 ├── algorithms/             // Algorithm-specific implementations  
 │   ├── aes_gcm/           // AES-256-GCM implementation
-│   │   ├── encryption.rs
-│   │   ├── decryption.rs
+│   │   ├── encryption.rs   // Algorithm-specific encryption
+│   │   ├── decryption.rs   // Algorithm-specific decryption
 │   │   └── mod.rs
 │   ├── chacha20_poly1305/ // Future algorithm
-│   └── mod.rs
-└── mod.rs                 // Clean public API
+│   └── mod.rs             // Algorithm selection and dispatch
+└── mod.rs                 // Clean unified public API
 ```
 
 **Dependencies**: Phase 9.93 ✅ (filename authentication complete)
 
-**Estimated Duration**: 1-2 days
+**Estimated Duration**: 3-4 days (multi-phase approach)
 
 **Success Criteria**:
-- Clear separation between version-specific, algorithm-specific, and core shared code
-- Each version/algorithm combination in its own module with clean interfaces
-- No functionality regression - all existing tests pass
-- Easy to add new versions or algorithms without touching existing code
-- Updated documentation reflects new architecture
-- Clean public API maintains backward compatibility
+- **Completed design specification** with detailed module hierarchy
+- **Migration strategy** that preserves functionality at each step
+- **Clear separation** between version-specific, algorithm-specific, and core shared code
+- **Maintainable architecture** that supports easy addition of new versions/algorithms
+- **No functionality regression** - all existing tests continue to pass
+- **Updated documentation** reflecting new architecture
 
 ---
 

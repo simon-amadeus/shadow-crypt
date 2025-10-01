@@ -106,9 +106,15 @@ pub fn decrypt_single_file_with_params(
         current_filename.to_string() // If no original filename, assume non-obfuscated
     };
     
-    let is_obfuscated_file = current_filename != expected_filename;
+    // Check if file was created with obfuscation by looking at the auth tag
+    // Non-obfuscated files will have all-zero auth tags
+    let obfuscation_auth_tag_used = header.obfuscated_filename_auth_tag != [0u8; 16];
+    let filename_appears_obfuscated = current_filename != expected_filename;
     
-    if is_obfuscated_file {
+    // Only perform auth verification if both conditions are true:
+    // 1. The auth tag was actually set (indicating obfuscation was used)
+    // 2. The filename appears to be obfuscated
+    if obfuscation_auth_tag_used && filename_appears_obfuscated {
         use crate::shared::filename_auth::{verify_filename_auth_tag, extract_filename_for_auth};
         
         let obfuscated_filename = extract_filename_for_auth(input_path)?;

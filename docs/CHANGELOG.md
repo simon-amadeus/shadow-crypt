@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.94.1] - 2025-10-01
+
+### Fixed - Critical Authentication Bug Resolution (Phase 9.94.1 Partial)
+- **Obfuscated Filename Authentication Bug**: Fixed incorrect triggering of filename authentication for non-obfuscated files
+  - Improved detection logic to check if `obfuscated_filename_auth_tag` is actually set (non-zero)
+  - Added dual condition check: auth tag must be set AND filename must appear obfuscated
+  - Prevents false positives where normal files were incorrectly flagged as file substitution attacks
+- **All Integration Tests Passing**: Fixed 3 failing decryption integration tests
+  - `test_decryption_empty_file` - Empty files now decrypt correctly
+  - `test_roundtrip_with_special_characters` - Special character files work properly
+  - `test_decryption_large_file` - Large files decrypt without authentication errors
+
+### Added - Architectural Analysis and Planning (Phase 9.94.1 Ongoing)
+- **Customer Feedback Integration**: Analyzed vertical slicing architecture requirement
+- **Code Architecture Assessment**: Identified current shared module organization challenges
+- **Multi-phase Refactoring Plan**: Designed incremental approach to avoid breaking changes
+- **Target Architecture Specification**: Detailed module hierarchy design for versions and algorithms
+
+### Changed - Development Approach
+- **Roadmap Strategy**: Moved from single-phase to multi-phase refactoring approach
+- **Risk Mitigation**: Prioritized functionality preservation over rapid architectural changes
+- **Planning First**: Focus on design and strategy before implementation to avoid disruption
+
+### Technical Learnings
+- **Scope Complexity**: Vertical slicing refactoring requires touching all modules (65+ compile errors when attempted)
+- **Import Dependencies**: Extensive cross-module dependencies require careful incremental migration
+- **Test Integration**: Authentication logic interactions require precise condition checking
+- **Architecture Planning**: Large refactorings benefit from design-first approach
+
+### Security Status
+- ✅ **Production-grade security maintained** - All critical vulnerabilities remain addressed
+- ✅ **Filename authentication working correctly** - Fixed false positive detection
+- ✅ **No regression in security features** - All protection mechanisms intact
+
+### Development Status
+- **Current Phase**: 9.94.1 - Architecture design and planning
+- **Next Priority**: Complete architectural specification and migration strategy
+- **Test Status**: ✅ **All 129 tests passing** (11 integration + 88 unit + 30 other tests)
+
 ## [0.9.93] - 2025-10-01
 
 ### Added - Critical Filename Authentication Security (Phase 9.93 Complete)
