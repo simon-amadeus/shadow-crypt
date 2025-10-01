@@ -63,7 +63,8 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Actively shape future direction based on new understanding:**
 - **Critically evaluate current roadmap** against learnings
 - **Boldly adapt future plans** when evidence suggests better approaches
-- Update `docs/ROADMAP.md` with refined priorities and timelines. Remove finished phases and add new ones if needed.
+- Remove completed items from `docs/ROADMAP.md`
+- Update `docs/ROADMAP.md` with refined priorities and timelines.
 - Question assumptions and be willing to pivot when warranted
 - Balance technical debt against user-facing improvements
 - Plan experiments to test new hypotheses about user needs
