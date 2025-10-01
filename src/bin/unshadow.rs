@@ -1,9 +1,12 @@
-//! File decryption binary (unlock)
+//! File decryption binary (unshadow)
 //! 
-//! This binary provides command-line interface for decrypting files with automatic
-//! filename restoration and metadata preservation.
+//! This binary provides command-line interface for decrypting files with:
+//! - Single and multiple file decryption
+//! - Glob pattern expansion
+//! - Progress reporting for batch operations
+//! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file, restore_original_filename};
+use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files, expand_glob_patterns, restore_original_filename};
 use shadow_crypt::shared::errors::CryptoError;
 use shadow_crypt::shared::header::Header;
 use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
@@ -12,34 +15,46 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
+use std::process;
 
 fn main() -> Result<(), CryptoError> {
     let args: Vec<String> = env::args().collect();
     
     // Simple argument parsing with flags
-    let (force_overwrite, remove_source, input_file) = parse_args(&args);
-    let input_path = Path::new(&input_file);
+    let (force_overwrite, remove_source, input_patterns) = parse_args(&args);
     
-    // Validate input file exists
-    if !input_path.exists() {
-        eprintln!("Error: Input file '{}' does not exist", input_file);
-        return Err(CryptoError::FileSystemError(
-            std::io::Error::new(std::io::ErrorKind::NotFound, "Input file not found")
-        ));
+    // Expand glob patterns into file paths
+    let file_paths = match expand_glob_patterns(&input_patterns) {
+        Ok(paths) => paths,
+        Err(e) => {
+            eprintln!("Error: Failed to expand file patterns: {}", e);
+            process::exit(1);
+        }
+    };
+
+    if file_paths.is_empty() {
+        eprintln!("Error: No files found matching the specified patterns");
+        process::exit(1);
     }
-    
-    if !input_path.is_file() {
-        eprintln!("Error: '{}' is not a regular file", input_file);
-        eprintln!("Note: Only individual files are supported");
-        return Err(CryptoError::FileSystemError(
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "Not a regular file")
-        ));
-    }
-    
-    // Check if file is readable
-    if let Err(e) = std::fs::File::open(&input_path) {
-        eprintln!("Error: Cannot read input file '{}': {}", input_file, e);
-        return Err(CryptoError::FileSystemError(e));
+
+    // Validate all files exist and are readable
+    for file_path in &file_paths {
+        if !file_path.exists() {
+            eprintln!("Error: Input file '{}' does not exist", file_path.display());
+            process::exit(1);
+        }
+        
+        if !file_path.is_file() {
+            eprintln!("Error: '{}' is not a regular file", file_path.display());
+            eprintln!("Note: Only individual files are supported");
+            process::exit(1);
+        }
+        
+        // Check if file is readable
+        if let Err(e) = std::fs::File::open(&file_path) {
+            eprintln!("Error: Cannot read input file '{}': {}", file_path.display(), e);
+            process::exit(1);
+        }
     }
     
     // Get password securely from user
@@ -47,19 +62,37 @@ fn main() -> Result<(), CryptoError> {
         Ok(pass) => pass,
         Err(e) => {
             eprintln!("Error reading password: {}", e);
-            return Err(CryptoError::FileSystemError(
-                std::io::Error::new(std::io::ErrorKind::Other, "Failed to read password")
-            ));
+            process::exit(1);
         }
     };
     
     if password.is_empty() {
         eprintln!("Error: Password cannot be empty");
-        return Err(CryptoError::CryptographicError("Empty password".to_string()));
+        process::exit(1);
     }
 
+    // Handle single vs multiple files
+    if file_paths.len() == 1 {
+        // Single file - use existing logic for better UX
+        let input_path = &file_paths[0];
+        handle_single_file(input_path, &password, force_overwrite, remove_source)?;
+    } else {
+        // Multiple files - use batch processing
+        handle_multiple_files(&file_paths, &password, force_overwrite, remove_source)?;
+    }
+    
+    Ok(())
+}
+
+/// Handle single file decryption with detailed progress reporting
+fn handle_single_file(
+    input_path: &Path,
+    password: &str,
+    force_overwrite: bool,
+    remove_source: bool
+) -> Result<(), CryptoError> {
     // Determine output file path with automatic filename restoration
-    let output_path = determine_output_path_with_restoration(input_path, &password)?;
+    let output_path = determine_output_path_with_restoration(input_path, password)?;
     
     // Check for file overwrite protection
     if output_path.exists() && !force_overwrite {
@@ -71,12 +104,14 @@ fn main() -> Result<(), CryptoError> {
     }
     
     // Perform decryption
-    println!("Decrypting '{}' to '{}'...", input_file, output_path.display());
+    println!("🔓 Decrypting file: {}", input_path.display());
+    println!("📄 Output file: {}", output_path.display());
+    println!("🔑 Using password-based decryption with AES-256-GCM");
     
-    match decrypt_single_file(input_path, &output_path, &password) {
+    match decrypt_single_file(input_path, &output_path, password) {
         Ok(()) => {
             println!("✅ Decryption successful!");
-            println!("   Output: {}", output_path.display());
+            println!("📄 Decrypted file: {}", output_path.display());
             
             // Handle source file removal if requested
             if remove_source {
@@ -119,6 +154,52 @@ fn main() -> Result<(), CryptoError> {
         }
     }
     
+    Ok(())
+}
+
+/// Handle multiple file decryption with progress reporting
+fn handle_multiple_files(
+    file_paths: &[PathBuf],
+    password: &str,
+    force_overwrite: bool,
+    remove_source: bool
+) -> Result<(), CryptoError> {
+    println!("🔓 Decrypting {} files...", file_paths.len());
+    println!("🔑 Using password-based decryption with AES-256-GCM");
+    println!();
+
+    let results = decrypt_multiple_files(
+        file_paths,
+        password,
+        force_overwrite,
+        remove_source
+    )?;
+
+    // Report results
+    println!();
+    println!("📊 Decryption Results:");
+    println!("✅ Successful: {}", results.successful.len());
+    println!("❌ Failed: {}", results.failed.len());
+    println!("⏱️  Total time: {:.2?}", results.total_time);
+    
+    if !results.failed.is_empty() {
+        println!();
+        println!("❌ Failed decryptions:");
+        for (path, error) in &results.failed {
+            println!("  {} - {}", path.display(), error);
+        }
+    }
+
+    if !results.successful.is_empty() {
+        println!();
+        println!("✅ Successfully decrypted {} files", results.successful.len());
+    }
+
+    // Exit with error code if any files failed
+    if results.has_failures() {
+        process::exit(1);
+    }
+
     Ok(())
 }
 
@@ -195,10 +276,10 @@ fn try_restore_filename_from_header(
     restore_original_filename(&header, &key_material)
 }
 
-/// Parse command line arguments for unlock tool
+/// Parse command line arguments for unshadow tool
 /// 
-/// Returns (force_overwrite, input_file, output_file_opt)
-fn parse_args(args: &[String]) -> (bool, bool, String) {
+/// Returns (force_overwrite, remove_source, input_patterns)
+fn parse_args(args: &[String]) -> (bool, bool, Vec<String>) {
     if args.len() < 2 || args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
         print_usage();
         std::process::exit(0);
@@ -206,7 +287,7 @@ fn parse_args(args: &[String]) -> (bool, bool, String) {
     
     let mut force = false;
     let mut remove_source = false;
-    let mut input_file = None;
+    let mut input_patterns = Vec::new();
     
     let mut i = 1;
     while i < args.len() {
@@ -224,48 +305,46 @@ fn parse_args(args: &[String]) -> (bool, bool, String) {
                 std::process::exit(0);
             }
             _ => {
-                // Only one positional argument: input file
-                if input_file.is_none() {
-                    input_file = Some(args[i].clone());
-                } else {
-                    eprintln!("Error: Too many arguments");
-                    print_usage();
-                    std::process::exit(1);
-                }
+                // All remaining arguments are input patterns
+                input_patterns.push(args[i].clone());
                 i += 1;
             }
         }
     }
     
-    if input_file.is_none() {
-        eprintln!("Error: Input file is required");
+    if input_patterns.is_empty() {
+        eprintln!("Error: At least one input file is required");
         print_usage();
         std::process::exit(1);
     }
     
-    let input_file_path = input_file.expect("Input file was validated as Some() above");
-    
-    (force, remove_source, input_file_path)
+    (force, remove_source, input_patterns)
 }
 
 fn print_usage() {
-    println!("unlock - File decryption tool");
+    println!("unshadow - File decryption tool");
     println!("");
     println!("USAGE:");
-    println!("    unlock [OPTIONS] <input-file>");
+    println!("    unshadow [OPTIONS] <input-files>...");
     println!("");
     println!("ARGUMENTS:");
-    println!("    <input-file>     Path to the encrypted file");
+    println!("    <input-files>...     Path(s) to encrypted files or glob patterns");
     println!("");
     println!("OPTIONS:");
     println!("    -f, --force           Overwrite existing output files without prompting");
-    println!("    -r, --remove-source   Remove source file after successful decryption");
+    println!("    -r, --remove-source   Remove source files after successful decryption");
     println!("        --inplace         Alias for --remove-source");
     println!("    -h, --help            Show this help message");
+    println!("");
+    println!("Multi-file Support:");
+    println!("    unshadow file1.shadow file2.shadow file3.shadow");
+    println!("    unshadow *.shadow");
+    println!("    unshadow docs/**/*.shadow");
     println!("");
     println!("Behavior:");
     println!("    Automatically restores original filename from encrypted file header");
     println!("    'secret.txt.shadow' → 'secret.txt' (restored from header)");
+    println!("    For multiple files, shows progress and success/failure summary");
     println!("");
     println!("Security:");
     println!("    Password will be prompted securely and not shown on screen");
@@ -274,8 +353,9 @@ fn print_usage() {
     println!("EXAMPLES:");
     println!("    unshadow secret.txt.shadow");
     println!("    unshadow --force encrypted_file.shadow");
-    println!("    unshadow --remove-source secret.txt.shadow");
-    println!("    unshadow --inplace document.shadow");
+    println!("    unshadow --remove-source *.shadow");
+    println!("    unshadow --inplace document1.shadow document2.shadow");
+    println!("    unshadow 'backup/**/*.shadow'");
     println!("");
     println!("The tool will prompt for the password interactively.");
 }

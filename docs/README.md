@@ -4,15 +4,15 @@ A high-security, high-performance file encryption system written in Rust with re
 
 ## Development Status
 
-🎯 **Phase 10 COMPLETED** - Multi-file encryption support implemented!
+🎯 **Phase 11 COMPLETED** - Multi-file decryption support implemented!
 
-✅ **Multi-File Encryption**: Support for `shadow file1.txt file2.txt file3.txt` and `shadow *.txt` patterns  
-✅ **Progress Reporting**: Real-time progress updates for batch operations  
+✅ **Multi-File Decryption**: Support for `unshadow file1.shadow file2.shadow file3.shadow` and `unshadow *.shadow` patterns  
+✅ **Progress Reporting**: Real-time progress updates for batch decryption operations  
 ✅ **Error Handling**: Graceful handling of file errors without stopping entire operation  
-✅ **Batch Processing**: Efficient processing of multiple files in single operation  
-✅ **Memory Optimization**: Streaming encryption for large files  
+✅ **Batch Processing**: Efficient processing of multiple encrypted files in single operation  
+✅ **Automatic Path Resolution**: Smart output path determination with filename restoration  
 
-**Ready for Phase 11**: Multi-file decryption support to complete core batch operations.
+**Ready for Phase 12**: Performance optimization to complete core functionality suite.
 
 ## Features
 
@@ -52,8 +52,15 @@ cargo build --release
 # Decrypt a file (password prompted securely)
 ./target/release/unshadow secret.txt.shadow
 
-# Decrypt and remove encrypted file  
+# Decrypt with filename obfuscation and remove encrypted file  
 ./target/release/unshadow --inplace secret.txt.shadow
+
+# Decrypt multiple files (Phase 11+)
+./target/release/unshadow file1.shadow file2.shadow file3.shadow
+
+# Decrypt with glob patterns (Phase 11+)  
+./target/release/unshadow *.shadow
+./target/release/unshadow "docs/**/*.shadow"
 
 # List encrypted files in directory (password prompted securely)
 ./target/release/shadows encrypted_files/
@@ -75,7 +82,7 @@ cargo build --release
 
 This is a production-ready file encryption system with completed core features, comprehensive security audit, production-quality error handling, and complete shadow branding. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
 
-**Latest Update**: ✅ **Phase 9.94.5 Complete** - Algorithm-specific module organization successful, AES-GCM cleanly encapsulated for easy ChaCha20 addition.
+**Latest Update**: ✅ **Phase 11 Complete** - Multi-file decryption with progress reporting, glob pattern support, and graceful error handling successfully implemented.
 
 **Architecture Status**: ✅ **Algorithm Separation Complete** - AES-GCM self-contained, architecture ready for new algorithm development.
 

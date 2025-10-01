@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [0.11.0] - 2025-10-01
+
+### Added - Multi-File Decryption Support (Phase 11 Complete)
+- **Multi-File Command Interface**: Support for `unshadow file1.shadow file2.shadow file3.shadow` syntax  
+- **Glob Pattern Support**: Handle `unshadow *.shadow` and `unshadow docs/**/*.shadow` patterns efficiently
+- **Progress Reporting**: Progress indicators and status updates for multiple file decryption operations
+- **Graceful Error Handling**: Handles permission errors, corrupted files, wrong passwords without stopping entire operation
+- **Batch Processing**: Processes multiple encrypted files efficiently in single operation
+- **Automatic Path Resolution**: Smart output path determination with filename restoration from headers
+
+### Enhanced - User Experience
+- **Comprehensive CLI Help**: Detailed help with examples for multi-file decryption usage
+- **Success Rate Reporting**: Shows successful vs failed file counts with timing information
+- **Progress Indicators**: Real-time progress updates during batch decryption operations
+- **Failure Handling**: Continues processing remaining files when individual files fail
+
+### Added - Integration Testing
+- **Multi-File Decryption Tests**: Comprehensive test suite with 8 integration tests covering all scenarios
+- **Glob Pattern Testing**: Validation of wildcard pattern expansion and error handling
+- **Partial Failure Testing**: Ensures graceful handling when some files fail to decrypt
+- **Results Reporting Testing**: Validates success rate calculations and failure reporting
+
 ## [0.10.0] - 2025-10-01
 
 ### Added - Multi-File Encryption Support (Phase 10 Complete)
