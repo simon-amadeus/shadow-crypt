@@ -11,6 +11,8 @@ pub mod metadata;
 pub mod algorithms;
 pub mod header_core;
 pub mod header;
+pub mod versioning;
+pub mod version_dispatch;
 pub mod file_detection;
 pub mod errors;
 pub mod secure_delete;
@@ -18,5 +20,7 @@ pub mod secure_delete;
 // Re-export commonly used types for convenience
 pub use errors::CryptoError;
 pub use header::{Header, AlgorithmId, FileMetadata};
+pub use versioning::{VersionedHeader, HeaderV1, detect_version, CompatibilityMatrix};
+pub use version_dispatch::{AnyHeader, VersionMigrator, MigrationPlan, MigrationStep, MigrationOperation};
 pub use algorithms::{CURRENT_VERSION, VersionInfo};
 pub use metadata::CompressionType;

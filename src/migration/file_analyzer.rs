@@ -2,7 +2,9 @@
 //! 
 //! Analyzes Shadow encrypted files to determine version compatibility and migration needs.
 
-use crate::shared::{CryptoError, VersionInfo, Header};
+use crate::shared::{CryptoError, algorithms::VersionInfo};
+use crate::shared::version_dispatch::AnyHeader;
+use crate::shared::versioning::detect_version;
 use std::path::{Path, PathBuf};
 use std::fs;
 
@@ -40,21 +42,39 @@ pub fn analyze_shadow_file(file_path: &Path) -> Result<Option<FileAnalysis>, Cry
     let file_data = fs::read(file_path)
         .map_err(|e| CryptoError::FileSystemError(e))?;
     
-    match Header::deserialize(&file_data) {
-        Ok((header, _)) => {
-            let version_info = header.get_version_info();
-            let header_valid = header.is_valid().is_ok();
-            
-            Ok(Some(FileAnalysis {
-                file_path: file_path.to_path_buf(),
-                version_info,
-                file_size,
-                is_shadow_file: true,
-                header_valid,
-            }))
+    // First detect version from raw data
+    match detect_version(&file_data) {
+        Ok(version) => {
+            // Try to parse the header with version-specific logic
+            match AnyHeader::deserialize(&file_data) {
+                Ok((header, _)) => {
+                    let version_info = VersionInfo::for_version(version);
+                    let header_valid = header.validate().is_ok();
+                    
+                    Ok(Some(FileAnalysis {
+                        file_path: file_path.to_path_buf(),
+                        version_info,
+                        file_size,
+                        is_shadow_file: true,
+                        header_valid,
+                    }))
+                }
+                Err(_) => {
+                    // Header parsing failed, but we detected version
+                    let version_info = VersionInfo::for_version(version);
+                    
+                    Ok(Some(FileAnalysis {
+                        file_path: file_path.to_path_buf(),
+                        version_info,
+                        file_size,
+                        is_shadow_file: true,
+                        header_valid: false,
+                    }))
+                }
+            }
         }
         Err(_) => {
-            // File has .shadow extension but invalid header
+            // Not a valid Shadow file
             Ok(None)
         }
     }

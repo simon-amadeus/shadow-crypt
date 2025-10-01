@@ -2,7 +2,8 @@
 //! 
 //! Creates detailed migration plans for Shadow file format upgrades.
 
-use crate::shared::{CryptoError, CURRENT_VERSION};
+use crate::shared::{CryptoError, algorithms::CURRENT_VERSION};
+use crate::shared::version_dispatch::VersionMigrator;
 use crate::migration::file_analyzer::FileAnalysis;
 use crate::migration::safety_checker::SafetyCheck;
 use std::path::PathBuf;
@@ -94,12 +95,13 @@ pub fn create_migration_plan(analysis: &FileAnalysis) -> Result<MigrationPlan, C
         ));
     }
     
-    // Check if migration is possible
-    if !analysis.version_info.can_migrate {
+    // Check if migration is possible using new versioning system
+    if !VersionMigrator::can_migrate(analysis.version_info.current, CURRENT_VERSION) {
         return Err(CryptoError::HeaderParsingError(
-            format!("File {} version {} cannot be migrated", 
-                   analysis.file_path.display(), 
-                   analysis.version_info.current)
+            format!("Cannot migrate file {} from version {} to version {}", 
+                   analysis.file_path.display(),
+                   analysis.version_info.current,
+                   CURRENT_VERSION)
         ));
     }
     

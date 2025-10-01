@@ -49,6 +49,13 @@ All architectural decisions prioritize security:
                 │  │secure_  │ │.rs      │ │             │    │
                 │  │memory.rs│ │         │ │             │    │
                 │  └─────────┘ └─────────┘ └─────────────┘    │
+                │  ┌─────────────────┐ ┌─────────────────┐    │
+                │  │ versioning.rs   │ │version_dispatch │    │
+                │  │                 │ │.rs              │    │
+                │  │ HeaderV1        │ │ AnyHeader       │    │
+                │  │ VersionedHeader │ │ VersionMigrator │    │
+                │  │ CompatMatrix    │ │ MigrationPlan   │    │
+                │  └─────────────────┘ └─────────────────┘    │
                 └─────────────────────────────────────────────┘
 ```
 
@@ -65,6 +72,8 @@ src/
 │   │   ├── argon2.rs          // Argon2id key derivation
 │   │   └── secure_memory.rs   // SecretVec and secure memory handling
 │   ├── header.rs              // File header format with serialization
+│   ├── versioning.rs          // Version-specific header types and traits
+│   ├── version_dispatch.rs    // Version detection and unified interface
 │   ├── file_detection.rs      // Detect encrypted files by magic number
 │   ├── errors.rs              // Comprehensive error types
 │   └── secure_delete.rs       // Secure file deletion
