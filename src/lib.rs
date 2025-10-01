@@ -34,4 +34,4 @@ pub mod shared;
 
 // Re-export commonly used types for convenience
 pub use shared::{CryptoError, Header, AlgorithmId};
-pub use shared::crypto::{SecretVec, KeyMaterial};
+pub use shared::core::crypto::{SecretVec, KeyMaterial};

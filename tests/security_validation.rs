@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod security_validation_tests {
-    use shadow_crypt::shared::crypto::{Argon2Params, derive_master_key, generate_salt};
+    use shadow_crypt::shared::algorithms::aes_gcm::{Argon2Params, derive_master_key, generate_salt};
     use shadow_crypt::encryption::filename_obfuscation::{obfuscate_filename, verify_obfuscated_filename};
     
     #[test]

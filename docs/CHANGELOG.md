@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VERTICAL_SLICING_IMPLEMENTATION.md**: Implementation details preserved in ARCHITECTURE.md
 - **Duplicate Information**: Eliminated redundancy while preserving essential design context
 
+### Refactored - Simplified Module Structure (Post-Phase 9.95 Cleanup)
+- **Removed Backward Compatibility Layer**: Eliminated `shared/crypto/` module that was only needed during vertical slicing transition
+- **Direct Import Paths**: Updated all imports to use actual module locations (`shared::core::crypto`, `shared::algorithms::aes_gcm`)
+- **Cleaner Architecture**: Simplified module hierarchy for better maintainability
+- **Zero Functional Impact**: All 133 tests continue passing, no API changes for end users
+
 ## [0.9.94.6] - 2025-01-01
 
 ### Added - Integration Testing and Production Readiness (Phase 9.94.6 Complete)

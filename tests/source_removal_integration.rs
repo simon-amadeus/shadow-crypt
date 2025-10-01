@@ -6,7 +6,7 @@ use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
 use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-use shadow_crypt::shared::crypto::Argon2Params;
+use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
 use shadow_crypt::decryption::decrypt_file::decrypt_single_file_with_params;
 use shadow_crypt::shared::secure_delete::secure_delete_file;
 

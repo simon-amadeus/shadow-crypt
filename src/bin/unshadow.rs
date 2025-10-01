@@ -6,7 +6,7 @@
 use shadow_crypt::decryption::{decrypt_single_file, restore_original_filename};
 use shadow_crypt::shared::errors::CryptoError;
 use shadow_crypt::shared::header::Header;
-use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::env;
 use std::path::{Path, PathBuf};

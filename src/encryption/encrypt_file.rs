@@ -5,7 +5,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::header::{Header, FileMetadata, AlgorithmId};
-use crate::shared::crypto::{
+use crate::shared::algorithms::aes_gcm::{
     generate_secure_nonce, encrypt_aes_gcm, derive_master_key, generate_salt, Argon2Params
 };
 use crate::encryption::filename_obfuscation::obfuscate_filename;
@@ -175,7 +175,7 @@ pub fn encrypt_single_file_with_params(
 fn generate_obfuscated_output_path(
     input_path: &Path, 
     output_path: &Path, 
-    key_material: &crate::shared::crypto::KeyMaterial
+    key_material: &crate::shared::core::crypto::KeyMaterial
 ) -> Result<PathBuf, CryptoError> {
     // Extract original filename
     let original_filename = input_path

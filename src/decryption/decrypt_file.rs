@@ -5,7 +5,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::header::{Header, FileMetadata};
-use crate::shared::crypto::{
+use crate::shared::algorithms::aes_gcm::{
     decrypt_aes_gcm, derive_master_key, Argon2Params
 };
 use std::path::Path;

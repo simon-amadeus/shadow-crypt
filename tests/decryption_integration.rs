@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod tests {
     use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-    use shadow_crypt::shared::crypto::Argon2Params;
+    use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
     use shadow_crypt::decryption::decrypt_file::decrypt_single_file_with_params;
     use std::fs;
     use tempfile::tempdir;
@@ -238,7 +238,7 @@ mod tests {
     fn test_filename_restoration_basic() {
         use shadow_crypt::decryption::restore_original_filename;
         use shadow_crypt::shared::header::Header;
-        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
@@ -284,7 +284,7 @@ mod tests {
     fn test_filename_restoration_with_obfuscation() {
         use shadow_crypt::decryption::restore_original_filename;
         use shadow_crypt::shared::header::Header;
-        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
         use std::fs::{File, read_dir};
         use std::io::Read;
 
@@ -349,7 +349,7 @@ mod tests {
     fn test_filename_restoration_unicode() {
         use shadow_crypt::decryption::restore_original_filename;
         use shadow_crypt::shared::header::Header;
-        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
@@ -396,7 +396,7 @@ mod tests {
     fn test_filename_restoration_wrong_password() {
         use shadow_crypt::decryption::restore_original_filename;
         use shadow_crypt::shared::header::Header;
-        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
         use std::fs::File;
         use std::io::Read;
 
@@ -450,7 +450,7 @@ mod tests {
     fn test_filename_restoration_empty_header() {
         use shadow_crypt::decryption::restore_original_filename;
         use shadow_crypt::shared::header::{Header, AlgorithmId};
-        use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+        use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
 
         // Create a header with empty encrypted filename
         let header = Header {

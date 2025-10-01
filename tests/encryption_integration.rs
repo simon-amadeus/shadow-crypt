@@ -6,7 +6,7 @@
 #[cfg(test)]
 mod tests {
     use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-    use shadow_crypt::shared::crypto::Argon2Params;
+    use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
     use shadow_crypt::shared::file_detection::is_encrypted_file;
     use std::fs;
     use tempfile::tempdir;

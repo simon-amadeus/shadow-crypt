@@ -154,7 +154,7 @@ impl TimingAnalysisResult {
 
 /// Test password validation timing for constant-time behavior
 pub fn test_password_validation_timing() -> Result<TimingAnalysisResult, CryptoError> {
-    use crate::shared::crypto::{derive_master_key, generate_salt, Argon2Params};
+    use crate::shared::algorithms::aes_gcm::{derive_master_key, generate_salt, Argon2Params};
     
     let mut analyzer = TimingAnalyzer::new("password_validation");
     let salt = generate_salt(16)?;
@@ -185,7 +185,7 @@ pub fn test_password_validation_timing() -> Result<TimingAnalysisResult, CryptoE
 
 /// Test AES-GCM encryption timing for constant-time behavior
 pub fn test_aes_gcm_timing() -> Result<TimingAnalysisResult, CryptoError> {
-    use crate::shared::crypto::{encrypt_aes_gcm, generate_random_key, generate_secure_nonce};
+    use crate::shared::algorithms::aes_gcm::{encrypt_aes_gcm, generate_random_key, generate_secure_nonce};
     
     let mut analyzer = TimingAnalyzer::new("aes_gcm_encryption_same_size");
     let key = generate_random_key()?;
@@ -217,7 +217,7 @@ pub fn test_aes_gcm_timing() -> Result<TimingAnalysisResult, CryptoError> {
 
 /// Test AES-GCM decryption timing for constant-time behavior
 pub fn test_aes_gcm_decryption_timing() -> Result<TimingAnalysisResult, CryptoError> {
-    use crate::shared::crypto::{encrypt_aes_gcm, decrypt_aes_gcm, generate_random_key, generate_secure_nonce};
+    use crate::shared::algorithms::aes_gcm::{encrypt_aes_gcm, decrypt_aes_gcm, generate_random_key, generate_secure_nonce};
     
     let mut analyzer = TimingAnalyzer::new("aes_gcm_decryption_same_size");
     let key = generate_random_key()?;

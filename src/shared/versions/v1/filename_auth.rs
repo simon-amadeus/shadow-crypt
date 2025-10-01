@@ -9,7 +9,7 @@
 //! attacks by binding the obfuscated filename to the file's cryptographic identity.
 
 use crate::shared::core::errors::CryptoError;
-use crate::shared::crypto::KeyMaterial;
+use crate::shared::core::crypto::KeyMaterial;
 use hmac::{Hmac, Mac};
 use sha2::Sha256;
 use std::path::Path;
@@ -126,7 +126,7 @@ pub fn extract_filename_for_auth(file_path: &Path) -> Result<String, CryptoError
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::crypto::{derive_master_key, Argon2Params, generate_salt};
+    use crate::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params, generate_salt};
 
     fn test_keys() -> KeyMaterial {
         let salt = generate_salt(16).unwrap();

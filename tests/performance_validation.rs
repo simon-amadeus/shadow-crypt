@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod performance_validation {
-    use shadow_crypt::shared::crypto::{Argon2Params, derive_master_key, generate_salt};
+    use shadow_crypt::shared::algorithms::aes_gcm::{Argon2Params, derive_master_key, generate_salt};
     use std::time::Instant;
     
     #[test]

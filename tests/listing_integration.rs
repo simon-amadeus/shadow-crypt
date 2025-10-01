@@ -6,7 +6,7 @@
 use shadow_crypt::listing::file_scanner::list_encrypted_files_with_params;
 use shadow_crypt::listing::metadata_extractor::{format_file_size, format_header, format_separator, format_file_info};
 use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-use shadow_crypt::shared::crypto::Argon2Params;
+use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
 use shadow_crypt::shared::errors::CryptoError;
 use std::fs::{self, File};
 use std::io::Write;

@@ -5,7 +5,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::file_detection::{is_encrypted_file, read_header_only};
-use crate::shared::crypto::{derive_master_key, Argon2Params};
+use crate::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
 use crate::decryption::filename_restoration::restore_original_filename;
 use std::fs;
 use std::path::{Path, PathBuf};

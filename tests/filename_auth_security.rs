@@ -5,7 +5,7 @@
 
 use shadow_crypt::encryption::encrypt_single_file_with_params;
 use shadow_crypt::decryption::decrypt_single_file_with_params;
-use shadow_crypt::shared::crypto::Argon2Params;
+use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
 use std::fs::{write, read};
 use tempfile::TempDir;
 

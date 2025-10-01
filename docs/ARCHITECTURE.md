@@ -82,8 +82,6 @@ src/shared/
 │   ├── selection.rs                # Algorithm selection logic
 │   ├── registry.rs                 # Algorithm capability registration
 │   └── mod.rs                      # Algorithm management interface
-├── crypto/                         # Unified crypto interface (backward compatibility)
-│   └── mod.rs                      # Re-exports from core/ and algorithms/
 ├── metadata.rs                     # File metadata handling
 ├── version_dispatch.rs             # Multi-version operation dispatch
 ├── versioning.rs                   # Version compatibility management

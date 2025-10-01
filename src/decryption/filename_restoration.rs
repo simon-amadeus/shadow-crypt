@@ -5,7 +5,8 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::header::Header;
-use crate::shared::crypto::{KeyMaterial, decrypt_aes_gcm};
+use crate::shared::core::crypto::KeyMaterial;
+use crate::shared::algorithms::aes_gcm::decrypt_aes_gcm;
 
 /// Restore original filename from encrypted header
 /// 
@@ -30,7 +31,7 @@ use crate::shared::crypto::{KeyMaterial, decrypt_aes_gcm};
 /// ```rust,no_run
 /// use shadow_crypt::decryption::restore_original_filename;
 /// use shadow_crypt::shared::header::Header;
-/// use shadow_crypt::shared::crypto::{derive_master_key, Argon2Params};
+/// use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
 /// 
 /// # fn example() -> Result<(), Box<dyn std::error::Error>> {
 /// # let encrypted_data = vec![]; // dummy data

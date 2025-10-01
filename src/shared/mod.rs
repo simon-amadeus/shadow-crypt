@@ -9,7 +9,6 @@
 pub mod core;
 pub mod versions;
 pub mod algorithms;
-pub mod crypto;
 pub mod metadata;
 pub mod header;
 pub mod versioning;
