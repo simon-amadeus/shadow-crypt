@@ -33,8 +33,10 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 
 **Feedback Processing Rules:**
 - NEW feedback = items in "New Feedback" section only
-- ADDRESSED feedback = moved to "Addressed" section, should be ignored
-- When jumping to Step 6, mark feedback items as "ROADMAP UPDATED" and move to "Addressed" and end the current cycle after Step 6.
+- ADDRESSING = integrate feedback into roadmap planning, remove from FEEDBACK.md
+- IMPLEMENTING = work gets done according to updated roadmap
+- COMPLETING = implemented work moves from roadmap to CHANGELOG.md
+- When jumping to Step 6, integrate feedback into roadmap and remove from FEEDBACK.md
 
 ### 3. **UNDERSTAND CURRENT CODE** 🔍
 - Examine existing implementation and architecture
@@ -55,6 +57,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Most critical phase - extract learnings and adapt:**
 - Update `docs/CHANGELOG.md` with completed work following semantic versioning
 - Update `docs/README.md` progress indicators  
+- **REMOVE completed sections from `docs/ROADMAP.md`** - Keep roadmap focused on future work only
 - Document key insights about technical and user aspects
 - Assess what was accomplished vs. planned
 - Record unexpected results and emergent insights
@@ -63,17 +66,40 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Actively shape future direction based on new understanding:**
 - **Critically evaluate current roadmap** against learnings
 - **Boldly adapt future plans** when evidence suggests better approaches
-- Remove completed items from `docs/ROADMAP.md`
-- Update `docs/ROADMAP.md` with refined priorities and timelines.
+- **CLEAN UP ROADMAP**: Remove completed items and phases from `docs/ROADMAP.md`
+- **ARCHIVE COMPLETED WORK**: Move detailed implementation notes to `docs/CHANGELOG.md`
+- Update `docs/ROADMAP.md` with refined priorities and timelines for FUTURE work only
 - Question assumptions and be willing to pivot when warranted
 - Balance technical debt against user-facing improvements
 - Plan experiments to test new hypotheses about user needs
-- **When processing feedback**: Move items from "New Feedback" to "Addressed" section with status updates
+- **When processing feedback**: Integrate items into roadmap and remove from FEEDBACK.md to keep it lean
 
-**Feedback File Management:**
-- Mark feedback items as "ROADMAP UPDATED" when integrated
-- Move completed items to "Addressed" section to prevent infinite loops
-- Keep "New Feedback" section clear for future input
+**Roadmap Management Rules:**
+- **ROADMAP = FUTURE ONLY**: Only unfinished phases and tasks belong in ROADMAP.md
+- **CHANGELOG = COMPLETED HISTORY**: All completed work details go in CHANGELOG.md
+- **KEEP ROADMAP LEAN**: Remove implementation details and lengthy descriptions of completed phases
+- **FOCUS FORWARD**: Roadmap should help identify next priorities, not document past accomplishments
+
+**User Feedback Lifecycle:**
+- **NEW feedback**: Users add to "New Feedback" section 
+- **ADDRESSING**: Developer integrates feedback into roadmap planning and removes from FEEDBACK.md
+- **IMPLEMENTING**: Work happens according to updated roadmap
+- **COMPLETING**: Implemented work moves from roadmap to CHANGELOG.md
+- **RESULT**: FEEDBACK.md stays lean with only unaddressed user feedback
+
+**🧹 CRITICAL: Roadmap Cleanup After Each Cycle**
+- **ALWAYS remove completed phase sections** from ROADMAP.md after adding to CHANGELOG.md
+- **Look for**: Phases marked "COMPLETE", "✅", or with past completion dates
+- **Remove**: Entire completed phase sections including tasks, dependencies, success criteria
+- **Keep**: Only "NEXT PRIORITY" and future phases (🔧 OPTIONAL, 📋 FUTURE, ⚡ NEXT)
+- **Result**: Roadmap stays focused and actionable for next developer
+
+**📝 CHANGELOG Management Rules**
+- **Format**: Follow semantic versioning (MAJOR.MINOR.PATCH)
+- **Content**: What was accomplished, not what was planned
+- **Structure**: ## [Version] - Date, ### Added/Changed/Fixed sections
+- **Detail Level**: **CONCISE** - Key accomplishments only, not exhaustive implementation details
+- **User Focus**: Write for end-users and future developers, not just yourself
 
 ## Implementation Guidelines
 

@@ -1,38 +1,11 @@
 # Implementation Roadmap
 
-- ✅ **Phase 9.991**: Critical versioning architecture foundation (**COMPLETE** - Proper version-specific types and migration chains implemented)
-- ✅ **Phase 9.92**: Cryptographic security hardening (**COMPLETE** - Nonce reuse detection and timing attack testing implemented)
-- ✅ **Phase 9.93**: Authentication and integrity hardening (**COMPLETE** - CRITICAL filename authentication gap closed)
+## 🎯 NEXT PRIORITIES (Work in Progress)
+
 - ⚡ **Phase 10**: Multi-file encryption support (**NEXT PRIORITY** - CORE user functionality)
-- 📋 **Phase 9.94**: Error handling and resource protection hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
-- 📋 **Phase 9.95**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)plementation is organized into focused phases, each with specific goals and deliverables. This approach ensures:
 
-- **Incremental Progress**: Each phase builds on previous work
-- **Testable Milestones**: Clear success criteria for each phase
-- **Risk Management**: Early identification and mitigation of issues
-- **Maintainable Codebase**: Continuous refactoring and improvement
+## 📋 FUTURE PHASES (Planned Work)
 
-## Phase Status
-
-- ✅ **Phase 1**: Module structure and architecture foundation (**COMPLETE**)
-- ✅ **Phase 2**: Header implementation with serialization (**COMPLETE**)
-- ✅ **Phase 3**: Core cryptographic operations (**COMPLETE**)
-- ✅ **Phase 4**: Basic file encryption (**COMPLETE**)
-- ✅ **Phase 5**: Basic file decryption (**COMPLETE**)
-- ✅ **Phase 6**: Filename obfuscation (**COMPLETE**)
-- ✅ **Phase 7**: Filename restoration (**COMPLETE**)
-- ✅ **Phase 8**: File listing capability (**COMPLETE**)
-- ✅ **Phase 8.5**: Critical user experience fixes (**COMPLETE**)
-- ✅ **Phase 9**: Source file removal support for single-file operations (**COMPLETE** - Major CLI simplification achieved)
-- ✅ **Phase 9.5**: Security audit (**COMPLETE** - Comprehensive internal audit completed)
-- ✅ **Phase 9.75**: Code quality improvements (**COMPLETE** - Production-ready error handling implemented)
-- ✅ **Phase 9.95**: Project rebranding to "Shadow" (**COMPLETE** - Shadow branding fully implemented)
-- ✅ **Phase 9.98**: Migration system foundation (**COMPLETE** - Cryptographic agility infrastructure implemented)
-- ✅ **Phase 9.99**: Critical code refactoring and structure cleanup (**COMPLETE** - Major module decomposition achieved)
-- ✅ **Phase 9.991**: Critical versioning architecture foundation (**COMPLETE** - Proper version-specific types and migration chains implemented)
-- ✅ **Phase 9.92**: Cryptographic security hardening (**COMPLETE** - Nonce reuse detection and timing attack testing implemented)
-- ✅ **Phase 9.93**: Authentication and integrity hardening (**COMPLETE** - Critical filename authentication gap closed)
-- ⚡ **Phase 10**: Multi-file encryption support (**NEXT PRIORITY** - Core user functionality)
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
 - 📋 **Phase 13**: Secure viewing (`cryptview`)
@@ -41,173 +14,37 @@
 - 📋 **Phase 16**: Documentation and polish
 - 📋 **Phase 17**: Release preparation
 
----
+## 🔧 OPTIONAL ENHANCEMENTS (Post-Production)
+
+- 📋 **Phase 9.94**: Error handling and resource protection hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
+- 📋 **Phase 9.95**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
 
 ---
 
-## Strategic Priority Assessment for Production-Grade Tool
+<!-- 
+IMPORTANT FOR DEVELOPERS:
+When a phase is completed:
+1. Add detailed implementation notes to CHANGELOG.md
+2. Remove the completed phase from this roadmap 
+3. Keep only future work in this file
+4. Move any useful implementation details to CHANGELOG.md
 
-**Based on customer feedback assessment of security hardening criticality:**
+This keeps the roadmap focused on "what's next" rather than "what's done"
+-->
 
-### CRITICAL PATH TO PRODUCTION (Must Complete):
-1. ✅ **Phase 9.92: Critical Tasks Complete**
-   - ✅ **Nonce reuse detection** (COMPLETE - Prevents catastrophic AES-GCM failure)
-   - ✅ **Timing attack testing** (COMPLETE - Statistical analysis confirms no vulnerabilities)
-
-2. ✅ **Phase 9.93: Critical Tasks Complete**  
-   - ✅ **Filename authentication** (COMPLETE - File substitution attacks prevented)
-
-3. **Phase 10: Multi-file Support** (CORE user functionality)
-
-### 🎉 PRODUCTION-READY MILESTONE ACHIEVED 🎉
-**All critical security tasks completed - tool is now production-ready for end-user scenarios!**
-
-### OPTIONAL ENHANCEMENTS (Post-Production):
-- **9.92 Remaining**: Cryptographic fuzzing (good practice)
-- **9.93 Remaining**: Enhanced integrity checks  
-- **9.94 Full Phase**: Error message security (minimal benefit)
-- **9.95 Full Phase**: Advanced secure memory (important for high-security environments)
-
-### INDIVIDUAL TASK CRITICALITY SUMMARY:
-- ✅ **BLOCKING VULNERABILITIES RESOLVED**: Nonce reuse detection, timing attacks, filename authentication
-- **QUALITY IMPROVEMENTS**: Enhanced integrity, cryptographic fuzzing  
-- **DEPLOYMENT SPECIFIC**: Memory locking (high-security environments)
-- **MINIMAL BENEFIT**: Error message security
-
-**Status**: All critical vulnerabilities addressed! Tool ready for production deployment.
-
-### Phase 9.92: Cryptographic Security Hardening
-
-**Goal**: Address critical cryptographic vulnerabilities and timing attacks
-
-**✅ COMPLETE - All Critical Tasks Implemented**:
-- ✅ **Add nonce reuse detection** - ⚡ COMPLETE: Global nonce tracking with entropy validation prevents AES-GCM catastrophic failures
-- ✅ **Implement proper timing attack testing** - ⚡ COMPLETE: Statistical analysis confirms no detectable timing vulnerabilities
-
-**IMPORTANT Tasks (Should Complete for Quality)**:
-- [ ] **Add cryptographic fuzzing** - 📋 IMPORTANT: Good practice for finding edge cases, but less critical for end-user tool
-
-**Individual Task Assessment**:
-- **Nonce reuse detection**: ✅ COMPLETE - Essential protection against single most dangerous AES-GCM vulnerability
-- **Timing attack testing**: ✅ COMPLETE - Standard requirement met with comprehensive statistical analysis  
-- **Cryptographic fuzzing**: BENEFICIAL - Important for robustness but not blocking for production
-
-**Dependencies**: Phase 9.991 ✅ (Critical versioning architecture foundation)
-
-**Actual Duration**: 1 day (critical tasks only) - **COMPLETED 2025-10-01**
-
-**✅ Critical Success Criteria ACHIEVED**:
-- ✅ Nonce reuse detection prevents AES-GCM catastrophic failures
-- ✅ Statistical timing analysis shows no detectable timing vulnerabilities (CV < 0.3, range ratio < 5.0)
-- ✅ 129 tests passing including 19 new security-focused tests
-- ✅ Production-grade cryptographic security hardening complete
-
-**Implementation Summary**:
-- **Nonce Tracking**: `nonce_tracking.rs` with global tracking, entropy validation, pattern detection
-- **Timing Analysis**: `timing_analysis.rs` with statistical analysis, vulnerability detection, crypto operation testing
-- **Integration**: Seamless integration into existing APIs with zero breaking changes
-- **Testing**: Comprehensive test coverage including real cryptographic operations validation
-
----
-
-### Phase 9.93: Authentication and Integrity Hardening
-
-**Goal**: Strengthen file integrity and authentication mechanisms
-
-**✅ COMPLETE - Critical Security Task Implemented**:
-- ✅ **Authenticate obfuscated filenames** - ⚡ COMPLETE: HMAC-SHA256 authentication prevents file substitution attacks
-
-**IMPORTANT Tasks (Should Complete for Quality)**:
-- [ ] **Enhanced file integrity checks** - 📋 IMPORTANT: Strengthens verification beyond current AES-GCM auth
-
-**Individual Task Assessment**:
-- **Filename authentication**: ✅ COMPLETE - Essential protection against file substitution attacks in obfuscated mode
-- **Enhanced integrity checks**: BENEFICIAL - Current AES-GCM provides strong integrity, enhancements are bonus
-
-**Dependencies**: Phase 9.92 ✅ (Critical cryptographic security tasks only)
-
-**Actual Duration**: 1 day (critical tasks only) - **COMPLETED 2025-10-01**
-
-**✅ Critical Success Criteria ACHIEVED**:
-- ✅ Obfuscated filenames are authenticated against substitution attacks
-- ✅ HMAC-SHA256 provides cryptographic binding of filename to file contents
-- ✅ Automatic detection distinguishes obfuscated from non-obfuscated files
-- ✅ Production-grade filename authentication security complete
-
-**Implementation Summary**:
-- **Filename Authentication**: `filename_auth.rs` with HMAC-SHA256 authentication
-- **Header Extension**: Added `obfuscated_filename_auth_tag` field to file format
-- **Integration**: Seamless integration into encryption/decryption with automatic mode detection
-- **Testing**: 9 new tests including comprehensive security attack simulation
-
-**🎯 PRODUCTION SECURITY MILESTONE: All critical vulnerabilities now addressed!**
-
----
-
-### Phase 9.94: Error Handling and Resource Protection Hardening
-
-**Goal**: Harden system against information leakage
-
-**OPTIONAL Tasks (Good Practice, Not Critical for End-User Tool)**:
-- [ ] **Enhanced error message security** - 📋 OPTIONAL: Current errors already reasonably secure for end-user tool
-
-**Individual Task Assessment**:
-- **Error message security**: OPTIONAL - Current implementation doesn't leak critical information
-
-**Dependencies**: Phase 9.94 ✅ (Error handling hardening)
-
-**Estimated Duration**: 1-2 days
-
-**Success Criteria**:
-- Error messages provide no oracle information
-
----
-
-### Phase 9.95: Secure Memory and Cleanup Hardening
-
-**Goal**: Complete secure memory implementation and ensure proper cleanup
-
-**IMPORTANT Tasks (Should Complete for High-Security Environments)**:
-- [ ] **Memory protection against swapping** - 📋 IMPORTANT: Critical for high-security environments, less critical for typical personal use
-
-**OPTIONAL Tasks (Good Practice, Current Implementation Sufficient)**:
-- [ ] **Complete secure memory implementation** - 📋 OPTIONAL: Current SecretVec implementation adequate for end-user scenarios
-- [ ] **Memory cleanup verification** - 📋 OPTIONAL: Current zeroization already handles most critical cases
-
-**Individual Task Assessment**:
-- **Memory protection against swapping**: IMPORTANT - Essential for high-security scenarios (government, enterprise)
-- **Secure memory completion**: OPTIONAL - Current implementation with SecretVec already quite good
-- **Memory cleanup verification**: OPTIONAL - Current automatic zeroization covers critical paths
-
-**Dependencies**: Phase 9.94 ✅ (Error handling and resource protection hardening)
-
-**Estimated Duration**: 1-2 days
-
-**Success Criteria**:
-- Secure memory implementation completed
-- All sensitive data properly cleared from memory
-- Memory protection mechanisms prevent data exposure
-
----
-
-### Phase 10: Multi-File Encryption Support
+## Phase 10: Multi-File Encryption Support (NEXT PRIORITY)
 
 **Goal**: Support encrypting multiple individual files (not directories)
 
-**Revised Approach Based on User Feedback**:
-- **Focus**: Multi-file support building on single-file source removal from Phase 9
-- **Postponed**: Directory encryption functionality
-- **Inherit**: Source removal support from Phase 9
-
 **Tasks**:
-- [ ] Add support for multiple file arguments to `lock` binary
+- [ ] Add support for multiple file arguments to `shadow` binary
 - [ ] Implement batch processing for multiple individual files
 - [ ] Add progress indicators for multi-file operations
 - [ ] Support glob patterns for file selection
 - [ ] Enhance error handling for partial failures
 - [ ] Add parallel processing for performance
 
-**Dependencies**: Phase 9.93 ✅ (Critical authentication tasks only)
+**Dependencies**: All critical security phases complete ✅
 
 **Estimated Duration**: 2-3 days
 
@@ -217,6 +54,42 @@
 - Robust error handling for individual file failures
 - Source removal works safely for multi-file operations
 - Performance scales well with file count
+
+---
+
+## Phase 9.94: Error Handling and Resource Protection Hardening (OPTIONAL)
+
+**Goal**: Harden system against information leakage
+
+**Tasks**:
+- [ ] **Enhanced error message security** - Good practice for preventing oracle attacks
+
+**Dependencies**: Core security phases complete ✅
+
+**Estimated Duration**: 1-2 days
+
+**Success Criteria**:
+- Error messages provide no oracle information
+
+---
+
+## Phase 9.95: Secure Memory and Cleanup Hardening (OPTIONAL)
+
+**Goal**: Complete secure memory implementation for high-security environments
+
+**Tasks**:
+- [ ] **Memory protection against swapping** - Critical for high-security environments
+- [ ] **Complete secure memory implementation** - Enhanced SecretVec functionality
+- [ ] **Memory cleanup verification** - Comprehensive zeroization validation
+
+**Dependencies**: Phase 9.94 ✅ (if implemented)
+
+**Estimated Duration**: 1-2 days
+
+**Success Criteria**:
+- Secure memory implementation completed for high-security scenarios
+- All sensitive data properly cleared from memory
+- Memory protection mechanisms prevent data exposure
 
 ---
 
