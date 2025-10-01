@@ -12,6 +12,22 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## Addressed
 
+### October 1, 2025 - Critical Versioning Architecture Foundation
+
+- **ROADMAP UPDATED**: Critical Versioning Architecture Issues for Migration System
+  - **Status**: Integrated into roadmap as new Phase 9.991 (Critical versioning architecture foundation)
+  - **Priority**: URGENT - Takes precedence over security hardening due to fundamental architectural issues
+  - **Action**: Created comprehensive versioning architecture phase focusing on proper version-specific types, migration chains, and compatibility matrices
+  - **Impact**: Establishes proper foundation for robust migration system that can handle different file format versions correctly
+
+**Versioning Architecture Integration Summary:**
+1. **Versioned types implementation** - Distinct types for each format version (HeaderV1, HeaderV2, etc.)
+2. **Version-specific serialization** - Each version has its own parsing/serialization logic
+3. **Migration type conversion** - Proper conversion between distinct version types
+4. **Compatibility matrix** - Define precise version compatibility rules
+5. **Format vs. feature separation** - Distinguish file format versions from software versions
+6. **Trait-based handlers** - Type-safe version implementations with proper migration chains
+
 ### October 1, 2025 - Urgent Code Refactoring and Structure Cleanup
 
 - **ROADMAP UPDATED**: urgent!: refactor the code. reduce file size and complexity. make a plan to improve the structure and clean up so that new features or changes can be added more easily.

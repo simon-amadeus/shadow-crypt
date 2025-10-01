@@ -1,6 +1,8 @@
 # Implementation Roadmap
 
-## Overview
+#- ✅ **Phase 9.99**: Critical code refactoring and structure cleanup (**COMPLETE** - Major module decomposition achieved)
+- 📋 **Phase 9.991**: Critical versioning architecture foundation (**URGENT PRIORITY** - Migration system requires proper versioned types)
+- 📋 **Phase 9.9**: Critical security hardening (**HIGH PRIORITY** - Based on comprehensive security assessment)Overview
 
 The implementation is organized into focused phases, each with specific goals and deliverables. This approach ensures:
 
@@ -79,6 +81,53 @@ The implementation is organized into focused phases, each with specific goals an
 
 ---
 
+### Phase 9.991: Critical Versioning Architecture Foundation
+
+**Goal**: Fix fundamental versioning architecture flaws to enable robust migration system
+
+**Priority**: **URGENT** - Current versioning scheme prevents proper migration functionality
+
+**Critical Architecture Problems**:
+- Single `u16` version number is too simplistic for real migration needs
+- No version-specific types or handlers - all versions use same `Header` struct
+- Migration logic tries to handle different versions with same data structures
+- No clear separation between format versions vs. feature versions
+- Missing version-specific parsing/serialization logic
+
+**Required Architecture Changes**:
+- [ ] **Implement versioned types** - Create distinct types for each version (e.g., `HeaderV1`, `HeaderV2`, etc.)
+- [ ] **Version-specific serialization** - Each version has its own serialization/deserialization logic
+- [ ] **Migration type conversion** - Proper conversion between distinct version types, not just version number updates
+- [ ] **Compatibility matrix** - Define precise version compatibility rules beyond simple min/max ranges
+- [ ] **Format vs. feature separation** - Distinguish file format versions from software feature versions
+
+**Technical Implementation**:
+- [ ] **Trait-based version handlers** - Define `Version` trait with type-safe implementations
+- [ ] **Version-specific modules** - Separate modules for each format version (v1/, v2/, etc.)
+- [ ] **Migration chains** - Define explicit migration paths between version types
+- [ ] **Backward compatibility** - Read old formats while writing new formats
+- [ ] **Version validation** - Robust validation of version compatibility
+
+**Testing Requirements**:
+- [ ] **Version-specific tests** - Test each version implementation independently
+- [ ] **Migration testing** - Test all migration paths between versions
+- [ ] **Compatibility validation** - Verify version compatibility matrix
+- [ ] **Edge case testing** - Test invalid version scenarios and error handling
+
+**Dependencies**: Phase 9.99 ✅ (Critical code refactoring and structure cleanup)
+
+**Estimated Duration**: 2-3 days
+
+**Success Criteria**:
+- Distinct types for each file format version with proper trait implementations
+- Version-specific serialization/deserialization logic working correctly
+- Migration system can convert between different version types safely
+- Clear separation between file format versions and software versions
+- Comprehensive version compatibility validation
+- Foundation ready for robust migration functionality
+
+---
+
 ### Phase 9.9: Critical Security Hardening
 
 **Goal**: Address high-priority security actions identified in comprehensive security assessment
@@ -95,7 +144,7 @@ The implementation is organized into focused phases, each with specific goals an
 - [ ] **Filename collision robustness** - Improve handling beyond 9,999 collision attempts
 - [ ] **Complete secure memory implementation** - Finish secure memory implementation for sensitive data handling
 
-**Dependencies**: Phase 9.99 ✅ (Critical code refactoring and structure cleanup)
+**Dependencies**: Phase 9.991 ✅ (Critical versioning architecture foundation)
 
 **Estimated Duration**: 4-5 days
 
