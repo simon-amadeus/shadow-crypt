@@ -2,12 +2,11 @@
 
 ## 🎯 NEXT PRIORITIES (Work in Progress)
 
-- ⚡ **Phase 9.94.5**: Algorithm-Specific Module Organization (**NEXT PRIORITY** - Separate AES-GCM algorithm for clean ChaCha20 addition)
+- ⚡ **Phase 9.94.6**: Integration Testing and Cleanup (**NEXT PRIORITY** - Final vertical slicing phase with comprehensive validation)
 - ⚡ **Phase 10**: Multi-file encryption support (**HIGH PRIORITY** - CORE user functionality)
 
 ## 📋 FUTURE PHASES (Planned Work)
 
-- 📋 **Phase 9.94.6**: Integration testing and cleanup
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
 - 📋 **Phase 13**: Secure viewing (`cryptview`)
@@ -33,34 +32,43 @@ When a phase is completed:
 This keeps the roadmap focused on "what's next" rather than "what's done"
 -->
 
-## Phase 9.94.5: Algorithm-Specific Module Organization (NEXT PRIORITY)
+## Phase 9.94.6: Integration Testing and Cleanup (NEXT PRIORITY)
 
-**Goal**: Separate AES-GCM algorithm into dedicated module to enable adding ChaCha20-Poly1305 cleanly
+**Goal**: Complete the vertical slicing architecture refactoring with comprehensive validation and cleanup
 
-**Rationale**: With versions cleanly separated, now separate algorithms. Current `crypto/` module mixes general crypto utilities with AES-GCM specific implementation. Moving AES-GCM to `algorithms/aes_gcm/` enables adding ChaCha20-Poly1305 later without touching existing code.
+**Rationale**: With core utilities, versions, and algorithms cleanly separated, perform final integration testing to ensure the architecture is production-ready. Clean up any remaining legacy imports and validate extensibility.
 
 **Current Focus - Implementation Tasks**:
-- [ ] **Create `src/shared/algorithms/aes_gcm/` directory structure**
-- [ ] **Move AES-specific modules**:
-  - [ ] `crypto/aes.rs` → `algorithms/aes_gcm/encryption.rs` + `decryption.rs` (split operations)
-  - [ ] `crypto/argon2.rs` → `algorithms/aes_gcm/key_derivation.rs` (Argon2 integration for AES)
-- [ ] **Create algorithm interface modules**:
-  - [ ] `algorithms/aes_gcm/mod.rs` (AES-GCM interface implementing Algorithm trait)
-  - [ ] `algorithms/selection.rs` (algorithm choice logic)
-  - [ ] `algorithms/registry.rs` (algorithm capability registration)
-  - [ ] `algorithms/mod.rs` (algorithm management interface)
-- [ ] **Update crypto operations** to use algorithm modules instead of direct crypto calls
-- [ ] **Maintain backward compatibility** through re-exports in crypto module
-- [ ] **Validate all functionality preserved** - all 130 tests must pass
+- [ ] **Comprehensive Integration Testing**:
+  - [ ] Validate all 130+ tests continue to pass consistently
+  - [ ] Performance regression testing on critical encryption/decryption paths
+  - [ ] Memory usage validation (ensure no leaks from module reorganization)
+  - [ ] Cross-module dependency analysis (ensure clean separation achieved)
+- [ ] **Legacy Code Cleanup**:
+  - [ ] Remove any unused import paths or legacy re-exports
+  - [ ] Clean up temporary compatibility shims if any exist
+  - [ ] Validate module visibility and access patterns
+  - [ ] Update internal documentation comments to reflect new structure
+- [ ] **Architecture Validation**:
+  - [ ] Document final module hierarchy and interfaces
+  - [ ] Validate extensibility scenarios (V2 + ChaCha20 addition paths)
+  - [ ] Confirm backward compatibility for external users
+  - [ ] Performance benchmark comparison with pre-refactoring baseline
+- [ ] **Documentation Updates**:
+  - [ ] Update architecture documentation to reflect new structure
+  - [ ] Create developer guide for adding new versions and algorithms
+  - [ ] Update module-level documentation and examples
 
-**Dependencies**: Phase 9.94.4 ✅ (version-specific module creation complete)
+**Dependencies**: Phase 9.94.5 ✅ (algorithm-specific module organization complete)
 
 **Success Criteria**:
-- **AES-GCM Logic Encapsulated**: All AES-256-GCM specific code contained in `algorithms/aes_gcm/` module
-- **Clean Algorithm Interface**: `Algorithm` trait enables uniform algorithm operations
-- **No Functionality Loss**: All existing tests continue to pass
-- **Easy Algorithm Addition**: Adding `algorithms/chacha20_poly1305/` should require no changes to AES or core code
-- **Maintained Compatibility**: Public crypto APIs unchanged for end users
+- **Zero Functionality Regression**: All tests pass, all features work exactly as before
+- **Clean Architecture**: No circular dependencies, clear module boundaries
+- **Proven Extensibility**: Documented paths for V2 and ChaCha20 addition
+- **Performance Maintained**: No measurable performance degradation
+- **Documentation Current**: All docs reflect new architecture
+
+**Estimated Duration**: 1-2 hours (validation and cleanup focus)
 
 ---
 

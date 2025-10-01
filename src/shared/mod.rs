@@ -8,9 +8,9 @@
 
 pub mod core;
 pub mod versions;
+pub mod algorithms;
 pub mod crypto;
 pub mod metadata;
-pub mod algorithms;
 pub mod header;
 pub mod versioning;
 pub mod version_dispatch;
@@ -26,8 +26,8 @@ pub use versions::v1::header as header_core;
 
 // Re-export commonly used types for convenience
 pub use core::errors::CryptoError;
-pub use header::{Header, AlgorithmId, FileMetadata};
+pub use header::{Header, FileMetadata};
 pub use versioning::{VersionedHeader, HeaderV1, detect_version, CompatibilityMatrix};
 pub use version_dispatch::{AnyHeader, VersionMigrator, MigrationPlan, MigrationStep, MigrationOperation};
-pub use algorithms::{CURRENT_VERSION, VersionInfo};
+pub use algorithms::{AlgorithmId, CURRENT_VERSION, VersionInfo};
 pub use metadata::CompressionType;
