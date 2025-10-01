@@ -13,10 +13,27 @@ use getrandom::getrandom;
 /// # Returns
 /// * `Ok([u8; 12])` - 96-bit nonce suitable for GCM
 /// * `Err(CryptoError)` - Random number generation failed
+/// 
+/// # Security
+/// This function includes critical nonce reuse detection to prevent
+/// catastrophic AES-GCM security failures. Each nonce is:
+/// - Cryptographically random (from OS entropy)
+/// - Validated for proper entropy patterns
+/// - Tracked to prevent session reuse
 pub fn generate_secure_nonce() -> Result<[u8; 12], CryptoError> {
+    use crate::shared::crypto::nonce_tracking::{check_nonce_reuse, validate_nonce_entropy};
+    
+    // Generate nonce with OS entropy
     let mut nonce = [0u8; 12];
     getrandom(&mut nonce)
         .map_err(|e| CryptoError::CryptographicError(format!("Failed to generate nonce: {}", e)))?;
+    
+    // CRITICAL: Validate nonce entropy to detect RNG failures
+    validate_nonce_entropy(&nonce)?;
+    
+    // CRITICAL: Check for nonce reuse within session
+    check_nonce_reuse(&nonce)?;
+    
     Ok(nonce)
 }
 
