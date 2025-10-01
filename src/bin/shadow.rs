@@ -1,39 +1,37 @@
-//! Lock binary - File encryption tool
+//! Shadow binary - File encryption tool
 //! 
-//! This binary provides file encryption functionality using the encryption module.
+//! This binary provides file encryption functionality with support for:
+//! - Single and multiple file encryption
+//! - Glob pattern expansion
+//! - Progress reporting for batch operations
+//! - Graceful error handling
 
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::encrypt_single_file;
+use shadow_crypt::encryption::{encrypt_single_file, encrypt_multiple_files, expand_glob_patterns};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     
     // Parse command line arguments - password will be prompted securely
-    let (input_path, obfuscate_filename, force_overwrite, remove_source) = parse_args(&args);
+    let (input_patterns, obfuscate_filename, force_overwrite, remove_source) = parse_args(&args);
     
-    if !input_path.exists() {
-        eprintln!("Error: Input file '{}' does not exist", input_path.display());
-        process::exit(1);
-    }
-    
-    if !input_path.is_file() {
-        eprintln!("Error: '{}' is not a regular file", input_path.display());
-        eprintln!("Note: Only individual files are supported");
-        process::exit(1);
-    }
-    
-    // Check if file is readable
-    match std::fs::File::open(&input_path) {
-        Ok(_) => {}, // File is readable
+    // Expand glob patterns into file paths
+    let file_paths = match expand_glob_patterns(&input_patterns) {
+        Ok(paths) => paths,
         Err(e) => {
-            eprintln!("Error: Cannot read input file '{}': {}", input_path.display(), e);
+            eprintln!("Error: Failed to expand file patterns: {}", e);
             process::exit(1);
         }
+    };
+
+    if file_paths.is_empty() {
+        eprintln!("Error: No files found matching the specified patterns");
+        process::exit(1);
     }
-    
+
     // Get password securely from user
     let password = match rpassword::prompt_password("Enter password for encryption: ") {
         Ok(pass) => pass,
@@ -42,12 +40,31 @@ fn main() {
             process::exit(1);
         }
     };
-    
+
     if password.is_empty() {
         eprintln!("Error: Password cannot be empty");
         process::exit(1);
     }
-    
+
+    // Handle single vs multiple files
+    if file_paths.len() == 1 {
+        // Single file - use existing logic for better UX
+        let input_path = &file_paths[0];
+        handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source);
+    } else {
+        // Multiple files - use batch processing
+        handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source);
+    }
+}
+
+/// Handle single file encryption with detailed progress reporting
+fn handle_single_file(
+    input_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool
+) {
     // Determine output path automatically
     let output_path = if obfuscate_filename {
         // When obfuscating, use input file directory with .shadow extension
@@ -72,7 +89,7 @@ fn main() {
         process::exit(1);
     }
     
-    println!("� Encrypting file: {}", input_path.display());
+    println!("🔐 Encrypting file: {}", input_path.display());
     if obfuscate_filename {
         println!("🎭 Filename obfuscation: ENABLED");
         println!("📄 Encrypted file will be saved with obfuscated name in: {}", 
@@ -119,16 +136,125 @@ fn main() {
     }
 }
 
+/// Handle multiple file encryption with progress reporting
+fn handle_multiple_files(
+    file_paths: &[std::path::PathBuf],
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool
+) {
+    println!("🔐 Encrypting {} files...", file_paths.len());
+    println!("🔑 Using password-based encryption with AES-256-GCM");
+    if obfuscate_filename {
+        println!("🎭 Filename obfuscation: ENABLED");
+    } else {
+        println!("🎭 Filename obfuscation: DISABLED");
+    }
+    println!();
+
+    let results = encrypt_multiple_files(
+        file_paths,
+        password,
+        obfuscate_filename,
+        force_overwrite,
+        remove_source
+    );
+
+    // Handle the Result wrapper
+    let results = match results {
+        Ok(res) => res,
+        Err(e) => {
+            eprintln!("❌ Multi-file encryption failed: {}", e);
+            process::exit(1);
+        }
+    };
+
+    // Report results
+    println!();
+    println!("📊 Encryption Results:");
+    println!("✅ Successful: {}", results.successful.len());
+    println!("❌ Failed: {}", results.failed.len());
+    
+    if !results.failed.is_empty() {
+        println!();
+        println!("❌ Failed encryptions:");
+        for (path, error) in &results.failed {
+            println!("  {} - {}", path.display(), error);
+        }
+    }
+
+    if !results.successful.is_empty() {
+        println!();
+        println!("✅ Successfully encrypted:");
+        for input_path in &results.successful {
+            let output_path = if obfuscate_filename {
+                let parent_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
+                let file_name = input_path.file_name().unwrap().to_string_lossy();
+                parent_dir.join(format!("{}.shadow", file_name))
+            } else {
+                format!("{}.shadow", input_path.to_string_lossy()).into()
+            };
+            println!("  {} → {}", input_path.display(), output_path.display());
+        }
+
+        // Handle source file removal if requested
+        if remove_source {
+            println!();
+            println!("🗑️  Additional source file removal...");
+            println!("   (Note: Files processed during encryption may have already been removed)");
+            let mut removal_successes = 0;
+            let mut removal_failures = 0;
+
+            for input_path in &results.successful {
+                // Only try to remove if file still exists (might have been removed during encryption)
+                if input_path.exists() {
+                    if confirm_destructive_operation("Source file removal", input_path) {
+                        match secure_delete_file(input_path) {
+                            Ok(()) => {
+                                println!("  ✅ Deleted: {}", input_path.display());
+                                removal_successes += 1;
+                            }
+                            Err(e) => {
+                                eprintln!("  ❌ Failed to delete: {} - {}", input_path.display(), e);
+                                removal_failures += 1;
+                            }
+                        }
+                    } else {
+                        println!("  🔄 Skipped: {}", input_path.display());
+                    }
+                } else {
+                    println!("  ✅ Already removed: {}", input_path.display());
+                }
+            }
+
+            println!();
+            if removal_failures > 0 {
+                eprintln!("⚠️  {} source files could not be deleted", removal_failures);
+                eprintln!("   Encryption was successful, but some source files remain");
+            }
+            if removal_successes > 0 {
+                println!("🗑️  {} additional source files securely deleted", removal_successes);
+            }
+        }
+    }
+
+    // Exit with error code if any encryptions failed
+    if !results.failed.is_empty() {
+        process::exit(1);
+    }
+}
+
 /// Parse command line arguments
 /// 
-/// Simplified to only handle flags - output path is auto-generated
-fn parse_args(args: &[String]) -> (std::path::PathBuf, bool, bool, bool) {
+/// Now supports multiple input patterns for batch processing
+fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool) {
     if args.len() < 2 {
         print_usage(&args[0]);
         process::exit(1);
     }
     
-    let mut input_file = None;
+    let mut input_patterns = Vec::new();
     let mut obfuscate = false;
     let mut force = false;
     let mut remove_source = false;
@@ -153,47 +279,34 @@ fn parse_args(args: &[String]) -> (std::path::PathBuf, bool, bool, bool) {
                 process::exit(0);
             }
             _ => {
-                // Only one positional argument: input file
-                if input_file.is_none() {
-                    input_file = Some(args[i].clone());
-                } else {
-                    eprintln!("Error: Too many arguments");
-                    print_usage(&args[0]);
-                    process::exit(1);
-                }
+                // Collect all positional arguments as input patterns
+                input_patterns.push(args[i].clone());
                 i += 1;
             }
         }
     }
     
     // Validate required arguments
-    if input_file.is_none() {
-        eprintln!("Error: Input file is required");
+    if input_patterns.is_empty() {
+        eprintln!("Error: At least one input file or pattern is required");
         print_usage(&args[0]);
         process::exit(1);
     }
     
-    let input_file_path = input_file.expect("Input file was validated as Some() above");
-    
-    (
-        Path::new(&input_file_path).to_path_buf(),
-        obfuscate,
-        force,
-        remove_source,
-    )
+    (input_patterns, obfuscate, force, remove_source)
 }
 
 /// Print usage information
 fn print_usage(program_name: &str) {
-    eprintln!("Usage: {} [OPTIONS] <input_file>", program_name);
+    eprintln!("Usage: {} [OPTIONS] <input_files_or_patterns>...", program_name);
     eprintln!();
     eprintln!("Arguments:");
-    eprintln!("  <input_file>   Path to the file to encrypt");
+    eprintln!("  <input_files_or_patterns>  One or more files or glob patterns to encrypt");
     eprintln!();
     eprintln!("Options:");
     eprintln!("  -o, --obfuscate       Obfuscate the original filename for privacy");
     eprintln!("  -f, --force           Overwrite existing output files without prompting");
-    eprintln!("  -r, --remove-source   Remove source file after successful encryption");
+    eprintln!("  -r, --remove-source   Remove source files after successful encryption");
     eprintln!("      --inplace         Alias for --remove-source");
     eprintln!("  -h, --help            Show this help message");
     eprintln!();
@@ -207,7 +320,9 @@ fn print_usage(program_name: &str) {
     eprintln!();
     eprintln!("Examples:");
     eprintln!("  {} secret.txt", program_name);
-    eprintln!("  {} --obfuscate document.pdf", program_name);
-    eprintln!("  {} --remove-source secret.txt", program_name);
-    eprintln!("  {} --inplace --obfuscate document.pdf", program_name);
+    eprintln!("  {} file1.txt file2.txt file3.txt", program_name);
+    eprintln!("  {} *.txt", program_name);
+    eprintln!("  {} --obfuscate documents/*.pdf", program_name);
+    eprintln!("  {} --remove-source *.log", program_name);
+    eprintln!("  {} --inplace --obfuscate sensitive/*", program_name);
 }
