@@ -14,6 +14,7 @@ pub mod header;
 pub mod versioning;
 pub mod version_dispatch;
 pub mod session;
+pub mod progress;
 
 // Re-export from core for backward compatibility
 pub use core::errors;

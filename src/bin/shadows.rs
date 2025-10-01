@@ -79,10 +79,10 @@ fn main() -> Result<(), CryptoError> {
 }
 
 fn print_help() {
-    println!("cryptls - List encrypted files with original names");
+    println!("shadows - List encrypted files with original names");
     println!();
     println!("USAGE:");
-    println!("    cryptls <directory>");
+    println!("    shadows [OPTIONS] <directory>");
     println!();
     println!("ARGUMENTS:");
     println!("    <directory>    Directory to scan for encrypted files");
@@ -94,11 +94,14 @@ fn print_help() {
     println!("    Password will be prompted securely to decrypt filenames");
     println!();
     println!("EXAMPLES:");
-    println!("    cryptls ./encrypted_files");
-    println!("    cryptls /path/to/files");
+    println!("    shadows ./encrypted_files");
+    println!("    shadows /path/to/encrypted_documents");
+    println!("    shadows ~/backup/shadow_files");
     println!();
     println!("NOTES:");
     println!("    - Only shows files that match the provided password");
-    println!("    - Files with wrong passwords show encrypted filenames");
+    println!("    - Files with wrong passwords show encrypted filenames");  
     println!("    - Requires password for filename decryption only");
+    println!("    - ✓ indicates successfully decrypted original filename");
+    println!("    - ? indicates encrypted filename (wrong password or corrupted)");
 }

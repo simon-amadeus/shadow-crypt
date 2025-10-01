@@ -15,4 +15,4 @@ pub mod cli;
 // Re-export main functions for convenience
 pub use decrypt_file::{decrypt_single_file, decrypt_single_file_with_params};
 pub use filename_restoration::restore_original_filename;
-pub use multi_file::{decrypt_multiple_files, decrypt_multiple_files_with_params, expand_glob_patterns, MultiFileResults};
+pub use multi_file::{decrypt_multiple_files, decrypt_multiple_files_with_params, expand_glob_patterns, MultiFileResults, try_restore_filename_from_header};

@@ -1,0 +1,183 @@
+//! Progress reporting utilities for multi-file operations
+//! 
+//! Provides enhanced progress indicators with timing, throughput, and estimates.
+
+use std::time::{Duration, Instant};
+
+/// Progress reporter for multi-file operations
+pub struct ProgressReporter {
+    start_time: Instant,
+    total_files: usize,
+    completed_files: usize,
+}
+
+impl ProgressReporter {
+    /// Create a new progress reporter
+    pub fn new(total_files: usize) -> Self {
+        Self {
+            start_time: Instant::now(),
+            total_files,
+            completed_files: 0,
+        }
+    }
+    
+    /// Report progress for a completed file
+    pub fn report_completed(&mut self) {
+        self.completed_files += 1;
+    }
+    
+    /// Get current progress statistics
+    pub fn get_stats(&self) -> ProgressStats {
+        let elapsed = self.start_time.elapsed();
+        let files_per_sec = if elapsed.as_secs_f64() > 0.0 {
+            self.completed_files as f64 / elapsed.as_secs_f64()
+        } else {
+            0.0
+        };
+        
+        let estimated_total_time = if self.completed_files > 0 {
+            let avg_time_per_file = elapsed.as_secs_f64() / self.completed_files as f64;
+            Duration::from_secs_f64(avg_time_per_file * self.total_files as f64)
+        } else {
+            Duration::from_secs(0)
+        };
+        
+        let estimated_remaining = if estimated_total_time > elapsed {
+            estimated_total_time - elapsed
+        } else {
+            Duration::from_secs(0)
+        };
+        
+        ProgressStats {
+            completed: self.completed_files,
+            total: self.total_files,
+            elapsed,
+            files_per_sec,
+            estimated_remaining,
+        }
+    }
+    
+    /// Format progress as a percentage
+    pub fn progress_percentage(&self) -> f64 {
+        if self.total_files == 0 {
+            0.0
+        } else {
+            (self.completed_files as f64 / self.total_files as f64) * 100.0
+        }
+    }
+}
+
+/// Progress statistics for multi-file operations
+pub struct ProgressStats {
+    pub completed: usize,
+    pub total: usize,
+    pub elapsed: Duration,
+    pub files_per_sec: f64,
+    pub estimated_remaining: Duration,
+}
+
+impl ProgressStats {
+    /// Format as a human-readable progress line
+    pub fn format_progress_line(&self) -> String {
+        format!(
+            "[{}/{}] {:.1}% - {:.1} files/sec - ETA: {}",
+            self.completed,
+            self.total,
+            (self.completed as f64 / self.total as f64) * 100.0,
+            self.files_per_sec,
+            format_duration(self.estimated_remaining)
+        )
+    }
+    
+    /// Format final summary
+    pub fn format_summary(&self) -> String {
+        format!(
+            "📊 Completed {} files in {} (avg: {:.1} files/sec)",
+            self.completed,
+            format_duration(self.elapsed),
+            self.files_per_sec
+        )
+    }
+}
+
+/// Format duration in a human-readable way
+pub fn format_duration(duration: Duration) -> String {
+    let total_secs = duration.as_secs();
+    
+    if total_secs >= 3600 {
+        let hours = total_secs / 3600;
+        let minutes = (total_secs % 3600) / 60;
+        let seconds = total_secs % 60;
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    } else if total_secs >= 60 {
+        let minutes = total_secs / 60;
+        let seconds = total_secs % 60;
+        format!("{}m {}s", minutes, seconds)
+    } else if total_secs > 0 {
+        format!("{}s", total_secs)
+    } else {
+        let millis = duration.as_millis();
+        if millis > 0 {
+            format!("{}ms", millis)
+        } else {
+            "< 1ms".to_string()
+        }
+    }
+}
+
+/// Format file size in human-readable units
+pub fn format_file_size(bytes: u64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
+    const THRESHOLD: f64 = 1024.0;
+    
+    let mut size = bytes as f64;
+    let mut unit_index = 0;
+    
+    while size >= THRESHOLD && unit_index < UNITS.len() - 1 {
+        size /= THRESHOLD;
+        unit_index += 1;
+    }
+    
+    if unit_index == 0 {
+        format!("{} {}", bytes, UNITS[unit_index])
+    } else {
+        format!("{:.1} {}", size, UNITS[unit_index])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_progress_reporter() {
+        let mut reporter = ProgressReporter::new(10);
+        assert_eq!(reporter.progress_percentage(), 0.0);
+        
+        reporter.report_completed();
+        assert_eq!(reporter.progress_percentage(), 10.0);
+        
+        reporter.report_completed();
+        assert_eq!(reporter.progress_percentage(), 20.0);
+        
+        let stats = reporter.get_stats();
+        assert_eq!(stats.completed, 2);
+        assert_eq!(stats.total, 10);
+    }
+    
+    #[test]
+    fn test_format_duration() {
+        assert_eq!(format_duration(Duration::from_millis(500)), "500ms");
+        assert_eq!(format_duration(Duration::from_secs(30)), "30s");
+        assert_eq!(format_duration(Duration::from_secs(90)), "1m 30s");
+        assert_eq!(format_duration(Duration::from_secs(3661)), "1h 1m 1s");
+    }
+    
+    #[test]
+    fn test_format_file_size() {
+        assert_eq!(format_file_size(512), "512 B");
+        assert_eq!(format_file_size(1536), "1.5 KB");
+        assert_eq!(format_file_size(2 * 1024 * 1024), "2.0 MB");
+        assert_eq!(format_file_size(3 * 1024 * 1024 * 1024), "3.0 GB");
+    }
+}

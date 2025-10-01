@@ -12,6 +12,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-10-01
+
+### Added - UI Improvements and User Feedback Polishing (Phase 13 Complete)
+- **CLI Interface Standardization**: All 6 tools now have consistent help format and naming conventions
+- **Enhanced Error Messages**: Added actionable error messages with specific recovery suggestions
+- **Progress Reporting Infrastructure**: New progress utilities with time estimates and throughput statistics
+- **User-Friendly Error Handling**: Improved error categorization and recovery guidance
+
+### Enhanced - User Experience
+- **Tool Naming Consistency**: Fixed inconsistent tool names (cryptls → shadows, cryptview → shadowview, cryptedit → shadowedit)
+- **Standardized Help Format**: All tools follow consistent USAGE/ARGUMENTS/OPTIONS/SECURITY/EXAMPLES/NOTES structure
+- **Comprehensive Examples**: Enhanced CLI help with practical usage examples for all tools
+- **Better Security Messaging**: Clear explanations of password handling and security measures across all tools
+
+### Enhanced - Error Recovery
+- **Actionable Error Messages**: Each error type now includes specific suggestions for resolution
+- **Error Categorization**: Helper methods to identify recoverable errors and wrong password scenarios
+- **File System Error Guidance**: Specific suggestions for permission denied, file not found, and overwrite scenarios
+- **Algorithm Compatibility**: Clear guidance for unsupported algorithm errors and migration needs
+
 ## [0.12.0] - 2025-10-01
 
 ### Added - Performance Optimization (Phase 12 Complete)

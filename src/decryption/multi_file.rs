@@ -207,10 +207,19 @@ pub fn generate_output_path_with_params(
 /// * `input_path` - Path to the encrypted file
 /// * `password` - Password for decryption
 /// 
+/// Try to restore the original filename from the encrypted file header
+/// 
+/// This function attempts to read the header and extract the original filename.
+/// Used for automatic output path generation during decryption.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `password` - User password for header decryption
+/// 
 /// # Returns
 /// * `Ok(String)` - Restored original filename
 /// * `Err(CryptoError)` - Restoration failed
-fn try_restore_filename_from_header(
+pub fn try_restore_filename_from_header(
     input_path: &Path,
     password: &str
 ) -> Result<String, CryptoError> {

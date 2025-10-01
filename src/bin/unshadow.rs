@@ -6,15 +6,11 @@
 //! - Progress reporting for batch operations
 //! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files, expand_glob_patterns, restore_original_filename};
+use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files, expand_glob_patterns, try_restore_filename_from_header};
 use shadow_crypt::shared::errors::CryptoError;
-use shadow_crypt::shared::header::Header;
-use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::env;
 use std::path::{Path, PathBuf};
-use std::fs::File;
-use std::io::Read;
 use std::process;
 
 fn main() -> Result<(), CryptoError> {
@@ -242,40 +238,6 @@ fn determine_output_path_with_restoration(
 }
 
 /// Try to restore filename from header without full decryption
-/// 
-/// Reads just the header from the encrypted file and attempts to restore
-/// the original filename. This is used for smart output path determination.
-/// 
-/// # Arguments
-/// * `input_path` - Path to the encrypted file
-/// * `password` - Password for decryption
-/// 
-/// # Returns
-/// * `Ok(String)` - Restored original filename
-/// * `Err(CryptoError)` - Restoration failed
-fn try_restore_filename_from_header(
-    input_path: &Path,
-    password: &str
-) -> Result<String, CryptoError> {
-    // Read encrypted file
-    let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
-    
-    let mut encrypted_data = Vec::new();
-    input_file.read_to_end(&mut encrypted_data)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
-    
-    // Parse header from encrypted file
-    let (header, _) = Header::deserialize(&encrypted_data)?;
-    
-    // Derive master key from password and salt
-    let params = Argon2Params::default();
-    let key_material = derive_master_key(password, &header.salt, &params)?;
-    
-    // Restore original filename
-    restore_original_filename(&header, &key_material)
-}
-
 /// Parse command line arguments for unshadow tool
 /// 
 /// Returns (force_overwrite, remove_source, input_patterns)
