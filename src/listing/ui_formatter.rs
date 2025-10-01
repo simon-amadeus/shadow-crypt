@@ -114,18 +114,28 @@ impl UIFormatter {
         };
         
         format!(
-            "{:<8} {:<45} {:>10} {:>12} {}",
+            "{:<8} {:<60} {:>10} {:>12} {:>20}",
             status_header, filename_header, size_header, encrypted_size_header, modified_header
         )
     }
     
     /// Format a separator line
     pub fn format_separator(&self) -> String {
-        let separator = "─".repeat(90);
+        let separator = "─".repeat(115); // Increased width to accommodate wider columns
         if self.use_colors {
             separator.color(self.color_scheme.header).dimmed().to_string()
         } else {
             separator
+        }
+    }
+    
+    /// Truncate text to fit within specified width, adding ellipsis if needed
+    fn truncate_with_ellipsis(&self, text: &str, max_width: usize) -> String {
+        if text.chars().count() <= max_width {
+            text.to_string()
+        } else {
+            let truncated: String = text.chars().take(max_width.saturating_sub(3)).collect();
+            format!("{}...", truncated)
         }
     }
     
@@ -144,41 +154,59 @@ impl UIFormatter {
             status_icon.normal()
         };
         
-        // Filename mapping with appropriate styling
+        // Filename mapping with appropriate styling and truncation
         let filename_display = if info.filename_decrypted {
-            let obfuscated = if self.use_colors {
-                info.obfuscated_name.color(self.color_scheme.warning).dimmed()
-            } else {
-                info.obfuscated_name.as_str().normal()
-            };
+            // Create the plain text version first for length calculation
+            let plain_mapping = format!("{} → {}", info.obfuscated_name, info.original_name);
+            let truncated_plain = self.truncate_with_ellipsis(&plain_mapping, 60);
             
-            let arrow = if self.use_colors {
-                " → ".color(self.color_scheme.info)
+            // If truncated, use plain version; otherwise, use colored version
+            if truncated_plain.len() < plain_mapping.len() {
+                truncated_plain
             } else {
-                " -> ".normal()
-            };
-            
-            let original = if self.use_colors {
-                info.original_name.color(self.color_scheme.filename).bold()
-            } else {
-                info.original_name.as_str().normal()
-            };
-            
-            format!("{}{}{}", obfuscated, arrow, original)
+                let obfuscated = if self.use_colors {
+                    info.obfuscated_name.color(self.color_scheme.warning).dimmed().to_string()
+                } else {
+                    info.obfuscated_name.clone()
+                };
+                
+                let arrow = if self.use_colors {
+                    " → ".color(self.color_scheme.info).to_string()
+                } else {
+                    " -> ".to_string()
+                };
+                
+                let original = if self.use_colors {
+                    info.original_name.color(self.color_scheme.filename).bold().to_string()
+                } else {
+                    info.original_name.clone()
+                };
+                
+                format!("{}{}{}", obfuscated, arrow, original)
+            }
         } else {
-            let obfuscated = if self.use_colors {
-                info.obfuscated_name.color(self.color_scheme.warning)
-            } else {
-                info.obfuscated_name.as_str().normal()
-            };
+            // Create the plain text version first for length calculation
+            let plain_mapping = format!("{} → [ENCRYPTED]", info.obfuscated_name);
+            let truncated_plain = self.truncate_with_ellipsis(&plain_mapping, 60);
             
-            let encrypted_label = if self.use_colors {
-                " → [ENCRYPTED]".color(self.color_scheme.error).dimmed()
+            // If truncated, use plain version; otherwise, use colored version
+            if truncated_plain.len() < plain_mapping.len() {
+                truncated_plain
             } else {
-                " -> [ENCRYPTED]".normal()
-            };
-            
-            format!("{}{}", obfuscated, encrypted_label)
+                let obfuscated = if self.use_colors {
+                    info.obfuscated_name.color(self.color_scheme.warning).to_string()
+                } else {
+                    info.obfuscated_name.clone()
+                };
+                
+                let encrypted_label = if self.use_colors {
+                    " → [ENCRYPTED]".color(self.color_scheme.error).dimmed().to_string()
+                } else {
+                    " -> [ENCRYPTED]".to_string()
+                };
+                
+                format!("{}{}", obfuscated, encrypted_label)
+            }
         };
         
         // File sizes with color
@@ -202,7 +230,7 @@ impl UIFormatter {
         };
         
         format!(
-            "{:<8} {:<45} {:>10} {:>12} {}",
+            "{:<8} {:<60} {:>10} {:>12} {:>20}",
             status, filename_display, size, encrypted_size, timestamp
         )
     }
@@ -330,7 +358,7 @@ mod tests {
         let formatter = UIFormatter::without_colors();
         let separator = formatter.format_separator();
         // Check character count, not byte count (Unicode ─ characters)
-        assert_eq!(separator.chars().count(), 90);
+        assert_eq!(separator.chars().count(), 115);
         assert!(separator.chars().all(|c| c == '─'));
     }
     

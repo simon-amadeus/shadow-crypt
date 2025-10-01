@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-10-01
+
+### Enhanced - User Experience Improvements (Phase 15 Partial Complete)
+- **Beautiful shadows UI**: Color-coded output with visual hierarchy, Unicode separators, and status indicators
+- **Default Current Directory**: shadows tool now defaults to current directory when no arguments provided
+- **Enhanced Error Handling**: Consistent user-friendly error messages with actionable suggestions (unshadow tool updated)
+- **Professional Visual Design**: Added emoji indicators, clear sections, and terminal color detection
+
+### Added - UI Framework Infrastructure
+- **UI Formatter Module**: Reusable color-coded formatting system for terminal output
+- **CLI Utilities**: Shared error handling and display utilities for consistent user experience
+- **Terminal Compatibility**: Automatic color detection with fallback for non-color terminals
+- **Visual Hierarchy**: Status indicators (✓/✗), filename mapping arrows (→), and section separators
+
+### Enhanced - Tool Usability
+- **shadows Command**: Beautiful output with color-coded file listings and improved help text
+- **Error Messages**: Professional error display with specific recovery suggestions
+- **Help Documentation**: Enhanced examples and usage guidance across tools
+- **User Feedback Integration**: Direct response to customer feedback for improved workflows
+
 ## [0.14.0] - 2025-10-01
 
 ### Enhanced - Dependency Management (Phase 14 Complete)

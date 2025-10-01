@@ -3,7 +3,7 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- **User Experience Improvements**: Enhanced UI, error consistency, and usability refinements based on user feedback
+- **Complete User Experience Improvements**: Finish duplicate detection and error consistency across all tools
 
 ## 📋 PRIORITY ROADMAP
 
