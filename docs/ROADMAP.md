@@ -38,19 +38,18 @@ This keeps the roadmap focused on "what's next" rather than "what's done"
 
 **Rationale**: Customer feedback identified that current shared module mixes version-specific logic with general utilities. As we add more file format versions and cryptographic algorithms, we need better separation of concerns through vertical slicing.
 
-**Phase 9.94.1: Architecture Design and Analysis** (CURRENT FOCUS)
-- [x] **Customer feedback integration** - Analyzed need for vertical slicing architecture 
-- [x] **Current code analysis** - Identified mixing of concerns in shared modules
-- [x] **Impact assessment** - Determined this requires multi-phase approach due to extensive import changes
+**Phase 9.94.2: Detailed Architecture Design** (CURRENT FOCUS)
 - [ ] **Design target architecture** - Create detailed module hierarchy specification
 - [ ] **Migration strategy** - Plan incremental refactoring approach to avoid breaking changes
 - [ ] **Testing strategy** - Ensure no functionality regression during refactoring
+- [ ] **Import dependency mapping** - Map all current cross-module dependencies
+- [ ] **Risk assessment update** - Refine risks based on Phase 9.94.1 learnings
 
-**Future Sub-phases** (9.94.2+):
-- **Phase 9.94.2**: Incremental module extraction (version-specific code)
-- **Phase 9.94.3**: Algorithm-specific module organization  
-- **Phase 9.94.4**: Import path updates and validation
-- **Phase 9.94.5**: Integration testing and cleanup
+**Future Sub-phases** (9.94.3+):
+- **Phase 9.94.3**: Incremental module extraction (version-specific code)
+- **Phase 9.94.4**: Algorithm-specific module organization  
+- **Phase 9.94.5**: Import path updates and validation
+- **Phase 9.94.6**: Integration testing and cleanup
 
 **Target Architecture** (Detailed Design Required):
 ```

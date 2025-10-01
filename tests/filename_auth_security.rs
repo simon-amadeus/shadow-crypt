@@ -51,23 +51,50 @@ mod tests {
             &params
         ).unwrap();
         
-        // Get the actual obfuscated filenames (they are generated during encryption)
-        let entries: Vec<_> = std::fs::read_dir(temp_path).unwrap()
+        // Get the actual obfuscated filenames and determine which is which
+        let mut obfuscated_files: Vec<_> = std::fs::read_dir(temp_path).unwrap()
             .filter_map(|entry| {
                 let entry = entry.unwrap();
                 let name = entry.file_name().to_string_lossy().to_string();
                 if name.ends_with(".shadow") && name != "encrypted1.shadow" && name != "encrypted2.shadow" {
-                    Some((name, entry.path()))
+                    Some(entry.path())
                 } else {
                     None
                 }
             })
             .collect();
         
-        assert_eq!(entries.len(), 2, "Should have exactly 2 obfuscated files");
+        assert_eq!(obfuscated_files.len(), 2, "Should have exactly 2 obfuscated files");
+        obfuscated_files.sort(); // Ensure consistent ordering
         
-        let (obfuscated1_name, actual_encrypted1_path) = &entries[0];
-        let (obfuscated2_name, actual_encrypted2_path) = &entries[1];
+        // We need to determine which obfuscated file contains which content
+        // Decrypt each one to see which contains file1 vs file2 content
+        let mut file1_obfuscated_path = None;
+        let mut file2_obfuscated_path = None;
+        
+        for obfuscated_path in &obfuscated_files {
+            let test_decrypted_path = temp_path.join("test_decrypt.txt");
+            decrypt_single_file_with_params(
+                obfuscated_path,
+                &test_decrypted_path,
+                password,
+                &params
+            ).unwrap();
+            
+            let content = read(&test_decrypted_path).unwrap();
+            if content == file1_content {
+                file1_obfuscated_path = Some(obfuscated_path);
+            } else if content == file2_content {
+                file2_obfuscated_path = Some(obfuscated_path);
+            }
+            
+            std::fs::remove_file(&test_decrypted_path).unwrap(); // Clean up
+        }
+        
+        let actual_encrypted1_path = file1_obfuscated_path.unwrap();
+        let actual_encrypted2_path = file2_obfuscated_path.unwrap();
+        let obfuscated1_name = actual_encrypted1_path.file_name().unwrap().to_str().unwrap();
+        let obfuscated2_name = actual_encrypted2_path.file_name().unwrap().to_str().unwrap();
         
         // Verify they are different
         assert_ne!(obfuscated1_name, obfuscated2_name);
@@ -93,8 +120,15 @@ mod tests {
         let encrypted2_content = read(actual_encrypted2_path).unwrap();
         write(&attack_path, &encrypted2_content).unwrap();
         
+        println!("Attack setup:");
+        println!("  obfuscated1_name: {}", obfuscated1_name);
+        println!("  obfuscated2_name: {}", obfuscated2_name);
+        println!("  attack_path: {}", attack_path.display());
+        println!("  copied content from: {}", actual_encrypted2_path.display());
+        
         // Try to decrypt the substituted file - this should fail due to filename auth
         let attacked_decrypted_path = temp_path.join("attacked_decrypted.txt");
+        println!("Attempting to decrypt attack file: {}", attack_path.display());
         let result = decrypt_single_file_with_params(
             &attack_path,
             &attacked_decrypted_path,
