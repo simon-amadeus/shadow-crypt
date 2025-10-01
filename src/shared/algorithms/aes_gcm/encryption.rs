@@ -78,7 +78,7 @@ pub fn encrypt_aes_gcm(
     // Encrypt with additional authenticated data
     let ciphertext = cipher.encrypt(nonce, aes_gcm::aead::Payload {
         msg: plaintext,
-        aad: aad,
+        aad,
     })
     .map_err(|e| CryptoError::CryptographicError(format!("AES-GCM encryption failed: {}", e)))?;
     

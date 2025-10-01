@@ -105,9 +105,9 @@ fn overwrite_with_random_data(file: &mut File, size: u64) -> Result<(), CryptoEr
 pub fn confirm_destructive_operation(operation: &str, file_path: &Path) -> bool {
     use std::io::{self, Write};
     
-    print!("⚠️  {} will permanently delete: {}\n", operation, file_path.display());
+    println!("⚠️  {} will permanently delete: {}", operation, file_path.display());
     print!("This operation cannot be undone. Continue? (y/N): ");
-    if let Err(_) = io::stdout().flush() {
+    if io::stdout().flush().is_err() {
         eprintln!("Warning: Failed to flush output");
     }
     

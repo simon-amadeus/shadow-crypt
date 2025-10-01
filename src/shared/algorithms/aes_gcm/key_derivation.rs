@@ -69,7 +69,7 @@ fn determine_optimal_memory_cost() -> u32 {
     let total_memory_kb = system.total_memory();
     
     // Use 1/8 of total memory for Argon2, with reasonable bounds
-    let recommended_memory_kb = (total_memory_kb / 8).max(32 * 1024).min(512 * 1024);
+    let recommended_memory_kb = (total_memory_kb / 8).clamp(32 * 1024, 512 * 1024);
     
     // Convert to u32, fallback to safe default if overflow
     recommended_memory_kb.try_into().unwrap_or(65536)
@@ -84,7 +84,7 @@ fn num_cpus() -> u32 {
     let cpu_count = system.cpus().len() as u32;
     
     // Use actual CPU count, but cap at 8 for reasonable memory usage
-    cpu_count.min(8).max(1)
+    cpu_count.clamp(1, 8)
 }
 
 /// Generate a secure random salt

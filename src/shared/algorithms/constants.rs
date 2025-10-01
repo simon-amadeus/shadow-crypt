@@ -59,6 +59,12 @@ pub struct VersionInfo {
     pub can_migrate: bool,
 }
 
+impl Default for VersionInfo {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VersionInfo {
     pub fn new() -> Self {
         Self {

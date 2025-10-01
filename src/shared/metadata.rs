@@ -41,6 +41,12 @@ pub struct FileMetadata {
     pub custom_attributes: HashMap<String, Vec<u8>>,         // Extensible attributes
 }
 
+impl Default for FileMetadata {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl FileMetadata {
     /// Create new metadata from file system attributes
     pub fn new() -> Self {

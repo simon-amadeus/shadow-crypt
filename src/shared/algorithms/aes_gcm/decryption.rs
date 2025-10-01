@@ -55,7 +55,7 @@ pub fn decrypt_aes_gcm(
     // Decrypt and verify authentication tag
     let plaintext = cipher.decrypt(nonce, aes_gcm::aead::Payload {
         msg: ciphertext,
-        aad: aad,
+        aad,
     })
     .map_err(|e| CryptoError::CryptographicError(format!("AES-GCM decryption failed: {}", e)))?;
     
