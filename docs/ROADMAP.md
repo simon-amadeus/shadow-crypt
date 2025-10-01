@@ -2,7 +2,8 @@
 
 ## 🎯 NEXT PRIORITIES (Work in Progress)
 
-- ⚡ **Phase 10**: Multi-file encryption support (**NEXT PRIORITY** - CORE user functionality)
+- ⚡ **Phase 9.94**: Shared Module Architecture Refactoring (**NEXT PRIORITY** - ARCHITECTURE foundation for future versions/algorithms)
+- ⚡ **Phase 10**: Multi-file encryption support (**HIGH PRIORITY** - CORE user functionality)
 
 ## 📋 FUTURE PHASES (Planned Work)
 
@@ -16,7 +17,6 @@
 
 ## 🔧 OPTIONAL ENHANCEMENTS (Post-Production)
 
-- 📋 **Phase 9.94**: Error handling and resource protection hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
 - 📋 **Phase 9.95**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
 
 ---
@@ -32,7 +32,62 @@ When a phase is completed:
 This keeps the roadmap focused on "what's next" rather than "what's done"
 -->
 
-## Phase 10: Multi-File Encryption Support (NEXT PRIORITY)
+## Phase 9.94: Shared Module Architecture Refactoring (NEXT PRIORITY)
+
+**Goal**: Refactor shared modules with vertical slicing for versions and algorithms to enable clean future expansion
+
+**Rationale**: Current shared module mixes version-specific logic with general utilities. As we add more file format versions and cryptographic algorithms, we need better separation of concerns through vertical slicing.
+
+**Tasks**:
+- [ ] **Analyze current shared module structure** and identify version/algorithm-specific vs general code
+- [ ] **Design vertical slicing architecture** with separate modules for each version/algorithm combination
+- [ ] **Create `shared/versions/` module hierarchy** for version-specific implementations
+- [ ] **Create `shared/algorithms/` module hierarchy** for algorithm-specific implementations  
+- [ ] **Refactor `shared/core/` for truly shared utilities** (errors, file detection, secure delete, etc.)
+- [ ] **Update all imports and dependencies** across encryption/decryption/listing modules
+- [ ] **Validate no functionality regression** with comprehensive testing
+- [ ] **Update architecture documentation** to reflect new structure
+
+**Target Architecture**:
+```
+shared/
+├── core/                   // Truly shared utilities
+│   ├── errors.rs
+│   ├── file_detection.rs
+│   ├── secure_delete.rs
+│   └── mod.rs
+├── versions/               // Version-specific implementations
+│   ├── v1/                 // Version 1 specific code
+│   │   ├── header.rs       // V1 header format
+│   │   ├── crypto.rs       // V1 crypto operations
+│   │   └── mod.rs
+│   ├── v2/                 // Future version 2
+│   └── mod.rs
+├── algorithms/             // Algorithm-specific implementations  
+│   ├── aes_gcm/           // AES-256-GCM implementation
+│   │   ├── encryption.rs
+│   │   ├── decryption.rs
+│   │   └── mod.rs
+│   ├── chacha20_poly1305/ // Future algorithm
+│   └── mod.rs
+└── mod.rs                 // Clean public API
+```
+
+**Dependencies**: Phase 9.93 ✅ (filename authentication complete)
+
+**Estimated Duration**: 1-2 days
+
+**Success Criteria**:
+- Clear separation between version-specific, algorithm-specific, and core shared code
+- Each version/algorithm combination in its own module with clean interfaces
+- No functionality regression - all existing tests pass
+- Easy to add new versions or algorithms without touching existing code
+- Updated documentation reflects new architecture
+- Clean public API maintains backward compatibility
+
+---
+
+## Phase 10: Multi-File Encryption Support (HIGH PRIORITY)
 
 **Goal**: Support encrypting multiple individual files (not directories)
 
@@ -57,22 +112,6 @@ This keeps the roadmap focused on "what's next" rather than "what's done"
 
 ---
 
-## Phase 9.94: Error Handling and Resource Protection Hardening (OPTIONAL)
-
-**Goal**: Harden system against information leakage
-
-**Tasks**:
-- [ ] **Enhanced error message security** - Good practice for preventing oracle attacks
-
-**Dependencies**: Core security phases complete ✅
-
-**Estimated Duration**: 1-2 days
-
-**Success Criteria**:
-- Error messages provide no oracle information
-
----
-
 ## Phase 9.95: Secure Memory and Cleanup Hardening (OPTIONAL)
 
 **Goal**: Complete secure memory implementation for high-security environments
@@ -82,7 +121,7 @@ This keeps the roadmap focused on "what's next" rather than "what's done"
 - [ ] **Complete secure memory implementation** - Enhanced SecretVec functionality
 - [ ] **Memory cleanup verification** - Comprehensive zeroization validation
 
-**Dependencies**: Phase 9.94 ✅ (if implemented)
+**Dependencies**: Phase 9.94 ✅ (architectural refactoring complete)
 
 **Estimated Duration**: 1-2 days
 
