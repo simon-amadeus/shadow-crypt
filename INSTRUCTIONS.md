@@ -43,8 +43,19 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - Check compilation status and test coverage
 - Identify technical debt and improvement opportunities
 
-### 4. **IMPLEMENT NEXT backlog PHASE** ⚡
+### 4. **PLAN AND IMPLEMENT CURRENT WORK** ⚡
 **Execute with focus on learning and user value:**
+
+**Planning Phase (when starting new backlog item):**
+- Create `docs/CURRENT_WORK.md` with detailed implementation plan
+- Break down high-level goal into specific, sequential steps  
+- Research technical approaches and document trade-offs
+- Define clear success criteria and testing approach
+- Iterate on plan until confident in approach
+
+**Implementation Phase:**
+- Work through implementation steps systematically
+- Update progress in `CURRENT_WORK.md` regularly
 - Start with minimum viable implementation
 - Always prioritize the best possible outcome
 - Breaking changes should be preferred if they lead to better design
@@ -52,12 +63,13 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - Maintain security-first approach throughout
 - Keep code compiling and tests passing
 - Document learnings and unexpected discoveries
+- Adapt plan based on implementation insights
 
 ### 5. **REFLECT AND UPDATE DOCUMENTATION** 🔄
 **Most critical phase - extract learnings and adapt:**
 - Update `docs/CHANGELOG.md` with completed work following semantic versioning
 - Update `docs/README.md` progress indicators  
-- **REMOVE completed sections from `docs/BACKLOG.md`** - Keep backlog focused on future work only
+- **Archive `docs/CURRENT_WORK.md`** to CHANGELOG and remove completed item from backlog
 - Document key insights about technical and user aspects
 - Assess what was accomplished vs. planned
 - Record unexpected results and emergent insights
@@ -75,10 +87,12 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - **When processing feedback**: Integrate items into backlog and remove from FEEDBACK.md to keep it lean
 
 **backlog Management Rules:**
-- **backlog = FUTURE ONLY**: Only unfinished phases and tasks belong in BACKLOG.md
+- **backlog = PRIORITY QUEUE**: Simple ordered list of high-level work items
+- **CURRENT_WORK.md = ACTIVE PLANNING**: Detailed breakdown of current work item
 - **CHANGELOG = COMPLETED HISTORY**: All completed work details go in CHANGELOG.md
-- **KEEP backlog LEAN**: Remove implementation details and lengthy descriptions of completed phases
-- **FOCUS FORWARD**: backlog should help identify next priorities, not document past accomplishments
+- **JUST-IN-TIME PLANNING**: Create detailed plans only when starting work on an item
+- **ADAPTIVE PRIORITIES**: Reorder based on learnings, feedback, and changing needs
+- **CLEAN COMPLETION**: Archive CURRENT_WORK.md and remove completed items from backlog
 
 **User Feedback Lifecycle:**
 - **NEW feedback**: Users add to "New Feedback" section 
@@ -87,12 +101,12 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 - **COMPLETING**: Implemented work moves from backlog to CHANGELOG.md
 - **RESULT**: FEEDBACK.md stays lean with only unaddressed user feedback
 
-**🧹 CRITICAL: backlog Cleanup After Each Cycle**
-- **ALWAYS remove completed phase sections** from BACKLOG.md after adding to CHANGELOG.md
-- **Look for**: Phases marked "COMPLETE", "✅", or with past completion dates
-- **Remove**: Entire completed phase sections including tasks, dependencies, success criteria
-- **Keep**: Only "NEXT PRIORITY" and future phases (🔧 OPTIONAL, 📋 FUTURE, ⚡ NEXT)
-- **Result**: backlog stays focused and actionable for next developer
+**🧹 CRITICAL: Work Completion Cleanup**
+- **ARCHIVE CURRENT_WORK.md**: Move implementation details and learnings to CHANGELOG.md
+- **UPDATE BACKLOG.md**: Remove completed item from Current Work section
+- **ADVANCE PRIORITY**: Move next item from Priority Roadmap to Current Work
+- **CLEAN SLATE**: Delete or reset CURRENT_WORK.md for next item
+- **Result**: backlog stays current and CURRENT_WORK.md focuses on active planning
 
 **📝 CHANGELOG Management Rules**
 - **Format**: Follow semantic versioning (MAJOR.MINOR.PATCH)
