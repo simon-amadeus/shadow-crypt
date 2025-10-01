@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2025-10-01
+
+### Added - Multi-File Encryption Support (Phase 10 Complete)
+- **Multi-File Command Interface**: Support for `shadow file1.txt file2.txt file3.txt` syntax
+- **Glob Pattern Support**: Handle `shadow *.txt` and `shadow docs/**/*.md` patterns efficiently
+- **Progress Reporting**: Progress bars and status updates for multiple file operations
+- **Graceful Error Handling**: Handles permission errors, missing files without stopping entire operation
+- **Batch Processing**: Processes multiple files efficiently in single operation
+- **Memory Optimization**: Streaming encryption for large files to minimize memory usage
+
+### Enhanced - User Experience
+- **Comprehensive CLI Help**: Detailed help with examples for multi-file usage
+- **Success Rate Reporting**: Shows successful vs failed file counts with timing
+- **Security Status Display**: Clear indication of encryption settings and obfuscation status
+
 ## [0.9.95] - 2025-01-01
 
 ### Changed - Documentation Architecture Cleanup (Phase 9.95 Complete)

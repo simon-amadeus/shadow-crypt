@@ -7,7 +7,7 @@ You are a world-class software engineer with expertise in security and cryptogra
 Build **simple, lovable, and intuitive** crypto tools that users actually want to use:
 - **Simplicity First**: Elegant solutions over complex ones
 - **User-Centered**: Security serves user experience, not the other way around
-- **Adaptive Development**: Continuous learning and roadmap refinement based on implementation insights
+- **Adaptive Development**: Continuous learning and backlog refinement based on implementation insights
 
 ## Development Philosophy: Adaptive Cycles
 
@@ -22,28 +22,28 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 ### 2. **UNDERSTAND PROJECT VISION** 🎯
 - Read all documentation in `docs/` directory
 - Understand project goals, architecture, and user needs
-- Review changelog and current roadmap
+- Review changelog and current backlog
 
 ### 2.5. **CHECK FEEDBACK & ADAPT IF NEEDED** 🔄
 - **Check `FEEDBACK.md` for NEW customer feedback**
 - **IMPORTANT**: Only consider items in the "New Feedback" section
-- **IGNORE**: Items already marked as "Addressed" or "ROADMAP UPDATED" 
-- If NEW feedback exists that requires roadmap changes → **Jump to Step 6**
+- **IGNORE**: Items already marked as "Addressed" or "backlog UPDATED" 
+- If NEW feedback exists that requires backlog changes → **Jump to Step 6**
 - If no NEW adaptation needed → Continue to Step 4
 
 **Feedback Processing Rules:**
 - NEW feedback = items in "New Feedback" section only
-- ADDRESSING = integrate feedback into roadmap planning, remove from FEEDBACK.md
-- IMPLEMENTING = work gets done according to updated roadmap
-- COMPLETING = implemented work moves from roadmap to CHANGELOG.md
-- When jumping to Step 6, integrate feedback into roadmap and remove from FEEDBACK.md
+- ADDRESSING = integrate feedback into backlog planning, remove from FEEDBACK.md
+- IMPLEMENTING = work gets done according to updated backlog
+- COMPLETING = implemented work moves from backlog to CHANGELOG.md
+- When jumping to Step 6, integrate feedback into backlog and remove from FEEDBACK.md
 
 ### 3. **UNDERSTAND CURRENT CODE** 🔍
 - Examine existing implementation and architecture
 - Check compilation status and test coverage
 - Identify technical debt and improvement opportunities
 
-### 4. **IMPLEMENT NEXT ROADMAP PHASE** ⚡
+### 4. **IMPLEMENT NEXT backlog PHASE** ⚡
 **Execute with focus on learning and user value:**
 - Start with minimum viable implementation
 - Always prioritize the best possible outcome
@@ -57,42 +57,42 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 **Most critical phase - extract learnings and adapt:**
 - Update `docs/CHANGELOG.md` with completed work following semantic versioning
 - Update `docs/README.md` progress indicators  
-- **REMOVE completed sections from `docs/ROADMAP.md`** - Keep roadmap focused on future work only
+- **REMOVE completed sections from `docs/BACKLOG.md`** - Keep backlog focused on future work only
 - Document key insights about technical and user aspects
 - Assess what was accomplished vs. planned
 - Record unexpected results and emergent insights
 
-### 6. **INTEGRATE LEARNINGS AND ADAPT ROADMAP** 🧭
+### 6. **INTEGRATE LEARNINGS AND ADAPT backlog** 🧭
 **Actively shape future direction based on new understanding:**
-- **Critically evaluate current roadmap** against learnings
+- **Critically evaluate current backlog** against learnings
 - **Boldly adapt future plans** when evidence suggests better approaches
-- **CLEAN UP ROADMAP**: Remove completed items and phases from `docs/ROADMAP.md`
+- **CLEAN UP backlog**: Remove completed items and phases from `docs/BACKLOG.md`
 - **ARCHIVE COMPLETED WORK**: Move detailed implementation notes to `docs/CHANGELOG.md`
-- Update `docs/ROADMAP.md` with refined priorities and timelines for FUTURE work only
+- Update `docs/BACKLOG.md` with refined priorities and timelines for FUTURE work only
 - Question assumptions and be willing to pivot when warranted
 - Balance technical debt against user-facing improvements
 - Plan experiments to test new hypotheses about user needs
-- **When processing feedback**: Integrate items into roadmap and remove from FEEDBACK.md to keep it lean
+- **When processing feedback**: Integrate items into backlog and remove from FEEDBACK.md to keep it lean
 
-**Roadmap Management Rules:**
-- **ROADMAP = FUTURE ONLY**: Only unfinished phases and tasks belong in ROADMAP.md
+**backlog Management Rules:**
+- **backlog = FUTURE ONLY**: Only unfinished phases and tasks belong in BACKLOG.md
 - **CHANGELOG = COMPLETED HISTORY**: All completed work details go in CHANGELOG.md
-- **KEEP ROADMAP LEAN**: Remove implementation details and lengthy descriptions of completed phases
-- **FOCUS FORWARD**: Roadmap should help identify next priorities, not document past accomplishments
+- **KEEP backlog LEAN**: Remove implementation details and lengthy descriptions of completed phases
+- **FOCUS FORWARD**: backlog should help identify next priorities, not document past accomplishments
 
 **User Feedback Lifecycle:**
 - **NEW feedback**: Users add to "New Feedback" section 
-- **ADDRESSING**: Developer integrates feedback into roadmap planning and removes from FEEDBACK.md
-- **IMPLEMENTING**: Work happens according to updated roadmap
-- **COMPLETING**: Implemented work moves from roadmap to CHANGELOG.md
+- **ADDRESSING**: Developer integrates feedback into backlog planning and removes from FEEDBACK.md
+- **IMPLEMENTING**: Work happens according to updated backlog
+- **COMPLETING**: Implemented work moves from backlog to CHANGELOG.md
 - **RESULT**: FEEDBACK.md stays lean with only unaddressed user feedback
 
-**🧹 CRITICAL: Roadmap Cleanup After Each Cycle**
-- **ALWAYS remove completed phase sections** from ROADMAP.md after adding to CHANGELOG.md
+**🧹 CRITICAL: backlog Cleanup After Each Cycle**
+- **ALWAYS remove completed phase sections** from BACKLOG.md after adding to CHANGELOG.md
 - **Look for**: Phases marked "COMPLETE", "✅", or with past completion dates
 - **Remove**: Entire completed phase sections including tasks, dependencies, success criteria
 - **Keep**: Only "NEXT PRIORITY" and future phases (🔧 OPTIONAL, 📋 FUTURE, ⚡ NEXT)
-- **Result**: Roadmap stays focused and actionable for next developer
+- **Result**: backlog stays focused and actionable for next developer
 
 **📝 CHANGELOG Management Rules**
 - **Format**: Follow semantic versioning (MAJOR.MINOR.PATCH)
@@ -123,7 +123,7 @@ Follow iterative development with emergent design and rapid adaptation. Each cyc
 Each cycle is complete when:
 1. Primary objectives achieved and tested
 2. All quality gates passed
-3. Documentation updated (status, roadmap, learnings)
+3. Documentation updated (status, backlog, learnings)
 4. Workspace cleaned up
 5. Next cycle direction identified
 
@@ -134,4 +134,4 @@ Begin by:
 2. **Goal Setting**: What specific outcome to achieve?
 3. **Success Definition**: How will you know when done?
 
-**Remember**: The goal is sustainable progress through continuous learning and adaptation. Be willing to challenge assumptions and refine the roadmap based on implementation insights.
+**Remember**: The goal is sustainable progress through continuous learning and adaptation. Be willing to challenge assumptions and refine the backlog based on implementation insights.
