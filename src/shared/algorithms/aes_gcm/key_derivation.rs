@@ -8,8 +8,8 @@ use crate::shared::core::crypto::secure_memory::{SecretVec, KeyMaterial};
 use argon2::{Argon2, Algorithm, Version, Params};
 use hkdf::Hkdf;
 use sha2::Sha256;
-use getrandom::getrandom;
-use sysinfo::{System, SystemExt};
+use getrandom;
+use sysinfo::System;
 use std::collections::HashMap;
 
 /// Argon2id parameters for key derivation
@@ -79,7 +79,7 @@ fn determine_optimal_memory_cost() -> u32 {
 fn num_cpus() -> u32 {
     // Get actual CPU count from system
     let mut system = System::new();
-    system.refresh_cpu();
+    system.refresh_cpu_all();
     
     let cpu_count = system.cpus().len() as u32;
     
@@ -97,7 +97,7 @@ fn num_cpus() -> u32 {
 /// * `Err(CryptoError)` - Random generation failed
 pub fn generate_salt(length: usize) -> Result<Vec<u8>, CryptoError> {
     let mut salt = vec![0u8; length];
-    getrandom(&mut salt)
+    getrandom::fill(&mut salt)
         .map_err(|e| CryptoError::CryptographicError(format!("Failed to generate salt: {}", e)))?;
     Ok(salt)
 }

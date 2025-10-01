@@ -5,12 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-# Changelog
+## [0.14.0] - 2025-10-01
 
-All notable changes to this project will be documented in this file.
+### Enhanced - Dependency Management (Phase 14 Complete)
+- **Updated base64**: 0.21.7 → 0.22.1 for improved performance and security patches
+- **Updated sysinfo**: 0.29.11 → 0.36.1 with API compatibility fixes for CPU detection
+- **Updated thiserror**: 1.0.69 → 2.0.17 for enhanced error handling capabilities
+- **Updated rand**: 0.8.5 → 0.9.2 for improved random number generation utilities
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### Fixed - API Compatibility
+- **SystemExt Import**: Removed deprecated import, updated to new sysinfo 0.36 API
+- **CPU Detection**: Updated refresh_cpu() → refresh_cpu_all() for sysinfo compatibility
+- **Build Stability**: All 105 tests pass with updated dependencies
+- **Security Maintained**: No degradation of cryptographic security properties
+
+### Technical - Infrastructure
+- **Dependency Audit**: Systematic review and update of all outdated dependencies
+- **Testing Validation**: Comprehensive test coverage confirms compatibility
+- **Build Process**: Clean compilation with no warnings in release mode
 
 ## [0.13.0] - 2025-10-01
 

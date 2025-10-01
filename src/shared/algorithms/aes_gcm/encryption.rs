@@ -6,7 +6,7 @@
 use crate::shared::core::errors::CryptoError;
 use aes_gcm::{Aes256Gcm, Key, Nonce, KeyInit};
 use aes_gcm::aead::Aead;
-use getrandom::getrandom;
+use getrandom;
 
 /// Generate a secure random nonce for AES-GCM
 /// 
@@ -25,7 +25,7 @@ pub fn generate_secure_nonce() -> Result<[u8; 12], CryptoError> {
     
     // Generate nonce with OS entropy
     let mut nonce = [0u8; 12];
-    getrandom(&mut nonce)
+    getrandom::fill(&mut nonce)
         .map_err(|e| CryptoError::CryptographicError(format!("Failed to generate nonce: {}", e)))?;
     
     // Validate entropy quality (detect RNG failures)
@@ -92,7 +92,7 @@ pub fn encrypt_aes_gcm(
 /// * `Err(CryptoError)` - Random number generation failed
 pub fn generate_random_key() -> Result<[u8; 32], CryptoError> {
     let mut key = [0u8; 32];
-    getrandom(&mut key)
+    getrandom::fill(&mut key)
         .map_err(|e| CryptoError::CryptographicError(format!("Failed to generate key: {}", e)))?;
     Ok(key)
 }

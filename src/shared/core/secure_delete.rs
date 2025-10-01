@@ -74,7 +74,7 @@ pub fn secure_delete_file<P: AsRef<Path>>(file_path: P) -> Result<(), CryptoErro
 
 /// Overwrite file contents with random data
 fn overwrite_with_random_data(file: &mut File, size: u64) -> Result<(), CryptoError> {
-    use getrandom::getrandom;
+    use getrandom;
     
     const BUFFER_SIZE: usize = 8192; // 8KB buffer for efficiency
     let mut buffer = [0u8; BUFFER_SIZE];
@@ -84,7 +84,7 @@ fn overwrite_with_random_data(file: &mut File, size: u64) -> Result<(), CryptoEr
         let chunk_size = std::cmp::min(remaining, BUFFER_SIZE as u64) as usize;
         
         // Fill buffer with random data
-        getrandom(&mut buffer[..chunk_size])
+        getrandom::fill(&mut buffer[..chunk_size])
             .map_err(|e| CryptoError::CryptographicError(
                 format!("Failed to generate random data for secure deletion: {}", e)
             ))?;
