@@ -12,6 +12,26 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## Addressed
 
+### October 1, 2025 - Urgent Code Refactoring and Structure Cleanup
+
+- **ROADMAP UPDATED**: urgent!: refactor the code. reduce file size and complexity. make a plan to improve the structure and clean up so that new features or changes can be added more easily.
+  - **Status**: Integrated into roadmap as new Phase 9.99 (Critical code refactoring and structure cleanup)
+  - **Priority**: URGENT - Takes precedence over security hardening due to customer feedback
+  - **Action**: Created comprehensive refactoring phase focusing on module size reduction, complexity simplification, and maintainability improvements
+  - **Impact**: Establishes foundation for easier future development and maintenance
+
+- **ROADMAP UPDATED**: at some point: finish secure memory implementation
+  - **Status**: Integrated into Phase 9.9 (Critical security hardening) 
+  - **Action**: Added secure memory completion as medium priority security enhancement
+  - **Impact**: Ensures comprehensive secure memory handling for sensitive data
+
+**Refactoring Integration Summary:**
+1. **Module decomposition** - Reduce file sizes by 30-50% through focused single-responsibility components
+2. **Complexity reduction** - Simplify overly complex functions and improve maintainability
+3. **Architecture optimization** - Streamline module boundaries and reduce coupling
+4. **Future-proofing** - Create clear extension points and plugin architecture foundation
+5. **Dependency chain update** - Phase 9.9 security hardening now depends on Phase 9.99 completion
+
 ### September 30, 2025 - Project Rebranding to "Shadow"
 
 - **ROADMAP UPDATED**: Complete project rebranding from "crypto" to "shadow" with enhanced user experience
