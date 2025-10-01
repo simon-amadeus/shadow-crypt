@@ -1,6 +1,11 @@
 # Implementation Roadmap
 
-The implementation is organized into focused phases, each with specific goals and deliverables. This approach ensures:
+- ✅ **Phase 9.991**: Critical versioning architecture foundation (**COMPLETE** - Proper version-specific types and migration chains implemented)
+- ⚡ **Phase 9.92**: Cryptographic security hardening (**NEXT PRIORITY** - CRITICAL for production crypto software)
+- 📋 **Phase 9.93**: Authentication and integrity hardening (**HIGH PRIORITY** - Important security properties)
+- 📋 **Phase 10**: Multi-file encryption support (**CORE FEATURE** - Essential user functionality)
+- 📋 **Phase 9.94**: Error handling and resource protection hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
+- 📋 **Phase 9.95**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)plementation is organized into focused phases, each with specific goals and deliverables. This approach ensures:
 
 - **Incremental Progress**: Each phase builds on previous work
 - **Testable Milestones**: Clear success criteria for each phase
@@ -25,7 +30,10 @@ The implementation is organized into focused phases, each with specific goals an
 - ✅ **Phase 9.98**: Migration system foundation (**COMPLETE** - Cryptographic agility infrastructure implemented)
 - ✅ **Phase 9.99**: Critical code refactoring and structure cleanup (**COMPLETE** - Major module decomposition achieved)
 - ✅ **Phase 9.991**: Critical versioning architecture foundation (**COMPLETE** - Proper version-specific types and migration chains implemented)
-- � **Phase 9.9**: Critical security hardening (**NEXT PRIORITY** - Based on comprehensive security assessment)
+- � **Phase 9.92**: Cryptographic security hardening (**NEXT PRIORITY** - Critical crypto vulnerabilities)
+- 📋 **Phase 9.93**: Authentication and integrity hardening
+- 📋 **Phase 9.94**: Error handling and resource protection hardening  
+- 📋 **Phase 9.95**: Secure memory and cleanup hardening
 - 📋 **Phase 10**: Multi-file encryption support
 - 📋 **Phase 11**: Multi-file decryption support
 - 📋 **Phase 12**: Performance optimization
@@ -37,33 +45,137 @@ The implementation is organized into focused phases, each with specific goals an
 
 ---
 
-### Phase 9.9: Critical Security Hardening
+---
 
-**Goal**: Address high-priority security actions identified in comprehensive security assessment
+## Strategic Priority Assessment for Production-Grade Tool
 
-**Critical Security Tasks (High Priority)**:
-- [ ] **Implement proper timing attack testing** - Integrate specialized tools like `dudect` for statistical timing analysis
-- [ ] **Add cryptographic fuzzing** - Use `honggfuzz` to test edge cases in decryption and header parsing
-- [ ] **Authenticate obfuscated filenames** - Add HMAC authentication to prevent file substitution attacks
-- [ ] **Add nonce reuse detection** - Critical safety net for AES-GCM catastrophic failure mode
+**Based on customer feedback assessment of security hardening criticality:**
 
-**Medium Priority Security Enhancements**:
-- [ ] **Enhanced error message security** - Review and sanitize error messages to prevent timing/oracle information leakage
-- [ ] **Resource exhaustion protection** - Add bounds checking for Argon2 parameters to prevent DoS attacks
-- [ ] **Filename collision robustness** - Improve handling beyond 9,999 collision attempts
-- [ ] **Complete secure memory implementation** - Finish secure memory implementation for sensitive data handling
+### CRITICAL PATH TO PRODUCTION (Must Complete):
+1. **Phase 9.92: Critical Tasks Only**
+   - ⚡ **Nonce reuse detection** (ESSENTIAL - prevents catastrophic AES-GCM failure)
+   - ⚡ **Timing attack testing** (ESSENTIAL - standard crypto software requirement)
+
+2. **Phase 9.93: Critical Tasks Only**  
+   - ⚡ **Filename authentication** (ESSENTIAL - current security gap in obfuscated mode)
+
+3. **Phase 10: Multi-file Support** (CORE user functionality)
+
+### PRODUCTION-READY MILESTONE
+After completing critical tasks above, tool is **production-ready for end-user scenarios**.
+
+### OPTIONAL ENHANCEMENTS (Post-Production):
+- **9.92 Remaining**: Cryptographic fuzzing (good practice)
+- **9.93 Remaining**: Enhanced integrity checks  
+- **9.94 Full Phase**: Error message security (minimal benefit)
+- **9.95 Full Phase**: Advanced secure memory (important for high-security environments)
+
+### INDIVIDUAL TASK CRITICALITY SUMMARY:
+- **BLOCKING VULNERABILITIES**: Nonce reuse detection, timing attacks, filename authentication
+- **QUALITY IMPROVEMENTS**: Enhanced integrity, cryptographic fuzzing  
+- **DEPLOYMENT SPECIFIC**: Memory locking (high-security environments)
+- **MINIMAL BENEFIT**: Error message security
+
+**Recommendation**: Complete critical tasks (3 specific items) for production readiness, defer optional enhancements based on deployment requirements.
+
+### Phase 9.92: Cryptographic Security Hardening
+
+**Goal**: Address critical cryptographic vulnerabilities and timing attacks
+
+**CRITICAL Tasks (Must Complete for Production)**:
+- [ ] **Add nonce reuse detection** - ⚡ CRITICAL: AES-GCM has catastrophic failure mode if nonces are reused with same key
+- [ ] **Implement proper timing attack testing** - ⚡ CRITICAL: Essential for crypto software to prevent side-channel attacks
+
+**IMPORTANT Tasks (Should Complete for Quality)**:
+- [ ] **Add cryptographic fuzzing** - 📋 IMPORTANT: Good practice for finding edge cases, but less critical for end-user tool
+
+**Individual Task Assessment**:
+- **Nonce reuse detection**: ESSENTIAL - Single most dangerous vulnerability in AES-GCM
+- **Timing attack testing**: ESSENTIAL - Standard requirement for cryptographic software
+- **Cryptographic fuzzing**: BENEFICIAL - Important for robustness but not blocking for production
 
 **Dependencies**: Phase 9.991 ✅ (Critical versioning architecture foundation)
 
-**Estimated Duration**: 4-5 days
+**Estimated Duration**: 1-2 days (critical tasks only) / 2-3 days (full phase)
+
+**Critical Success Criteria (Production Blocking)**:
+- Nonce reuse detection prevents AES-GCM catastrophic failures
+- Statistical timing analysis shows no detectable timing vulnerabilities
+
+**Optional Success Criteria (Quality Enhancement)**:
+- Cryptographic fuzzing passes without revealing edge case vulnerabilities
+
+---
+
+### Phase 9.93: Authentication and Integrity Hardening
+
+**Goal**: Strengthen file integrity and authentication mechanisms
+
+**CRITICAL Tasks (Must Complete for Production)**:
+- [ ] **Authenticate obfuscated filenames** - ⚡ CRITICAL: Prevents file substitution attacks in obfuscated mode
+
+**IMPORTANT Tasks (Should Complete for Quality)**:
+- [ ] **Enhanced file integrity checks** - 📋 IMPORTANT: Strengthens verification beyond current AES-GCM auth
+
+**Individual Task Assessment**:
+- **Filename authentication**: ESSENTIAL - Currently obfuscated names have no authentication (security gap)
+- **Enhanced integrity checks**: BENEFICIAL - Current AES-GCM provides strong integrity, enhancements are bonus
+
+**Dependencies**: Phase 9.92 ✅ (Critical cryptographic security tasks only)
+
+**Estimated Duration**: 1 day (critical tasks only) / 1-2 days (full phase)
+
+**Critical Success Criteria (Production Blocking)**:
+- Obfuscated filenames are authenticated against substitution attacks
+
+**Optional Success Criteria (Quality Enhancement)**:
+- Enhanced integrity verification mechanisms in place
+
+---
+
+### Phase 9.94: Error Handling and Resource Protection Hardening
+
+**Goal**: Harden system against information leakage
+
+**OPTIONAL Tasks (Good Practice, Not Critical for End-User Tool)**:
+- [ ] **Enhanced error message security** - 📋 OPTIONAL: Current errors already reasonably secure for end-user tool
+
+**Individual Task Assessment**:
+- **Error message security**: OPTIONAL - Current implementation doesn't leak critical information
+
+**Dependencies**: Phase 9.94 ✅ (Error handling hardening)
+
+**Estimated Duration**: 1-2 days
 
 **Success Criteria**:
-- Statistical timing analysis shows no detectable timing vulnerabilities
-- Cryptographic fuzzing passes without revealing edge case vulnerabilities
-- Obfuscated filenames are authenticated against substitution attacks
-- Nonce reuse detection prevents AES-GCM catastrophic failures
 - Error messages provide no oracle information
-- System is hardened against resource exhaustion attacks
+
+---
+
+### Phase 9.95: Secure Memory and Cleanup Hardening
+
+**Goal**: Complete secure memory implementation and ensure proper cleanup
+
+**IMPORTANT Tasks (Should Complete for High-Security Environments)**:
+- [ ] **Memory protection against swapping** - 📋 IMPORTANT: Critical for high-security environments, less critical for typical personal use
+
+**OPTIONAL Tasks (Good Practice, Current Implementation Sufficient)**:
+- [ ] **Complete secure memory implementation** - 📋 OPTIONAL: Current SecretVec implementation adequate for end-user scenarios
+- [ ] **Memory cleanup verification** - 📋 OPTIONAL: Current zeroization already handles most critical cases
+
+**Individual Task Assessment**:
+- **Memory protection against swapping**: IMPORTANT - Essential for high-security scenarios (government, enterprise)
+- **Secure memory completion**: OPTIONAL - Current implementation with SecretVec already quite good
+- **Memory cleanup verification**: OPTIONAL - Current automatic zeroization covers critical paths
+
+**Dependencies**: Phase 9.94 ✅ (Error handling and resource protection hardening)
+
+**Estimated Duration**: 1-2 days
+
+**Success Criteria**:
+- Secure memory implementation completed
+- All sensitive data properly cleared from memory
+- Memory protection mechanisms prevent data exposure
 
 ---
 
@@ -84,7 +196,7 @@ The implementation is organized into focused phases, each with specific goals an
 - [ ] Enhance error handling for partial failures
 - [ ] Add parallel processing for performance
 
-**Dependencies**: Phase 9.9 ✅ (Critical security hardening)
+**Dependencies**: Phase 9.93 ✅ (Critical authentication tasks only)
 
 **Estimated Duration**: 2-3 days
 
@@ -108,7 +220,7 @@ The implementation is organized into focused phases, each with specific goals an
 - [ ] Support wildcard/glob patterns for encrypted file selection
 - [ ] Add progress indicators and error handling
 
-**Dependencies**: Phase 10 ✅ (Multi-file encryption with security hardening)
+**Dependencies**: Phase 10 ✅ (Multi-file encryption with core security hardening complete)
 
 **Estimated Duration**: 2-3 days
 
