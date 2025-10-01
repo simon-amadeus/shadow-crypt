@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.95] - 2025-01-01
+
+### Changed - Documentation Architecture Cleanup (Phase 9.95 Complete)
+- **Consolidated Architecture Documentation**: Merged ARCHITECTURE.md, VERTICAL_SLICING_SPEC.md, and VERTICAL_SLICING_IMPLEMENTATION.md into single comprehensive 331-line document
+- **Streamlined Documentation Structure**: Reduced docs/ directory complexity per customer feedback
+- **Preserved Historical Context**: Maintained all important architectural information while improving accessibility
+- **Enhanced Readability**: Single source of truth for system architecture and design decisions
+
+### Removed - Redundant Documentation Files
+- **VERTICAL_SLICING_SPEC.md**: Content integrated into consolidated ARCHITECTURE.md
+- **VERTICAL_SLICING_IMPLEMENTATION.md**: Implementation details preserved in ARCHITECTURE.md
+- **Duplicate Information**: Eliminated redundancy while preserving essential design context
+
 ## [0.9.94.6] - 2025-01-01
 
 ### Added - Integration Testing and Production Readiness (Phase 9.94.6 Complete)

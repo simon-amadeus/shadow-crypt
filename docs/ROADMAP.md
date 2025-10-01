@@ -2,7 +2,7 @@
 
 ## 🎯 NEXT PRIORITIES (Work in Progress)
 
-- ⚡ **Phase 10**: Multi-file encryption support (**NEXT PRIORITY** - Core user functionality ready for implementation)
+- ⚡ **Phase 10**: Multi-file encryption support (**NEXT PRIORITY** - Core user functionality with simplified interface)
 
 ## 📋 FUTURE PHASES (Planned Work)
 
@@ -16,39 +16,45 @@
 
 ## 🔧 OPTIONAL ENHANCEMENTS (Post-Production)
 
-- 📋 **Phase 9.95**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
+- 📋 **Phase 9.96**: Secure memory and cleanup hardening (**OPTIONAL** - Good practice, not critical for end-user tool)
 
 ---
 
 <!-- 
 DEVELOPMENT MILESTONE ACHIEVED: 
 ✅ Vertical Slicing Architecture Complete (Phases 9.94.3 → 9.94.6)
+✅ Documentation Architecture Cleanup Complete (Phase 9.95)
 ✅ Production-ready foundation with 133 passing tests
 ✅ Clean module separation: core utilities, version logic, algorithm implementations
 ✅ Extensible design validated for future versions and algorithms
 ✅ Code quality optimized with modern Rust patterns
+✅ Single comprehensive architecture document per customer feedback
 
-READY FOR: Phase 10 user-facing feature development
+READY FOR: Phase 10 user-facing feature development with simplified multi-file interface
 -->
 
 ## Phase 10: Multi-file Encryption Support 🚧 NEXT PHASE
 **Status**: Ready to implement  
-**Focus**: Core user functionality for encrypting multiple files and directories
+**Focus**: Core user functionality for encrypting multiple files with simple command interface
 
-#### Priority Tasks
-- [ ] **Batch File Processing** - Implement directory traversal and multiple file selection
-- [ ] **Progress Reporting** - Add progress bars and status updates for large operations
+#### Priority Tasks (Updated based on customer feedback)
+- [ ] **Simple Multi-file Interface** - Support `shadow file1.txt file2.txt file3.txt` syntax (no directory traversal complexity)
+- [ ] **Glob Pattern Support** - Handle `shadow *.txt` and `shadow docs/**/*.md` patterns efficiently  
+- [ ] **Progress Reporting** - Add progress bars and status updates for multiple file operations
 - [ ] **Error Handling** - Graceful handling of permission errors, missing files, etc.
-- [ ] **Concurrency Support** - Parallel processing for improved performance on multiple files
-- [ ] **CLI Enhancement** - Improved argument parsing with glob patterns and exclusions
+- [ ] **Batch Processing** - Process multiple files efficiently in single operation
 - [ ] **Memory Optimization** - Streaming encryption for large files to minimize memory usage
 
-#### Success Criteria
-- [ ] Can encrypt entire directories with recursive traversal
-- [ ] Handles file permission errors gracefully
-- [ ] Shows progress for long-running operations
+#### Success Criteria (Simplified)
+- [ ] Can encrypt multiple files with simple `shadow file1 file2 file3` command
+- [ ] Supports glob patterns like `shadow *.txt` for convenience
+- [ ] Handles file errors gracefully without stopping entire operation
+- [ ] Shows progress for long-running multi-file operations
 - [ ] Maintains security properties across all files
 - [ ] Performance scales well with number of files
+
+#### Documentation Cleanup Priority
+- [ ] **Consolidate Architecture Documentation** - Merge multiple architecture files into single comprehensive doc (customer request)
 **Status**: Completed  
 **Focus**: Comprehensive validation and production-readiness preparation
 
