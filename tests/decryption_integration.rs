@@ -468,6 +468,7 @@ mod tests {
             metadata_length: 0,
             encrypted_metadata: Vec::new(),
             metadata_auth_tag: [0u8; 16],
+            obfuscated_filename_auth_tag: [0u8; 16],
         };
         
         // Create dummy key material (use test params for fast integration testing)

@@ -16,6 +16,7 @@ pub mod version_dispatch;
 pub mod file_detection;
 pub mod errors;
 pub mod secure_delete;
+pub mod filename_auth;
 
 // Re-export commonly used types for convenience
 pub use errors::CryptoError;

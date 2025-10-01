@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.93] - 2025-10-01
+
+### Added - Critical Filename Authentication Security (Phase 9.93 Complete)
+- **Obfuscated Filename Authentication**: HMAC-SHA256 authentication prevents file substitution attacks
+  - Cryptographic binding of obfuscated filename to file's cryptographic identity (salt + nonce)
+  - Automatic detection of obfuscated vs non-obfuscated files during decryption
+  - Integration into encryption process to compute authentication tags for obfuscated files
+  - Verification during decryption with clear error messages for substitution attacks
+- **New Security Module**: `filename_auth.rs` with comprehensive authentication functions
+  - `compute_filename_auth_tag()` - Generate HMAC-SHA256 tags for obfuscated filenames
+  - `verify_filename_auth_tag()` - Verify filename authenticity with constant-time comparison
+  - `extract_filename_for_auth()` - Helper for filename extraction from paths
+
+### Security Enhancements
+- **File Substitution Attack Prevention**: Primary attack vector against obfuscated files eliminated
+- **Cryptographic Binding**: Obfuscated filenames now authenticated against file contents
+- **Production Security**: CRITICAL security gap closed - tool now production-ready for end-user scenarios
+- **Backward Compatibility**: Non-obfuscated files bypass authentication without breaking changes
+
+### Technical Implementation
+- **Header Format Update**: Added `obfuscated_filename_auth_tag` field (16-byte HMAC-SHA256 truncated)
+- **Automatic Mode Detection**: Smart detection differentiates obfuscated from non-obfuscated files
+- **Dependency Addition**: `hmac = "0.12"` for cryptographic authentication
+- **Comprehensive Testing**: 9 new tests covering unit functionality and security scenarios
+
+### File Format Changes
+- **Version 1 Header**: New `obfuscated_filename_auth_tag` field for filename authentication
+- **Serialization**: Updated header serialization/deserialization to handle new field
+- **Compatibility**: Maintains compatibility with file format version detection system
+
 ## [0.9.92] - 2025-10-01
 
 ### Added - Critical Cryptographic Security Hardening (Phase 9.92 Complete)

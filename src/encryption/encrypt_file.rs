@@ -136,6 +136,19 @@ pub fn encrypt_single_file_with_params(
         &[]  // No additional authenticated data for now
     )?;
     
+    // Compute obfuscated filename authentication if needed
+    if obfuscate_filename {
+        use crate::shared::filename_auth::{compute_filename_auth_tag, extract_filename_for_auth};
+        let obfuscated_filename = extract_filename_for_auth(&actual_output_path)?;
+        let auth_tag = compute_filename_auth_tag(
+            &obfuscated_filename,
+            &header.salt,
+            &header.nonce,
+            &key_material
+        )?;
+        header.obfuscated_filename_auth_tag = auth_tag;
+    }
+    
     // Write encrypted file atomically
     write_encrypted_file(&actual_output_path, &header, &ciphertext)?;
     

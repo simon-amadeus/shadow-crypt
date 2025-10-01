@@ -46,11 +46,12 @@ base64 = "0.21"          # Base64 encoding for filename obfuscation
 rpassword = "7.2"        # Secure password input
 sysinfo = "0.29"         # System information for memory detection
 subtle = "2.5"           # Constant-time cryptographic operations
+hmac = "0.12"            # HMAC for filename authentication
 # clap = "4.0"  # For CLI parsing in later phases
 
 [dev-dependencies]
 # Testing and development dependencies
 serde_json = "1.0"          # For test data serialization
-tempfile = "3.0"            # For temporary file testing
+tempfile = "3.8"            # For temporary file testing (updated version)
 hex = "0.4"                 # For hex encoding in tests
 proptest = "1.0"            # For property-based testing

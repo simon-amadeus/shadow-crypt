@@ -23,6 +23,7 @@ pub struct Header {
     pub metadata_length: u16,        // Padded length of encrypted metadata
     pub encrypted_metadata: Vec<u8>, // File permissions, timestamps (padded)
     pub metadata_auth_tag: [u8; 16], // GCM authentication tag
+    pub obfuscated_filename_auth_tag: [u8; 16], // HMAC of obfuscated filename (prevents substitution attacks)
     // Followed by encrypted content and content authentication tag
 }
 
@@ -48,6 +49,7 @@ impl Header {
             metadata_length: 0,
             encrypted_metadata: Vec::new(),
             metadata_auth_tag: [0u8; 16],
+            obfuscated_filename_auth_tag: [0u8; 16],
         }
     }
 
@@ -76,6 +78,9 @@ impl Header {
         buffer.extend_from_slice(&self.metadata_length.to_le_bytes());
         buffer.extend_from_slice(&self.encrypted_metadata);
         buffer.extend_from_slice(&self.metadata_auth_tag);
+        
+        // Obfuscated filename authentication
+        buffer.extend_from_slice(&self.obfuscated_filename_auth_tag);
         
         buffer
     }
@@ -165,6 +170,14 @@ impl Header {
             parse_encrypted_section(data, offset, MAX_METADATA_LENGTH, "metadata")?;
         offset = new_offset;
         
+        // Parse obfuscated filename authentication tag
+        if offset + 16 > data.len() {
+            return Err(CryptoError::HeaderParsingError("Cannot read obfuscated filename auth tag".to_string()));
+        }
+        let mut obfuscated_filename_auth_tag = [0u8; 16];
+        obfuscated_filename_auth_tag.copy_from_slice(&data[offset..offset + 16]);
+        offset += 16;
+        
         let header = Header {
             magic,
             version,
@@ -180,6 +193,7 @@ impl Header {
             metadata_length,
             encrypted_metadata,
             metadata_auth_tag,
+            obfuscated_filename_auth_tag,
         };
         
         Ok((header, offset))

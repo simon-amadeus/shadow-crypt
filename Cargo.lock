@@ -648,6 +648,7 @@ dependencies = [
  "getrandom 0.2.16",
  "hex",
  "hkdf",
+ "hmac",
  "proptest",
  "rand 0.8.5",
  "rpassword",

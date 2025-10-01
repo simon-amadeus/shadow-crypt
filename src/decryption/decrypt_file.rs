@@ -76,7 +76,7 @@ pub fn decrypt_single_file_with_params(
     };
     
     // Decrypt and verify filename
-    let _original_filename = if !header.encrypted_filename.is_empty() {
+    let original_filename = if !header.encrypted_filename.is_empty() {
         let filename_bytes = decrypt_aes_gcm(
             key_material.encryption_key.expose_secret(),
             &header.nonce,
@@ -93,6 +93,39 @@ pub fn decrypt_single_file_with_params(
     } else {
         String::new()
     };
+    
+    // Check if this is an obfuscated file by comparing current vs expected filename
+    let current_filename = input_path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    
+    let expected_filename = if !original_filename.is_empty() {
+        format!("{}.shadow", original_filename)
+    } else {
+        current_filename.to_string() // If no original filename, assume non-obfuscated
+    };
+    
+    let is_obfuscated_file = current_filename != expected_filename;
+    
+    if is_obfuscated_file {
+        use crate::shared::filename_auth::{verify_filename_auth_tag, extract_filename_for_auth};
+        
+        let obfuscated_filename = extract_filename_for_auth(input_path)?;
+        let is_authentic = verify_filename_auth_tag(
+            &obfuscated_filename,
+            &header.obfuscated_filename_auth_tag,
+            &header.salt,
+            &header.nonce,
+            &key_material
+        )?;
+        
+        if !is_authentic {
+            return Err(CryptoError::CryptographicError(
+                "File substitution attack detected: obfuscated filename does not match file contents".to_string()
+            ));
+        }
+    }
     
     // Decrypt and verify metadata
     let metadata = if !header.encrypted_metadata.is_empty() {
