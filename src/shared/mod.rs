@@ -7,6 +7,9 @@
 //! - File detection utilities
 
 pub mod crypto;
+pub mod metadata;
+pub mod algorithms;
+pub mod header_core;
 pub mod header;
 pub mod file_detection;
 pub mod errors;
@@ -14,4 +17,6 @@ pub mod secure_delete;
 
 // Re-export commonly used types for convenience
 pub use errors::CryptoError;
-pub use header::{Header, AlgorithmId, VersionInfo, CURRENT_VERSION};
+pub use header::{Header, AlgorithmId, FileMetadata};
+pub use algorithms::{CURRENT_VERSION, VersionInfo};
+pub use metadata::CompressionType;

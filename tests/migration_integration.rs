@@ -68,6 +68,8 @@ fn test_version_info_structure() {
     // Test the VersionInfo structure
     let version_info = VersionInfo {
         current: 1,
+        min_supported: 1,
+        max_supported: 1,
         is_current: true,
         is_supported: true,
         needs_migration: false,

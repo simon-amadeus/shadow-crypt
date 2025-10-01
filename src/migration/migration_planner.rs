@@ -170,6 +170,8 @@ mod tests {
             file_path: Path::new("/test/file.shadow").to_path_buf(),
             version_info: VersionInfo {
                 current: 1,
+                min_supported: 1,
+                max_supported: 1,
                 is_current: true,
                 is_supported: true,
                 needs_migration: false,
