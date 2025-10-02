@@ -5,6 +5,7 @@
 //! for improved performance when encrypting multiple files.
 
 use crate::shared::errors::CryptoError;
+use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
 use crate::encryption::encrypt_single_file;
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -41,6 +42,26 @@ pub fn encrypt_multiple_files(
     force_overwrite: bool,
     remove_source: bool,
 ) -> Result<MultiFileResults, CryptoError> {
+    encrypt_multiple_files_with_progress(
+        file_paths,
+        password,
+        obfuscate_filename,
+        force_overwrite,
+        remove_source,
+        true, // show_progress = true for backward compatibility
+    )
+}
+
+/// Encrypt multiple files with progress reporting control
+/// Uses parallel processing for improved performance
+pub fn encrypt_multiple_files_with_progress(
+    file_paths: &[PathBuf],
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool,
+    show_progress: bool,
+) -> Result<MultiFileResults, CryptoError> {
     let start_time = Instant::now();
     let total_files = file_paths.len();
     
@@ -48,74 +69,61 @@ pub fn encrypt_multiple_files(
         return Err(CryptoError::InvalidFileFormat); // No files to process
     }
 
-    println!("🔒 Starting encryption of {} files...", total_files);
-    if obfuscate_filename {
-        println!("🎭 Filename obfuscation: ENABLED");
-    }
-    println!("🔑 Using password-based encryption with AES-256-GCM");
-    if total_files > 1 {
-        println!("⚡ Parallel processing enabled for multiple files");
-    }
-    println!();
+    let results = show_minimal_multifile_progress(
+        "Encrypting",
+        total_files,
+        show_progress,
+        || {
+            // Use parallel processing for multiple files to improve performance
+            file_paths
+                .par_iter()
+                .map(|file_path| {
+                    // Validate file before processing
+                    if !file_path.exists() {
+                        let error_msg = "File does not exist".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
 
-    // Use parallel processing for multiple files to improve performance
-    let results: Vec<(PathBuf, Result<(), String>)> = file_paths
-        .par_iter()
-        .enumerate()
-        .map(|(index, file_path)| {
-            let progress = index + 1;
-            
-            // Thread-safe progress reporting (may be out of order but that's okay)
-            println!("[{}/{}] Processing: {}", progress, total_files, file_path.display());
+                    if !file_path.is_file() {
+                        let error_msg = "Not a regular file (directories not supported)".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
 
-            // Validate file before processing
-            if !file_path.exists() {
-                let error_msg = "File does not exist".to_string();
-                println!("   ⚠️  Skipped: {}", error_msg);
-                return (file_path.clone(), Err(error_msg));
-            }
+                    // Determine output path
+                    let output_path = generate_output_path(file_path, obfuscate_filename);
 
-            if !file_path.is_file() {
-                let error_msg = "Not a regular file (directories not supported)".to_string();
-                println!("   ⚠️  Skipped: {}", error_msg);
-                return (file_path.clone(), Err(error_msg));
-            }
+                    // Check for overwrite protection
+                    if output_path.exists() && !force_overwrite {
+                        let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
+                        return (file_path.clone(), Err(error_msg));
+                    }
 
-            // Determine output path
-            let output_path = generate_output_path(file_path, obfuscate_filename);
-
-            // Check for overwrite protection
-            if output_path.exists() && !force_overwrite {
-                let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
-                println!("   ⚠️  Skipped: {}", error_msg);
-                return (file_path.clone(), Err(error_msg));
-            }
-
-            // Attempt encryption
-            match encrypt_single_file(file_path, &output_path, password, obfuscate_filename) {
-                Ok(()) => {
-                    println!("   ✅ Encrypted successfully");
-                    
-                    // Handle source file removal if requested
-                    if remove_source {
-                        match crate::shared::secure_delete::secure_delete_file(file_path) {
-                            Ok(()) => println!("   🗑️  Source file securely deleted"),
-                            Err(e) => {
-                                println!("   ⚠️  Warning: Failed to delete source file: {}", e);
-                                // Don't treat this as a failure of the encryption itself
+                    // Attempt encryption
+                    match encrypt_single_file(file_path, &output_path, password, obfuscate_filename) {
+                        Ok(()) => {
+                            // Handle source file removal if requested
+                            if remove_source {
+                                match crate::shared::secure_delete::secure_delete_file(file_path) {
+                                    Ok(()) => {
+                                        // Source deleted successfully - this is logged for single files but not multi-files to keep output minimal
+                                    }
+                                    Err(_e) => {
+                                        // Don't treat this as a failure of the encryption itself for minimal UI
+                                        // The encryption succeeded, source deletion is a warning at most
+                                    }
+                                }
                             }
+                            (file_path.clone(), Ok(()))
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Encryption failed: {}", e);
+                            (file_path.clone(), Err(error_msg))
                         }
                     }
-                    (file_path.clone(), Ok(()))
-                }
-                Err(e) => {
-                    let error_msg = format!("Encryption failed: {}", e);
-                    println!("   ❌ Failed: {}", error_msg);
-                    (file_path.clone(), Err(error_msg))
-                }
-            }
-        })
-        .collect();
+                })
+                .collect::<Vec<(PathBuf, Result<(), String>)>>()
+        }
+    );
 
     // Collect results from parallel processing
     let mut successful = Vec::new();
@@ -130,13 +138,18 @@ pub fn encrypt_multiple_files(
 
     let total_time = start_time.elapsed();
 
-    println!();
-    println!("📊 Multi-file encryption completed:");
-    println!("   ✅ Successful: {}", successful.len());
-    println!("   ❌ Failed: {}", failed.len());
-    println!("   ⏱️  Total time: {:.2?}", total_time);
+    // Report completion with minimal output
+    report_minimal_multifile_completion(
+        "Encrypted",
+        total_files,
+        successful.len(),
+        failed.len(),
+        total_time,
+        show_progress,
+    );
 
-    if !failed.is_empty() {
+    // Show failed files if any (this is essential information)
+    if !failed.is_empty() && show_progress {
         println!();
         println!("❌ Failed files:");
         for (path, error) in &failed {

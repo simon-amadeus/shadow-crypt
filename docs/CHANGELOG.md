@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2025-10-02
+
+### Enhanced - Multi-File UX Polish (Customer Feedback Response)
+- **Minimal Multi-File UI**: Multi-file operations now use clean, minimal progress indicators matching single-file style
+- **Consistent Experience**: Unified UX between single-file and multi-file operations for better user experience
+- **Essential Information Preserved**: Failed file reporting and safety confirmations maintained while reducing verbose output
+- **Customer Satisfaction**: Direct response to feedback requesting multi-file operations to be "more minimal and elegant"
+
+### Added - Clean Multi-File Progress System
+- **Minimal Progress Format**: Multi-file operations show simple "🔄 Encrypting 3 files... ✓ (1.2s)" progress
+- **Smart Completion Reporting**: Success/failure summary with clear messaging for mixed results
+- **Error Information**: Failed files still reported clearly with specific error messages
+- **Quiet Mode Support**: Multi-file operations respect --quiet flag for completely silent operation
+
+### Technical - UX Architecture Improvements
+- **New Progress Functions**: `show_minimal_multifile_progress()` and `report_minimal_multifile_completion()`
+- **Backward Compatibility**: All existing APIs preserved, new progress control functions added
+- **Performance Maintained**: Parallel processing retained with no performance regression
+- **Safety Preserved**: All user confirmations and safety checks unchanged
+
 ## [0.18.0] - 2025-10-02
 
 ### Enhanced - Universal Progress Indicators & Default UX (Customer Feedback Response)

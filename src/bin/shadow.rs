@@ -9,7 +9,7 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::{encrypt_single_file, encrypt_multiple_files, expand_glob_patterns};
+use shadow_crypt::encryption::{encrypt_single_file, encrypt_multiple_files_with_progress, expand_glob_patterns};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
@@ -53,7 +53,7 @@ fn main() {
         handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source, !quiet);
     } else {
         // Multiple files - use batch processing
-        handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source);
+        handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source, !quiet);
     }
 }
 
@@ -152,112 +152,33 @@ fn handle_single_file(
     }
 }
 
-/// Handle multiple file encryption with progress reporting
+/// Handle multiple file encryption with minimal progress reporting
 fn handle_multiple_files(
     file_paths: &[std::path::PathBuf],
     password: &str,
     obfuscate_filename: bool,
     force_overwrite: bool,
-    remove_source: bool
+    remove_source: bool,
+    show_progress: bool
 ) {
-    println!("🔐 Encrypting {} files...", file_paths.len());
-    println!("🔑 Using password-based encryption with AES-256-GCM");
-    if obfuscate_filename {
-        println!("🎭 Filename obfuscation: ENABLED");
-    } else {
-        println!("🎭 Filename obfuscation: DISABLED");
-    }
-    println!();
-
-    let results = encrypt_multiple_files(
+    let results = encrypt_multiple_files_with_progress(
         file_paths,
         password,
         obfuscate_filename,
         force_overwrite,
-        remove_source
+        remove_source,
+        show_progress
     );
 
     // Handle the Result wrapper
-    let results = match results {
-        Ok(res) => res,
+    match results {
+        Ok(_res) => {
+            // Results already reported by the encryption function
+        }
         Err(e) => {
             eprintln!("❌ Multi-file encryption failed: {}", e);
             process::exit(1);
         }
-    };
-
-    // Report results
-    println!();
-    println!("📊 Encryption Results:");
-    println!("✅ Successful: {}", results.successful.len());
-    println!("❌ Failed: {}", results.failed.len());
-    
-    if !results.failed.is_empty() {
-        println!();
-        println!("❌ Failed encryptions:");
-        for (path, error) in &results.failed {
-            println!("  {} - {}", path.display(), error);
-        }
-    }
-
-    if !results.successful.is_empty() {
-        println!();
-        println!("✅ Successfully encrypted:");
-        for input_path in &results.successful {
-            let output_path = if obfuscate_filename {
-                let parent_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
-                let file_name = input_path.file_name().unwrap().to_string_lossy();
-                parent_dir.join(format!("{}.shadow", file_name))
-            } else {
-                format!("{}.shadow", input_path.to_string_lossy()).into()
-            };
-            println!("  {} → {}", input_path.display(), output_path.display());
-        }
-
-        // Handle source file removal if requested
-        if remove_source {
-            println!();
-            println!("🗑️  Additional source file removal...");
-            println!("   (Note: Files processed during encryption may have already been removed)");
-            let mut removal_successes = 0;
-            let mut removal_failures = 0;
-
-            for input_path in &results.successful {
-                // Only try to remove if file still exists (might have been removed during encryption)
-                if input_path.exists() {
-                    if confirm_destructive_operation("Source file removal", input_path) {
-                        match secure_delete_file(input_path) {
-                            Ok(()) => {
-                                println!("  ✅ Deleted: {}", input_path.display());
-                                removal_successes += 1;
-                            }
-                            Err(e) => {
-                                eprintln!("  ❌ Failed to delete: {} - {}", input_path.display(), e);
-                                removal_failures += 1;
-                            }
-                        }
-                    } else {
-                        println!("  🔄 Skipped: {}", input_path.display());
-                    }
-                } else {
-                    println!("  ✅ Already removed: {}", input_path.display());
-                }
-            }
-
-            println!();
-            if removal_failures > 0 {
-                eprintln!("⚠️  {} source files could not be deleted", removal_failures);
-                eprintln!("   Encryption was successful, but some source files remain");
-            }
-            if removal_successes > 0 {
-                println!("🗑️  {} additional source files securely deleted", removal_successes);
-            }
-        }
-    }
-
-    // Exit with error code if any encryptions failed
-    if !results.failed.is_empty() {
-        process::exit(1);
     }
 }
 

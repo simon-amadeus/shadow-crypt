@@ -226,6 +226,73 @@ pub fn format_file_size(bytes: u64) -> String {
     }
 }
 
+/// Show minimal progress for multi-file operations
+/// Displays simple "🔄 Operation X files... ✓ (duration)" format
+pub fn show_minimal_multifile_progress<F, R>(
+    operation: &str,
+    file_count: usize,
+    show_progress: bool,
+    operation_fn: F,
+) -> R
+where
+    F: FnOnce() -> R,
+{
+    let start_time = Instant::now();
+    
+    if show_progress {
+        print!("🔄 {} {} file{}...", operation, file_count, if file_count == 1 { "" } else { "s" });
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }
+    
+    let result = operation_fn();
+    
+    if show_progress {
+        let duration = start_time.elapsed();
+        println!(" ✓ ({})", crate::shared::performance::format_duration(duration));
+    }
+    
+    result
+}
+
+/// Report minimal multi-file operation completion with success/failure summary
+pub fn report_minimal_multifile_completion(
+    operation: &str,
+    total_files: usize,
+    successful_count: usize,
+    failed_count: usize,
+    total_duration: Duration,
+    show_progress: bool,
+) {
+    if !show_progress {
+        return;
+    }
+    
+    if failed_count == 0 {
+        // All successful
+        println!("✅ {} {} file{} successfully in {}", 
+                operation, 
+                successful_count,
+                if successful_count == 1 { "" } else { "s" },
+                crate::shared::performance::format_duration(total_duration));
+    } else if successful_count == 0 {
+        // All failed
+        println!("❌ {} failed for all {} file{} in {}",
+                operation,
+                total_files,
+                if total_files == 1 { "" } else { "s" },
+                crate::shared::performance::format_duration(total_duration));
+    } else {
+        // Mixed results
+        println!("⚠️  {} {}/{} file{} completed in {} ({} failed)",
+                operation,
+                successful_count,
+                total_files,
+                if total_files == 1 { "" } else { "s" },
+                crate::shared::performance::format_duration(total_duration),
+                failed_count);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

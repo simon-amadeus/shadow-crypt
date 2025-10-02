@@ -5,6 +5,7 @@
 //! for improved performance when decrypting multiple files.
 
 use crate::shared::errors::CryptoError;
+use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
 use crate::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -40,12 +41,13 @@ pub fn decrypt_multiple_files(
     remove_source: bool,
 ) -> Result<MultiFileResults, CryptoError> {
     use crate::shared::algorithms::aes_gcm::Argon2Params;
-    decrypt_multiple_files_with_params(
+    decrypt_multiple_files_with_params_and_progress(
         file_paths,
         password,
         force_overwrite,
         remove_source,
-        &Argon2Params::default()
+        &Argon2Params::default(),
+        true // show_progress = true for backward compatibility
     )
 }
 
@@ -57,6 +59,25 @@ pub fn decrypt_multiple_files_with_params(
     remove_source: bool,
     argon2_params: &crate::shared::algorithms::aes_gcm::Argon2Params,
 ) -> Result<MultiFileResults, CryptoError> {
+    decrypt_multiple_files_with_params_and_progress(
+        file_paths,
+        password,
+        force_overwrite,
+        remove_source,
+        argon2_params,
+        true // show_progress = true for backward compatibility
+    )
+}
+
+/// Decrypt multiple files with progress reporting control
+pub fn decrypt_multiple_files_with_params_and_progress(
+    file_paths: &[PathBuf],
+    password: &str,
+    force_overwrite: bool,
+    remove_source: bool,
+    argon2_params: &crate::shared::algorithms::aes_gcm::Argon2Params,
+    show_progress: bool,
+) -> Result<MultiFileResults, CryptoError> {
     let start_time = Instant::now();
     let total_files = file_paths.len();
     
@@ -64,52 +85,44 @@ pub fn decrypt_multiple_files_with_params(
         return Err(CryptoError::InvalidFileFormat); // No files to process
     }
 
-    println!("🔓 Starting decryption of {} files...", total_files);
-    println!("🔑 Using password-based decryption with AES-256-GCM");
-    if total_files > 1 {
-        println!("⚡ Parallel processing enabled for multiple files");
-    }
-    println!();
+    let results = show_minimal_multifile_progress(
+        "Decrypting",
+        total_files,
+        show_progress,
+        || {
+            // Use parallel processing for multiple files to improve performance
+            file_paths
+                .par_iter()
+                .map(|input_path| {
+                    // Generate output path with automatic filename restoration
+                    let output_path = match generate_output_path_with_params(input_path, password, argon2_params) {
+                        Ok(path) => path,
+                        Err(e) => {
+                            let error_msg = format!("Failed to determine output path: {}", e);
+                            return (input_path.clone(), Err(error_msg));
+                        }
+                    };
 
-    // Use parallel processing for multiple files to improve performance
-    let results: Vec<(PathBuf, Result<PathBuf, String>)> = file_paths
-        .par_iter()
-        .enumerate()
-        .map(|(index, input_path)| {
-            let progress = index + 1;
-            println!("🔄 [{}/{}] Decrypting: {}", progress, total_files, input_path.display());
+                    // Check for file overwrite protection
+                    if output_path.exists() && !force_overwrite {
+                        let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
+                        return (input_path.clone(), Err(error_msg));
+                    }
 
-            // Generate output path with automatic filename restoration
-            let output_path = match generate_output_path_with_params(input_path, password, argon2_params) {
-                Ok(path) => path,
-                Err(e) => {
-                    let error_msg = format!("Failed to determine output path: {}", e);
-                    println!("❌ Failed: {}", error_msg);
-                    return (input_path.clone(), Err(error_msg));
-                }
-            };
-
-            // Check for file overwrite protection
-            if output_path.exists() && !force_overwrite {
-                let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
-                println!("❌ Skipped: {}", error_msg);
-                return (input_path.clone(), Err(error_msg));
-            }
-
-            // Attempt decryption with custom parameters
-            match crate::decryption::decrypt_single_file_with_params(input_path, &output_path, password, argon2_params) {
-                Ok(()) => {
-                    println!("✅ Success: {} → {}", input_path.display(), output_path.display());
-                    (input_path.clone(), Ok(output_path))
-                }
-                Err(e) => {
-                    let error_msg = format!("Decryption failed: {}", e);
-                    println!("❌ Failed: {}", error_msg);
-                    (input_path.clone(), Err(error_msg))
-                }
-            }
-        })
-        .collect();
+                    // Attempt decryption with custom parameters
+                    match crate::decryption::decrypt_single_file_with_params(input_path, &output_path, password, argon2_params) {
+                        Ok(()) => {
+                            (input_path.clone(), Ok(output_path))
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Decryption failed: {}", e);
+                            (input_path.clone(), Err(error_msg))
+                        }
+                    }
+                })
+                .collect::<Vec<(PathBuf, Result<PathBuf, String>)>>()
+        }
+    );
 
     // Collect results from parallel processing
     let mut successful = Vec::new();
@@ -122,10 +135,34 @@ pub fn decrypt_multiple_files_with_params(
         }
     }
 
-    // Handle source file removal for successful files (if requested)
-    if remove_source && !successful.is_empty() {
+    let total_time = start_time.elapsed();
+
+    // Report completion with minimal output
+    report_minimal_multifile_completion(
+        "Decrypted",
+        total_files,
+        successful.len(),
+        failed.len(),
+        total_time,
+        show_progress,
+    );
+
+    // Show failed files if any (this is essential information)
+    if !failed.is_empty() && show_progress {
         println!();
-        println!("🗑️  Processing source file removal for {} successful decryptions...", successful.len());
+        println!("❌ Failed files:");
+        for (path, error) in &failed {
+            println!("   {} - {}", path.display(), error);
+        }
+    }
+
+    // Handle source file removal for successful files (if requested)
+    // This stays visible even in minimal mode because it's a critical safety operation
+    if remove_source && !successful.is_empty() && show_progress {
+        println!();
+        println!("🗑️  Processing source file removal for {} successful decryption{}...", 
+                successful.len(),
+                if successful.len() == 1 { "" } else { "s" });
         
         for input_path in &successful {
             if confirm_destructive_operation("Source file removal", input_path) {
@@ -142,8 +179,6 @@ pub fn decrypt_multiple_files_with_params(
             }
         }
     }
-
-    let total_time = start_time.elapsed();
 
     Ok(MultiFileResults {
         successful,

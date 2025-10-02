@@ -6,7 +6,7 @@
 //! - Progress reporting for batch operations
 //! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files, expand_glob_patterns, try_restore_filename_from_header};
+use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header};
 use shadow_crypt::shared::errors::CryptoError;
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use shadow_crypt::shared::cli_utils::{display_error_and_exit, display_validation_error_and_exit, io_error_with_context, display_error_and_return};
@@ -165,7 +165,7 @@ fn handle_single_file(
     Ok(())
 }
 
-/// Handle multiple file decryption with progress reporting
+/// Handle multiple file decryption with minimal progress reporting
 fn handle_multiple_files(
     file_paths: &[PathBuf],
     password: &str,
@@ -173,38 +173,16 @@ fn handle_multiple_files(
     remove_source: bool,
     show_progress: bool
 ) -> Result<(), CryptoError> {
-    if show_progress {
-        println!("🔓 Decrypting {} files...", file_paths.len());
-        println!("🔑 Using password-based decryption with AES-256-GCM");
-        println!();
-    }
-
-    let results = decrypt_multiple_files(
+    use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
+    
+    let results = decrypt_multiple_files_with_params_and_progress(
         file_paths,
         password,
         force_overwrite,
-        remove_source
+        remove_source,
+        &Argon2Params::default(),
+        show_progress
     )?;
-
-    // Report results
-    println!();
-    println!("📊 Decryption Results:");
-    println!("✅ Successful: {}", results.successful.len());
-    println!("❌ Failed: {}", results.failed.len());
-    println!("⏱️  Total time: {:.2?}", results.total_time);
-    
-    if !results.failed.is_empty() {
-        println!();
-        println!("❌ Failed decryptions:");
-        for (path, error) in &results.failed {
-            println!("  {} - {}", path.display(), error);
-        }
-    }
-
-    if !results.successful.is_empty() {
-        println!();
-        println!("✅ Successfully decrypted {} files", results.successful.len());
-    }
 
     // Exit with error code if any files failed
     if results.has_failures() {
