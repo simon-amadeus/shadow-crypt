@@ -9,8 +9,8 @@ use crate::shared::core::errors::CryptoError;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Algorithm {
     AES256GCM,
+    XChaCha20Poly1305,
     // Future algorithms will be added here
-    // ChaCha20Poly1305,
     // Kyber1024AES256,
 }
 
@@ -20,10 +20,22 @@ impl Algorithm {
         Algorithm::AES256GCM
     }
     
+    /// Parse algorithm from CLI string
+    pub fn from_cli_string(s: &str) -> Result<Self, CryptoError> {
+        match s {
+            "aes-gcm" => Ok(Algorithm::AES256GCM),
+            "xchacha20" => Ok(Algorithm::XChaCha20Poly1305),
+            _ => Err(CryptoError::CryptographicError(
+                format!("Unsupported algorithm: '{}'. Supported: aes-gcm, xchacha20", s)
+            )),
+        }
+    }
+    
     /// Get algorithm from identifier
     pub fn from_id(id: u16) -> Result<Self, CryptoError> {
         match id {
             1 => Ok(Algorithm::AES256GCM),
+            2 => Ok(Algorithm::XChaCha20Poly1305),
             _ => Err(CryptoError::UnsupportedAlgorithm(id)),
         }
     }
@@ -32,6 +44,7 @@ impl Algorithm {
     pub fn to_id(self) -> u16 {
         match self {
             Algorithm::AES256GCM => 1,
+            Algorithm::XChaCha20Poly1305 => 2,
         }
     }
     
@@ -39,6 +52,7 @@ impl Algorithm {
     pub fn name(self) -> &'static str {
         match self {
             Algorithm::AES256GCM => "AES-256-GCM",
+            Algorithm::XChaCha20Poly1305 => "XChaCha20-Poly1305",
         }
     }
     
@@ -46,6 +60,7 @@ impl Algorithm {
     pub fn key_size(self) -> usize {
         match self {
             Algorithm::AES256GCM => 32,
+            Algorithm::XChaCha20Poly1305 => 32,
         }
     }
     
@@ -53,6 +68,7 @@ impl Algorithm {
     pub fn nonce_size(self) -> usize {
         match self {
             Algorithm::AES256GCM => 12,
+            Algorithm::XChaCha20Poly1305 => 24,
         }
     }
 }

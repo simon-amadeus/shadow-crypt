@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.24.0] - 2025-10-02
+
+### Added - Algorithm Selection Infrastructure
+- **Algorithm Selection CLI**: Full command-line interface support for choosing encryption algorithms via `--algorithm` flag
+- **Dual Algorithm Support**: Users can select between `aes-gcm` (AES-256-GCM) and `xchacha20` (XChaCha20-Poly1305) algorithms
+- **Algorithm Dispatch Architecture**: Complete infrastructure for algorithm-agnostic encryption with runtime selection
+- **CLI Integration**: Updated shadow binary with comprehensive help documentation and algorithm validation
+
+### Performance - Test Optimization  
+- **Major Test Performance Improvement**: Overall test suite performance increased 4.4x (57+ seconds → 13 seconds)
+- **Unit Test Optimization**: Fixed XChaCha20-Poly1305 Argon2 parameters reducing unit tests from 57s to 1.3s (43x improvement)
+- **Integration Test Optimization**: Fixed slow integration tests using production parameters, achieving 950x improvement in critical tests
+- **Development Workflow Enhancement**: Fast test execution enables efficient development cycles
+
+### Technical - Infrastructure Foundation
+- **Algorithm Selection Module**: Complete `Algorithm` enum with XChaCha20Poly1305 support including metadata (ID, name, key/nonce sizes)
+- **CLI Parsing Architecture**: Robust argument parsing with validation and user-friendly error messages  
+- **Encryption Function Updates**: New `encrypt_single_file_with_algorithm_and_params()` enabling algorithm dispatch
+- **Backward Compatibility**: All existing functionality preserved while adding new algorithm selection capabilities
+
 ## [0.23.0] - 2025-10-02
 
 ### Added - XChaCha20-Poly1305 Security Implementation

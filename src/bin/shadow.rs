@@ -9,14 +9,15 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::{encrypt_single_file, encrypt_multiple_files_with_progress, expand_glob_patterns};
+use shadow_crypt::encryption::{encrypt_single_file, encrypt_multiple_files_with_progress, expand_glob_patterns, encrypt_single_file_with_algorithm_and_params};
+use shadow_crypt::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
     let args: Vec<String> = env::args().collect();
     
     // Parse command line arguments - password will be prompted securely
-    let (input_patterns, obfuscate_filename, force_overwrite, remove_source, quiet) = parse_args(&args);
+    let (input_patterns, obfuscate_filename, force_overwrite, remove_source, quiet, algorithm) = parse_args(&args);
     
     // Expand glob patterns into file paths
     let file_paths = match expand_glob_patterns(&input_patterns) {
@@ -50,10 +51,10 @@ fn main() {
     if file_paths.len() == 1 {
         // Single file - use existing logic for better UX
         let input_path = &file_paths[0];
-        handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source, !quiet);
+        handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source, !quiet, &algorithm);
     } else {
         // Multiple files - use batch processing
-        handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source, !quiet);
+        handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source, !quiet, &algorithm);
     }
 }
 
@@ -64,7 +65,8 @@ fn handle_single_file(
     obfuscate_filename: bool,
     force_overwrite: bool,
     remove_source: bool,
-    show_progress: bool
+    show_progress: bool,
+    algorithm: &str
 ) {
     // Check if file is already encrypted (prevent double-encryption)
     match shadow_crypt::shared::file_detection::is_encrypted_file(input_path) {
@@ -121,12 +123,24 @@ fn handle_single_file(
     use std::time::Instant;
     let start_time = Instant::now();
     
+    // Parse algorithm
+    let selected_algorithm = match Algorithm::from_cli_string(algorithm) {
+        Ok(alg) => alg,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            process::exit(1);
+        }
+    };
+    
+    // Use fast test parameters for better development experience  
+    let argon2_params = AESArgon2Params::default();
+    
     if show_progress {
         print!("🔄 Encrypting file...");
         std::io::Write::flush(&mut std::io::stdout()).ok();
     }
     
-    match encrypt_single_file(&input_path, &output_path, &password, obfuscate_filename) {
+    match encrypt_single_file_with_algorithm_and_params(&input_path, &output_path, &password, obfuscate_filename, selected_algorithm, &argon2_params) {
         Ok(()) => {
             if show_progress {
                 let duration = start_time.elapsed();
@@ -175,7 +189,8 @@ fn handle_multiple_files(
     obfuscate_filename: bool,
     force_overwrite: bool,
     remove_source: bool,
-    show_progress: bool
+    show_progress: bool,
+    algorithm: &str
 ) {
     let results = encrypt_multiple_files_with_progress(
         file_paths,
@@ -201,7 +216,7 @@ fn handle_multiple_files(
 /// Parse command line arguments
 /// 
 /// Now supports multiple input patterns for batch processing
-fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool) {
+fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool, String) {
     if args.len() < 2 {
         print_usage(&args[0]);
         process::exit(1);
@@ -212,6 +227,7 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool) {
     let mut force = false;
     let mut remove_source = false;
     let mut quiet = false;
+    let mut algorithm = "aes-gcm".to_string(); // Default to AES-GCM for compatibility
     
     let mut i = 1;
     while i < args.len() {
@@ -232,6 +248,25 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool) {
                 quiet = true;
                 i += 1;
             }
+            "--algorithm" | "-a" => {
+                if i + 1 >= args.len() {
+                    eprintln!("Error: --algorithm requires a value");
+                    print_usage(&args[0]);
+                    process::exit(1);
+                }
+                algorithm = args[i + 1].clone();
+                // Validate algorithm choice
+                match algorithm.as_str() {
+                    "aes-gcm" | "xchacha20" => {
+                        // Valid algorithm
+                    }
+                    _ => {
+                        eprintln!("Error: Unsupported algorithm '{}'. Supported: aes-gcm, xchacha20", algorithm);
+                        process::exit(1);
+                    }
+                }
+                i += 2;
+            }
             "--help" | "-h" => {
                 print_usage(&args[0]);
                 process::exit(0);
@@ -251,7 +286,7 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool) {
         process::exit(1);
     }
     
-    (input_patterns, obfuscate, force, remove_source, quiet)
+    (input_patterns, obfuscate, force, remove_source, quiet, algorithm)
 }
 
 /// Print usage information
@@ -262,12 +297,17 @@ fn print_usage(program_name: &str) {
     eprintln!("  <input_files_or_patterns>  One or more files or glob patterns to encrypt");
     eprintln!();
     eprintln!("Options:");
-    eprintln!("  -o, --obfuscate       Obfuscate the original filename for privacy");
-    eprintln!("  -f, --force           Overwrite existing output files without prompting");
-    eprintln!("  -r, --remove-source   Remove source files after successful encryption");
-    eprintln!("      --inplace         Alias for --remove-source");
-    eprintln!("  -q, --quiet           Minimal output (no progress indicators)");
-    eprintln!("  -h, --help            Show this help message");
+    eprintln!("  -a, --algorithm <ALG>     Encryption algorithm: aes-gcm (default), xchacha20");
+    eprintln!("  -o, --obfuscate           Obfuscate the original filename for privacy");
+    eprintln!("  -f, --force               Overwrite existing output files without prompting");
+    eprintln!("  -r, --remove-source       Remove source files after successful encryption");
+    eprintln!("      --inplace             Alias for --remove-source");
+    eprintln!("  -q, --quiet               Minimal output (no progress indicators)");
+    eprintln!("  -h, --help                Show this help message");
+    eprintln!();
+    eprintln!("Algorithms:");
+    eprintln!("  aes-gcm      AES-256-GCM (default, maximum compatibility)");
+    eprintln!("  xchacha20    XChaCha20-Poly1305 (enhanced security, no nonce reuse risk)");
     eprintln!();
     eprintln!("Behavior:");
     eprintln!("  Normal mode: 'secret.txt' → 'secret.txt.shadow'");
@@ -279,6 +319,7 @@ fn print_usage(program_name: &str) {
     eprintln!();
     eprintln!("Examples:");
     eprintln!("  {} secret.txt", program_name);
+    eprintln!("  {} --algorithm xchacha20 secret.txt", program_name);
     eprintln!("  {} file1.txt file2.txt file3.txt", program_name);
     eprintln!("  {} *.txt", program_name);
     eprintln!("  {} --obfuscate documents/*.pdf", program_name);

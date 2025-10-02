@@ -5,6 +5,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::header::{Header, FileMetadata, AlgorithmId};
+use crate::shared::algorithms::{Algorithm};
 use crate::shared::algorithms::aes_gcm::{
     generate_secure_nonce, encrypt_aes_gcm, derive_master_key, generate_salt, Argon2Params
 };
@@ -57,6 +58,28 @@ pub fn encrypt_single_file_with_progress(
 ) -> Result<(), CryptoError> {
     let params = Argon2Params::default();
     encrypt_single_file_with_params_and_progress(input_path, output_path, password, obfuscate_filename, &params, show_progress)
+}
+
+/// Encrypt a single file with algorithm selection and custom parameters
+pub fn encrypt_single_file_with_algorithm_and_params(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    algorithm: Algorithm,
+    params: &Argon2Params,
+) -> Result<(), CryptoError> {
+    match algorithm {
+        Algorithm::AES256GCM => {
+            encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, params)
+        }
+        Algorithm::XChaCha20Poly1305 => {
+            // TODO: Implement XChaCha20-Poly1305 encryption dispatch
+            Err(CryptoError::CryptographicError(
+                "XChaCha20-Poly1305 encryption not yet implemented in dispatch".to_string()
+            ))
+        }
+    }
 }
 
 /// Internal function that accepts custom Argon2 parameters for testing

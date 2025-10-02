@@ -17,20 +17,27 @@
 
 ### Phase 1: Algorithm Selection Architecture (1-2 hours)
 
-1. **Update Algorithm Selection Module** 
-   - Add XChaCha20-Poly1305 to `Algorithm` enum in `selection.rs`
-   - Update algorithm metadata (ID, name, key size, etc.)
-   - Implement algorithm selection logic
+1. **Update Algorithm Selection Module** ✅
+   - Add XChaCha20-Poly1305 to `Algorithm` enum in `selection.rs` ✅
+   - Update algorithm metadata (ID=2, name="XChaCha20-Poly1305", key_size=32, nonce_size=24) ✅
+   - Implement algorithm selection logic ✅
 
-2. **CLI Interface Design**
-   - Add `--algorithm` flag to shadow/unshadow binaries
-   - Options: `aes-gcm`, `xchacha20` (with `aes-gcm` as default for compatibility)
-   - Auto-detect algorithm for decryption (no flag needed)
+2. **CLI Interface Design** ✅
+   - Add `--algorithm` flag to shadow/unshadow binaries ✅
+   - Options: `aes-gcm`, `xchacha20` (with `aes-gcm` as default for compatibility) ✅
+   - Auto-detect algorithm for decryption (no flag needed) - *Note: decryption already auto-detects from header*
 
-3. **Encryption Function Updates**
-   - Modify `encrypt_single_file_with_params` to accept algorithm parameter
-   - Dispatch to appropriate algorithm implementation
-   - Update header generation with correct algorithm ID
+3. **Encryption Function Updates** 🔄 IN PROGRESS
+   - Modify `encrypt_single_file_with_params` to accept algorithm parameter ✅
+   - Dispatch to appropriate algorithm implementation ⚠️ PARTIAL (AES-GCM ✅, XChaCha20-Poly1305 ❌)
+   - Update header generation with correct algorithm ID ❌ PENDING
+   
+   **PROGRESS**: 
+   - ✅ Created `encrypt_single_file_with_algorithm_and_params()` function
+   - ✅ Integrated CLI algorithm parsing with `Algorithm::from_cli_string()`
+   - ✅ Updated shadow binary to use algorithm-aware encryption
+   - ✅ **TESTED**: AES-GCM encryption works via `--algorithm aes-gcm`
+   - ⚠️ **NEXT**: Implement XChaCha20-Poly1305 dispatch (currently shows "not yet implemented")
 
 ### Phase 2: Test Performance Optimization (30 minutes) ✅ COMPLETED
 
