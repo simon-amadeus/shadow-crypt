@@ -1,6 +1,6 @@
 [package]
 name = "shadow-crypt"
-version = "0.1.0"
+version = "0.28.0"
 edition = "2024"
 description = "High-security file encryption system"
 license = "MIT OR Apache-2.0"

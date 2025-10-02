@@ -50,17 +50,15 @@ Then start your first development cycle immediately without asking for further i
 - **Decision Gate**: Only proceed if all quality gates pass
 
 ### 7. **ADAPT** - *Optional*
-**Purpose**: Capture implementation learnings as feedback
+**Purpose**: Add feedback if new backlog items are required
 **Triggers**: Execute only if any of these occurred:
 - Discovered new work items during implementation
 - Found better approaches that affect other backlog items
 - Identified technical debt that needs prioritization
 - Architectural insights emerged during development
-
 **Actions**:
-- **docs/CHANGELOG.md insights → FEEDBACK.md**: Add learnings to "New Feedback" section
+- Add new requirements to "New Feedback" section
 - Document discoveries as internal feedback items
-- Tag items as "Implementation Learning" for proper prioritization
 - Let next INTAKE phase process these through normal feedback pipeline
 
 ## Quality Gates

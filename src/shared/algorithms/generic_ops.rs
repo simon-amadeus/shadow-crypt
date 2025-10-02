@@ -1,0 +1,208 @@
+//! Generic cryptographic operations using configuration traits
+//! 
+//! This module provides algorithm-agnostic encryption and decryption
+//! functions that use configuration traits for dependency injection.
+
+use std::path::Path;
+use crate::shared::core::errors::CryptoError;
+use crate::shared::algorithms::config::{CryptoConfig, ConfigProvider};
+use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
+use crate::encryption::encrypt_single_file_with_params;
+use crate::decryption::decrypt_single_file_with_params;
+
+/// Encrypt a single file using generic configuration
+/// 
+/// This function accepts any configuration that implements CryptoConfig,
+/// providing algorithm-agnostic encryption with proper dependency injection.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the file to encrypt
+/// * `output_path` - Path where encrypted file will be saved
+/// * `password` - Password for key derivation
+/// * `obfuscate_filename` - Whether to obfuscate the output filename
+/// * `config` - Configuration implementing CryptoConfig trait
+/// 
+/// # Returns
+/// * `Ok(())` - File encrypted successfully
+/// * `Err(CryptoError)` - Encryption failed
+pub fn encrypt_with_config<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    config: &C,
+) -> Result<(), CryptoError> {
+    // For now, we need to handle the algorithm dispatch manually
+    // until we refactor the underlying encryption functions
+    match config.algorithm_id() {
+        1 => {
+            // AES-GCM: Convert config to Argon2Params for compatibility
+            if let Ok(aes_config) = try_as_aes_config(config) {
+                let argon2_params = aes_config.argon2_params().clone();
+                encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, &argon2_params)
+            } else {
+                Err(CryptoError::CryptographicError(
+                    "Invalid AES-GCM configuration".to_string()
+                ))
+            }
+        }
+        2 => {
+            // XChaCha20-Poly1305: Not yet implemented with generic config
+            Err(CryptoError::CryptographicError(
+                "XChaCha20-Poly1305 not yet supported with generic configuration".to_string()
+            ))
+        }
+        _ => {
+            Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
+        }
+    }
+}
+
+/// Decrypt a single file using generic configuration
+/// 
+/// This function accepts any configuration that implements CryptoConfig,
+/// providing algorithm-agnostic decryption with proper dependency injection.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `output_path` - Path where decrypted file will be saved
+/// * `password` - Password for key derivation
+/// * `config` - Configuration implementing CryptoConfig trait
+/// 
+/// # Returns
+/// * `Ok(())` - File decrypted successfully
+/// * `Err(CryptoError)` - Decryption failed
+pub fn decrypt_with_config<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    config: &C,
+) -> Result<(), CryptoError> {
+    // For now, we need to handle the algorithm dispatch manually
+    // until we refactor the underlying decryption functions
+    match config.algorithm_id() {
+        1 => {
+            // AES-GCM: Convert config to Argon2Params for compatibility
+            if let Ok(aes_config) = try_as_aes_config(config) {
+                let argon2_params = aes_config.argon2_params().clone();
+                decrypt_single_file_with_params(input_path, output_path, password, &argon2_params)
+            } else {
+                Err(CryptoError::CryptographicError(
+                    "Invalid AES-GCM configuration".to_string()
+                ))
+            }
+        }
+        2 => {
+            // XChaCha20-Poly1305: Not yet implemented with generic config
+            Err(CryptoError::CryptographicError(
+                "XChaCha20-Poly1305 not yet supported with generic configuration".to_string()
+            ))
+        }
+        _ => {
+            Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
+        }
+    }
+}
+
+/// Encrypt using a config provider (dependency injection)
+pub fn encrypt_with_provider<P: ConfigProvider>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    provider: &P,
+) -> Result<(), CryptoError> {
+    encrypt_with_config(input_path, output_path, password, obfuscate_filename, provider.config())
+}
+
+/// Decrypt using a config provider (dependency injection)
+pub fn decrypt_with_provider<P: ConfigProvider>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    provider: &P,
+) -> Result<(), CryptoError> {
+    decrypt_with_config(input_path, output_path, password, provider.config())
+}
+
+// Helper function to safely cast generic config to AES config
+fn try_as_aes_config<C: CryptoConfig>(config: &C) -> Result<&AesGcmConfig, CryptoError> {
+    // This is a temporary solution using unsafe casting
+    // In a full refactor, we would use proper trait objects or enum dispatch
+    if config.algorithm_id() == 1 {
+        // SAFETY: We check the algorithm ID, so this should be an AesGcmConfig
+        // This is a transitional approach during the refactoring process
+        let ptr = config as *const C as *const AesGcmConfig;
+        unsafe { 
+            Ok(&*ptr) 
+        }
+    } else {
+        Err(CryptoError::CryptographicError(
+            "Configuration is not AES-GCM compatible".to_string()
+        ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::shared::algorithms::DefaultConfigProvider;
+    use tempfile::TempDir;
+    use std::fs::write;
+
+    #[test]
+    fn test_encrypt_decrypt_with_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("test.txt");
+        let encrypted_file = temp_dir.path().join("test.txt.shadow");
+        let decrypted_file = temp_dir.path().join("test_decrypted.txt");
+        
+        // Create test file
+        let test_content = "Hello, configuration world!";
+        write(&input_file, test_content).unwrap();
+        
+        // Create test configuration
+        let config = AesGcmConfig::test_config();
+        let password = "test_password";
+        
+        // Test encryption with config
+        encrypt_with_config(&input_file, &encrypted_file, password, false, &config).unwrap();
+        assert!(encrypted_file.exists());
+        
+        // Test decryption with config
+        decrypt_with_config(&encrypted_file, &decrypted_file, password, &config).unwrap();
+        assert!(decrypted_file.exists());
+        
+        // Verify content
+        let decrypted_content = std::fs::read_to_string(&decrypted_file).unwrap();
+        assert_eq!(decrypted_content, test_content);
+    }
+    
+    #[test]
+    fn test_encrypt_decrypt_with_provider() {
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("test.txt");
+        let encrypted_file = temp_dir.path().join("test.txt.shadow");
+        let decrypted_file = temp_dir.path().join("test_decrypted.txt");
+        
+        // Create test file
+        let test_content = "Hello, provider world!";
+        write(&input_file, test_content).unwrap();
+        
+        // Create test provider
+        let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+        let password = "test_password";
+        
+        // Test encryption with provider
+        encrypt_with_provider(&input_file, &encrypted_file, password, false, &provider).unwrap();
+        assert!(encrypted_file.exists());
+        
+        // Test decryption with provider
+        decrypt_with_provider(&encrypted_file, &decrypted_file, password, &provider).unwrap();
+        assert!(decrypted_file.exists());
+        
+        // Verify content
+        let decrypted_content = std::fs::read_to_string(&decrypted_file).unwrap();
+        assert_eq!(decrypted_content, test_content);
+    }
+}

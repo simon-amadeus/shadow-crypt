@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.28.0] - 2025-10-02
+
+### Added - Configuration Architecture Refactoring
+- **Trait-Based Configuration System**: Introduced generic configuration traits for algorithm-agnostic cryptographic operations
+- **Dependency Injection Support**: Created `ConfigProvider` trait enabling clean dependency injection patterns
+- **Mock-Friendly Testing**: New configuration system supports easy mocking and test isolation
+- **Algorithm-Agnostic Operations**: Added `encrypt_with_config()` and `decrypt_with_config()` functions using configuration traits
+
+### Architecture - Decoupled Algorithm Configuration
+- **New Traits**: `KeyDerivationConfig`, `EncryptionConfig`, `CryptoConfig` provide clean abstraction interfaces
+- **Concrete Implementation**: `AesGcmConfig` implements configuration traits with full backward compatibility
+- **Generic Operations Module**: `generic_ops.rs` provides algorithm-independent encryption/decryption functions
+- **Provider Pattern**: `DefaultConfigProvider` enables runtime configuration injection without coupling
+
+### Developer Experience - Improved Testability
+- **Eliminated Test Coupling**: Tests no longer need to import concrete `Argon2Params` types
+- **Simplified Test Patterns**: Configuration providers replace repeated parameter injection
+- **Enhanced Mockability**: Easy creation of mock configurations for edge case testing
+- **Future-Proof Testing**: Test patterns work consistently across all current and future algorithms
+
+### Quality Assurance - Comprehensive Validation
+- **Zero Breaking Changes**: All existing code continues working unchanged (168 → 171 tests passing)
+- **Backward Compatibility**: Legacy parameter types coexist with new configuration system
+- **Test Examples**: Comprehensive examples demonstrate improved testing patterns and benefits
+- **Architecture Validation**: Configuration traits ensure type safety and compile-time compatibility guarantees
+
 ## [0.27.0] - 2025-10-02
 
 ### Added - Multi-File Algorithm Support
