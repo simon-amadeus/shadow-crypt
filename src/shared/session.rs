@@ -6,6 +6,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::algorithms::aes_gcm::key_derivation::{derive_master_key, generate_salt, Argon2Params};
+use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
 use crate::shared::core::crypto::secure_memory::KeyMaterial;
 use std::sync::Arc;
 
@@ -99,8 +100,9 @@ mod tests {
 
     #[test]
     fn test_crypto_session_creation() {
-        let params = Argon2Params::test_params();
-        let session = CryptoSession::new("test_password", &params).unwrap();
+        let config = AesGcmConfig::test_config();
+        let params = config.argon2_params();
+        let session = CryptoSession::new("test_password", params).unwrap();
         
         assert_eq!(session.master_key().len(), 32);
         assert_eq!(session.encryption_key().len(), 32);
@@ -110,8 +112,9 @@ mod tests {
 
     #[test]
     fn test_session_manager_clone() {
-        let params = Argon2Params::test_params();
-        let manager1 = SessionManager::new("test_password", &params).unwrap();
+        let config = AesGcmConfig::test_config();
+        let params = config.argon2_params();
+        let manager1 = SessionManager::new("test_password", params).unwrap();
         let manager2 = manager1.clone();
         
         // Both managers should reference the same session
@@ -124,10 +127,11 @@ mod tests {
 
     #[test]
     fn test_session_with_salt() {
-        let params = Argon2Params::test_params();
+        let config = AesGcmConfig::test_config();
+        let params = config.argon2_params();
         let salt = b"test_salt_16byte";
-        let session1 = CryptoSession::with_salt("test_password", salt, &params).unwrap();
-        let session2 = CryptoSession::with_salt("test_password", salt, &params).unwrap();
+        let session1 = CryptoSession::with_salt("test_password", salt, params).unwrap();
+        let session2 = CryptoSession::with_salt("test_password", salt, params).unwrap();
         
         // Same password and salt should produce same keys
         assert_eq!(session1.master_key(), session2.master_key());
@@ -137,9 +141,10 @@ mod tests {
 
     #[test]
     fn test_different_sessions_different_keys() {
-        let params = Argon2Params::test_params();
-        let session1 = CryptoSession::new("password1", &params).unwrap();
-        let session2 = CryptoSession::new("password2", &params).unwrap();
+        let config = AesGcmConfig::test_config();
+        let params = config.argon2_params();
+        let session1 = CryptoSession::new("password1", params).unwrap();
+        let session2 = CryptoSession::new("password2", params).unwrap();
         
         assert_ne!(session1.master_key(), session2.master_key());
         assert_ne!(session1.encryption_key(), session2.encryption_key());

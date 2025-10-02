@@ -154,11 +154,13 @@ impl TimingAnalysisResult {
 
 /// Test password validation timing for constant-time behavior
 pub fn test_password_validation_timing() -> Result<TimingAnalysisResult, CryptoError> {
-    use crate::shared::algorithms::aes_gcm::{derive_master_key, generate_salt, Argon2Params};
+    use crate::shared::algorithms::aes_gcm::{derive_master_key, generate_salt};
+    use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
     
     let mut analyzer = TimingAnalyzer::new("password_validation");
     let salt = generate_salt(16)?;
-    let params = Argon2Params::test_params(); // Use fast params for timing test
+    let config = AesGcmConfig::test_config();
+    let params = config.argon2_params(); // Use fast params for timing test
     
     // Test with various password lengths and complexities
     let repeated_a = "a".repeat(100);
