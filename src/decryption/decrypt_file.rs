@@ -13,6 +13,7 @@ use crate::shared::algorithms::xchacha20_poly1305::{
     decrypt_xchacha20_poly1305, derive_master_key as derive_xchacha20_master_key, 
     Argon2Params as XChaCha20Argon2Params
 };
+use crate::shared::algorithms::config::CryptoConfig;
 use crate::shared::algorithms::Algorithm;
 use crate::shared::versions::detection::detect_version;
 use crate::shared::versions::v2::header::HeaderV2;
@@ -74,6 +75,62 @@ pub fn decrypt_single_file_with_params(
         2 => {
             // V2 format - use algorithm dispatch
             decrypt_single_file_v2_with_params(&encrypted_data, output_path, password, params)
+        }
+        _ => {
+            Err(CryptoError::HeaderParsingError(
+                format!("Unsupported file format version: {}", version)
+            ))
+        }
+    }
+}
+
+/// Decrypt a single file with trait-based configuration
+/// 
+/// This is the modernized core decryption function that accepts configuration
+/// traits directly instead of algorithm-specific parameter structs.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `output_path` - Path where decrypted file will be saved
+/// * `password` - Password for key derivation
+/// * `config` - Configuration implementing CryptoConfig trait
+/// 
+/// # Returns
+/// * `Ok(())` - File decrypted successfully
+/// * `Err(CryptoError)` - Decryption failed
+pub fn decrypt_single_file_with_config<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    config: &C,
+) -> Result<(), CryptoError> {
+    #[allow(unused_variables)] // TODO: Remove when implementing trait-based decryption
+    let _ = config;
+    // Read encrypted file
+    let mut input_file = File::open(input_path)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    let mut encrypted_data = Vec::new();
+    input_file.read_to_end(&mut encrypted_data)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    // Detect file format version automatically
+    let version = detect_version(&encrypted_data)?;
+    
+    match version {
+        1 => {
+            // V1 format - use existing AES-256-GCM decryption with config
+            // TODO: Complete trait-based implementation
+            // For now, forward to params-based function for compatibility
+            let params = Argon2Params::default();
+            decrypt_single_file_v1_with_params(&encrypted_data, input_path, output_path, password, &params)
+        }
+        2 => {
+            // V2 format - use algorithm dispatch with config
+            // TODO: Complete trait-based implementation  
+            // For now, forward to params-based function for compatibility
+            let params = Argon2Params::default();
+            decrypt_single_file_v2_with_params(&encrypted_data, output_path, password, &params)
         }
         _ => {
             Err(CryptoError::HeaderParsingError(

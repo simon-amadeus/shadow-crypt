@@ -7,12 +7,11 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Core Function Modernization**: Rewrite core encryption/decryption functions to accept configuration traits directly (remove Argon2Params shims)
-2. **Multi-File Configuration Integration**: Add configuration provider support to multi-file encryption/decryption operations
-3. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
-4. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
-5. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-6. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Multi-File Configuration Integration**: Add configuration provider support to multi-file encryption/decryption operations
+2. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
+3. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 

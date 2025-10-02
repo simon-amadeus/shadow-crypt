@@ -16,6 +16,7 @@ use crate::shared::algorithms::xchacha20_poly1305::{
     generate_salt as generate_xchacha20_salt,
     Argon2Params as XChaCha20Argon2Params,
 };
+use crate::shared::algorithms::config::CryptoConfig;
 use crate::shared::versions::v2::header::HeaderV2;
 use crate::encryption::filename_obfuscation::obfuscate_filename;
 use std::path::{Path, PathBuf};
@@ -180,6 +181,133 @@ pub fn encrypt_single_file_with_params(
         &nonce,
         &plaintext,
         &[]  // No additional authenticated data for now
+    )?;
+    
+    // Compute obfuscated filename authentication if needed
+    if obfuscate_filename {
+        use crate::shared::filename_auth::{compute_filename_auth_tag, extract_filename_for_auth};
+        let obfuscated_filename = extract_filename_for_auth(&actual_output_path)?;
+        let auth_tag = compute_filename_auth_tag(
+            &obfuscated_filename,
+            &header.salt,
+            &header.nonce,
+            &key_material
+        )?;
+        header.obfuscated_filename_auth_tag = auth_tag;
+    }
+    
+    // Write encrypted file atomically
+    write_encrypted_file(&actual_output_path, &header, &ciphertext)?;
+    
+    if obfuscate_filename {
+        println!("🎭 File saved with obfuscated name: {}", actual_output_path.display());
+    }
+    
+    Ok(())
+}
+
+/// Encrypt a single file with trait-based configuration
+/// 
+/// This is the modernized core encryption function that accepts configuration
+/// traits directly instead of algorithm-specific parameter structs.
+/// 
+/// # Arguments
+/// * `input_path` - Path to the file to encrypt
+/// * `output_path` - Base path for output (will be modified if obfuscation is enabled)
+/// * `password` - Password for key derivation
+/// * `obfuscate_filename` - Whether to obfuscate the original filename
+/// * `config` - Configuration implementing CryptoConfig trait
+/// 
+/// # Returns
+/// * `Ok(())` - File encrypted successfully
+/// * `Err(CryptoError)` - Encryption failed
+pub fn encrypt_single_file_with_config<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    config: &C,
+) -> Result<(), CryptoError> {
+    // Read input file
+    let mut input_file = File::open(input_path)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    let mut plaintext = Vec::new();
+    input_file.read_to_end(&mut plaintext)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    // Get file metadata
+    let file_metadata = extract_file_metadata(input_path, &plaintext)?;
+    
+    // Generate cryptographic materials using trait methods
+    let salt = generate_salt(config.salt_length())?;
+    let key_material = config.derive_key_material(password, &salt)?;
+    let nonce = generate_secure_nonce()?;  // TODO: Make this trait-based too
+    
+    // Determine actual output path (obfuscated or original)
+    let actual_output_path = if obfuscate_filename {
+        generate_obfuscated_output_path(input_path, output_path, &key_material)?
+    } else {
+        output_path.to_path_buf()
+    };
+    
+    // Create header with algorithm ID from config
+    let mut header = create_encryption_header_with_algorithm(
+        input_path,
+        &file_metadata,
+        &salt,
+        &nonce,
+        obfuscate_filename,
+        config.algorithm_id(),
+    )?;
+    
+    // Encrypt metadata using trait-based encryption
+    let metadata_bytes = file_metadata.serialize();
+    let encrypted_metadata = encrypt_with_algorithm(
+        &key_material,
+        &nonce,
+        &metadata_bytes,
+        config.algorithm_id(),
+    )?;
+    header.encrypted_metadata = encrypted_metadata.clone();
+    header.metadata_length = encrypted_metadata.len() as u16;
+    
+    // Encrypt filename
+    if let Some(filename) = input_path.file_name() {
+        if let Some(filename_str) = filename.to_str() {
+            let filename_bytes = filename_str.as_bytes();
+            let encrypted_filename = encrypt_with_algorithm(
+                &key_material,
+                &nonce,
+                filename_bytes,
+                config.algorithm_id(),
+            )?;
+            header.encrypted_filename = encrypted_filename.clone();
+            header.filename_length = encrypted_filename.len() as u16;
+        }
+    }
+    
+    // Encrypt directory path
+    if let Some(parent) = input_path.parent() {
+        if let Some(parent_str) = parent.to_str() {
+            let path_bytes = parent_str.as_bytes();
+            let encrypted_path = encrypt_with_algorithm(
+                &key_material,
+                &nonce,
+                path_bytes,
+                config.algorithm_id(),
+            )?;
+            header.encrypted_directory_path = encrypted_path.clone();
+            header.directory_path_length = encrypted_path.len() as u16;
+        }
+    }
+    
+    // Encrypt file content
+    let ciphertext = encrypt_with_algorithm(
+        &key_material,
+        &nonce,
+        &plaintext,
+        config.algorithm_id(),
     )?;
     
     // Compute obfuscated filename authentication if needed
@@ -608,10 +736,138 @@ fn write_encrypted_file_v2(
     Ok(())
 }
 
+/// Create encryption header with configurable algorithm ID
+fn create_encryption_header_with_algorithm(
+    _file_path: &Path,
+    _metadata: &FileMetadata,
+    salt: &[u8],
+    nonce: &[u8],
+    _obfuscate_filename: bool,
+    algorithm_id: u16,
+) -> Result<Header, CryptoError> {
+    let salt_array: [u8; 16] = salt.try_into()
+        .map_err(|_| CryptoError::CryptographicError("Invalid salt length".to_string()))?;
+    let nonce_array: [u8; 12] = nonce.try_into()
+        .map_err(|_| CryptoError::CryptographicError("Invalid nonce length".to_string()))?;
+    
+    let algorithm = match algorithm_id {
+        1 => AlgorithmId::AesGcm256,
+        2 => AlgorithmId::ChaCha20Poly1305,
+        _ => return Err(CryptoError::CryptographicError(
+            format!("Unsupported algorithm ID: {}", algorithm_id)
+        )),
+    };
+    
+    let header = Header::new(
+        algorithm,
+        salt_array,
+        nonce_array,
+    );
+    
+    Ok(header)
+}
+
+/// Encrypt data with specified algorithm
+fn encrypt_with_algorithm(
+    key_material: &crate::shared::core::crypto::secure_memory::KeyMaterial,
+    nonce: &[u8],
+    plaintext: &[u8],
+    algorithm_id: u16,
+) -> Result<Vec<u8>, CryptoError> {
+    match algorithm_id {
+        1 => {
+            // AES-256-GCM
+            encrypt_aes_gcm(
+                key_material.encryption_key.expose_secret(),
+                nonce,
+                plaintext,
+                &[]  // No additional authenticated data
+            )
+        }
+        2 => {
+            // XChaCha20-Poly1305
+            encrypt_xchacha20_poly1305(
+                key_material.encryption_key.expose_secret(),
+                nonce,
+                plaintext,
+                &[]  // No additional authenticated data
+            )
+        }
+        _ => Err(CryptoError::CryptographicError(
+            format!("Unsupported algorithm ID: {}", algorithm_id)
+        )),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use tempfile::tempdir;
+    use crate::shared::algorithms::AesGcmConfig;
+
+    #[test]
+    fn test_trait_based_encryption_compatibility() {
+        let temp_dir = tempdir().unwrap();
+        let input_path = temp_dir.path().join("test.txt");
+        let output_path_params = temp_dir.path().join("test_params.shadow");
+        let output_path_config = temp_dir.path().join("test_config.shadow");
+        
+        // Create test file
+        std::fs::write(&input_path, b"Hello, Shadow!").unwrap();
+        
+        let password = "testpassword123";
+        
+        // Encrypt with params-based function
+        let params = Argon2Params::test_params();
+        encrypt_single_file_with_params(&input_path, &output_path_params, password, false, &params).unwrap();
+        
+        // Encrypt with trait-based function
+        let config = AesGcmConfig::test_config();
+        encrypt_single_file_with_config(&input_path, &output_path_config, password, false, &config).unwrap();
+        
+        // Both files should exist and be non-empty
+        assert!(output_path_params.exists());
+        assert!(output_path_config.exists());
+        assert!(std::fs::metadata(&output_path_params).unwrap().len() > 0);
+        assert!(std::fs::metadata(&output_path_config).unwrap().len() > 0);
+        
+        // Both should be different from original
+        let original = std::fs::read(&input_path).unwrap();
+        let encrypted_params = std::fs::read(&output_path_params).unwrap();
+        let encrypted_config = std::fs::read(&output_path_config).unwrap();
+        
+        assert_ne!(original, encrypted_params);
+        assert_ne!(original, encrypted_config);
+        
+        // Both should start with SHADOW magic number
+        assert_eq!(&encrypted_params[0..6], b"SHADOW");
+        assert_eq!(&encrypted_config[0..6], b"SHADOW");
+    }
+
+    #[test]
+    fn test_trait_based_roundtrip() {
+        let temp_dir = tempdir().unwrap();
+        let input_path = temp_dir.path().join("roundtrip.txt");
+        let encrypted_path = temp_dir.path().join("roundtrip.shadow");
+        let decrypted_path = temp_dir.path().join("roundtrip_decrypted.txt");
+        
+        let original_content = b"This is a roundtrip test with trait-based encryption!";
+        std::fs::write(&input_path, original_content).unwrap();
+        
+        let password = "roundtriptest123";
+        let config = AesGcmConfig::test_config();
+        
+        // Encrypt with trait-based function
+        encrypt_single_file_with_config(&input_path, &encrypted_path, password, false, &config).unwrap();
+        
+        // Decrypt with trait-based function
+        use crate::decryption::decrypt_single_file_with_config;
+        decrypt_single_file_with_config(&encrypted_path, &decrypted_path, password, &config).unwrap();
+        
+        // Verify content matches
+        let decrypted_content = std::fs::read(&decrypted_path).unwrap();
+        assert_eq!(original_content, decrypted_content.as_slice());
+    }
 
     #[test]
     fn test_encrypt_single_file_basic() {
