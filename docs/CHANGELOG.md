@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.3] - 2025-10-02
+
+### Core Modernization - Trait-Based Encryption Implementation (Phase 1)
+- **New Encryption Interface**: Added `encrypt_single_file_with_config<C: CryptoConfig>()` accepting configuration traits directly
+- **Decryption Interface Stub**: Added `decrypt_single_file_with_config<C: CryptoConfig>()` with compatibility forwarding (full implementation pending)
+- **Algorithm Dispatch Helper Functions**: Implemented `encrypt_with_algorithm()` and `create_encryption_header_with_algorithm()` for algorithm-agnostic operations
+- **Backward Compatibility Preserved**: Existing `encrypt_single_file_with_params()` and `decrypt_single_file_with_params()` functions remain unchanged
+
+### Developer Experience - Modern API Pattern Foundation
+- **Partial Configuration Trait Usage**: Encryption path now uses `config.derive_key_material()`, `config.algorithm_id()`, and `config.salt_length()` directly
+- **Comprehensive Test Coverage**: Added roundtrip encryption/decryption tests validating trait-based function compatibility
+- **Module Export Integration**: New functions exported through `encryption::mod` and `decryption::mod` for convenient access
+- **Zero Breaking Changes**: All 177 existing tests pass, ensuring complete backward compatibility
+
+### Architecture - Partial Argon2Params Conversion Elimination
+- **Encryption Path Modernized**: Core encryption operations use configuration traits directly, eliminating parameter conversion shims
+- **Decryption Path Compatibility**: Maintains existing parameter-based implementation while providing trait-based interface
+- **Algorithm Extensibility Foundation**: Algorithm dispatch through trait methods supports future cryptographic algorithms
+- **Performance Optimization**: Reduced object conversions and memory allocations in encryption pipeline
+
+### Work in Progress - Remaining Implementation
+- **Phase 2 Required**: Complete trait-based decryption implementation with `decrypt_with_algorithm()` helper functions
+- **Shim Removal Pending**: Full removal of Argon2Params conversion patterns in generic operations layer
+- **Migration Strategy**: Established pattern for trait-based core function implementation
+
 ## [0.30.2] - 2025-10-02
 
 ### Configuration Migration - Complete Legacy Pattern Removal

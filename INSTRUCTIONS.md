@@ -41,9 +41,10 @@ Then start your first development cycle immediately without asking for further i
 - Follow test-first development approach
 - Update docs/CURRENT_CYCLE.md with progress and discoveries only
 - Continuous validation against success criteria
+- **Decision Gate**: Assess if another cycle is needed or if work is complete
 
 ### 6. **ADAPT**
-**Purpose**: Add newly required backlog items
+**Purpose**: Incorporate learnings and new insights
 **Triggers**: Execute only if any of these occurred:
 - Further work is needed to complete original item
 - Discovered new work items during implementation
@@ -51,8 +52,10 @@ Then start your first development cycle immediately without asking for further i
 - Identified technical debt that needs prioritization
 - Architectural insights emerged during development
 **Actions**:
-- Add new requirements to docs/BACKLOG.md as new items
-- Let next INTAKE phase process these through normal feedback pipeline
+- Reflect on the current implementation cycle in docs/CURRENT_CYCLE.md
+- If further work is needed:
+    - Add new requirements to docs/BACKLOG.md as new items
+    - Let next INTAKE phase process these through normal feedback pipeline
 
 ### 7. **COMPLETE**
 **Purpose**: Finalize work and update documentation chain
