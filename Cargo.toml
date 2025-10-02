@@ -39,6 +39,7 @@ path = "src/bin/shadowbench.rs"
 [dependencies]
 # Cryptographic dependencies for Phase 3
 aes-gcm = "0.10"         # AES-256-GCM authenticated encryption
+chacha20poly1305 = "0.10" # XChaCha20-Poly1305 authenticated encryption
 argon2 = "0.5"           # Argon2id key derivation
 getrandom = "0.3"        # Secure random number generation
 zeroize = "1.6"          # Secure memory zeroization

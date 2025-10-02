@@ -4,6 +4,7 @@
 //! for different cryptographic algorithms used in Shadow.
 
 pub mod aes_gcm;
+pub mod xchacha20_poly1305;
 pub mod selection;
 pub mod registry;
 pub mod constants;
@@ -14,4 +15,7 @@ pub use registry::{AlgorithmCapability, get_available_algorithms, get_algorithm_
 pub use constants::{AlgorithmId, CURRENT_VERSION, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION, VersionInfo, MAX_FILENAME_LENGTH, MAX_DIRECTORY_PATH_LENGTH, MAX_METADATA_LENGTH};
 
 // Re-export AES-GCM functions for backward compatibility
-pub use aes_gcm::{encrypt_aes_gcm, decrypt_aes_gcm, generate_secure_nonce, generate_random_key, derive_master_key, generate_salt, Argon2Params, MasterKeyManager};
+pub use aes_gcm::{encrypt_aes_gcm, decrypt_aes_gcm, generate_secure_nonce as generate_aes_nonce, generate_random_key as generate_aes_key, derive_master_key as derive_aes_master_key, generate_salt, Argon2Params, MasterKeyManager as AesKeyManager};
+
+// Re-export XChaCha20-Poly1305 functions 
+pub use xchacha20_poly1305::{encrypt_xchacha20_poly1305, decrypt_xchacha20_poly1305, generate_secure_nonce as generate_xchacha_nonce, generate_random_key as generate_xchacha_key, derive_master_key as derive_xchacha_master_key, MasterKeyManager as XChaChaKeyManager};

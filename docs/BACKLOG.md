@@ -3,11 +3,13 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements (identified in audit)
+- **Algorithm Selection Infrastructure**: Enable choosing between AES-GCM and XChaCha20-Poly1305 algorithms with CLI flags and ensure all tests use efficient key derivation parameters. currently some tests are very slow.
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **XChaCha20-Poly1305 Default Migration**: Make XChaCha20-Poly1305 default for new encryptions while maintaining AES-GCM decryption
+2. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements (identified in audit)  
+3. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 
@@ -19,7 +21,34 @@
 
 ---
 
-## Security Audit Results Integration
+## 🧭 KEY LEARNINGS & INSIGHTS
+
+### From XChaCha20-Poly1305 Implementation (Phase 23)
+
+**Security Architecture Insights:**
+- **Algorithmic Solutions > Complex Infrastructure**: XChaCha20-Poly1305's 24-byte nonces eliminate entire classes of vulnerabilities that AES-GCM requires complex tracking systems to address
+- **Stateless Design Superiority**: Algorithms designed for stateless operation (like file encryption) provide inherently better security than adapting stateful protocols
+- **Collision Mathematics**: 2^-96 vs 2^-48 collision probability represents orders of magnitude security improvement - mathematical guarantees beat operational protections
+
+**Implementation Quality Insights:**
+- **Interface Consistency**: Matching existing algorithm patterns enabled seamless integration (30 new tests, 0 regressions)
+- **Comprehensive Testing Value**: Security-focused testing (authentication failures, timing analysis, various data sizes) caught edge cases early
+- **Dependency Management**: Single focused dependency (chacha20poly1305 crate) provided complete functionality without complexity
+
+**Development Process Insights:**
+- **Security-First Development**: Starting with cryptographic primitives and building up ensures strong foundation
+- **Backward Compatibility**: Maintaining existing functionality while adding new capabilities requires careful module design
+- **Incremental Security**: Each step maintained or improved security posture - no partial implementations that reduced security
+
+**Strategic Direction:**
+- **Algorithm Selection Infrastructure**: Next critical step to make superior algorithm available to users
+- **Default Migration Strategy**: Gradual transition (selection → default → deprecation) balances security improvement with user experience
+- **User Communication**: Clear security messaging about improvements builds trust and adoption
+
+### For Next Implementation Cycle
+
+**Focus**: Algorithm selection infrastructure with CLI integration
+**Key Insight**: Users need simple algorithm choice without complexity - default to best security, allow explicit fallback for compatibility
 
 **Audit Outcome**: Shadow achieves **A+ Security Grade** with industry-leading cryptographic implementation and comprehensive threat protection.
 
