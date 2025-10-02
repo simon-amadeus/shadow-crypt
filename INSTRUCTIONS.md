@@ -65,8 +65,11 @@ Then start your first development cycle immediately without asking for further i
 - ✅ Clean compilation, passing tests (unit, integration, end-to-end)
 - ✅ Security reviewed, performance validated
 - ✅ Architecture supports vertical slicing and future extension
-- ✅ Documentation updated, changes committed
+- ✅ Documentation updated, changes committed using conventional commits standard
 - ✅ Cargo.toml version matches changelog version for releases
+
+## Git Usage
+Follow the [Conventional Commits](https://www.conventionalcommits.org/) standard for all commit messages to enable automated versioning and changelog generation.
 
 ## Cycle Optimization
 - **2-4 hour cycles** with 1-3 testable outcomes
