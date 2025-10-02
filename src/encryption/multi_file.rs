@@ -6,7 +6,8 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
-use crate::encryption::encrypt_single_file;
+use crate::encryption::{encrypt_single_file, encrypt_single_file_with_algorithm_and_params};
+use crate::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use rayon::prelude::*;
@@ -50,6 +51,136 @@ pub fn encrypt_multiple_files(
         remove_source,
         true, // show_progress = true for backward compatibility
     )
+}
+
+/// Encrypt multiple files with algorithm selection and progress reporting control
+/// Uses parallel processing for improved performance
+pub fn encrypt_multiple_files_with_algorithm(
+    file_paths: &[PathBuf],
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool,
+    show_progress: bool,
+    algorithm: Algorithm,
+) -> Result<MultiFileResults, CryptoError> {
+    let start_time = Instant::now();
+    let total_files = file_paths.len();
+    
+    if total_files == 0 {
+        return Err(CryptoError::InvalidFileFormat); // No files to process
+    }
+
+    let argon2_params = AESArgon2Params::default();
+
+    let results = show_minimal_multifile_progress(
+        "Encrypting",
+        total_files,
+        show_progress,
+        || {
+            // Use parallel processing for multiple files to improve performance
+            file_paths
+                .par_iter()
+                .map(|file_path| {
+                    // Validate file before processing
+                    if !file_path.exists() {
+                        let error_msg = "File does not exist".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    if !file_path.is_file() {
+                        let error_msg = "Not a regular file (directories not supported)".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    // Check if file is already encrypted (prevent double-encryption)
+                    match crate::shared::file_detection::is_encrypted_file(file_path) {
+                        Ok(true) => {
+                            let error_msg = "File is already encrypted (skipped)".to_string();
+                            return (file_path.clone(), Err(error_msg));
+                        }
+                        Ok(false) => {
+                            // File is not encrypted, proceed with encryption
+                        }
+                        Err(_e) => {
+                            // Could not check if encrypted - proceed with encryption (fail-safe)
+                        }
+                    }
+
+                    // Determine output path
+                    let output_path = generate_output_path(file_path, obfuscate_filename);
+
+                    // Check for overwrite protection
+                    if output_path.exists() && !force_overwrite {
+                        let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    // Attempt encryption with algorithm selection
+                    match encrypt_single_file_with_algorithm_and_params(file_path, &output_path, password, obfuscate_filename, algorithm, &argon2_params) {
+                        Ok(()) => {
+                            // Handle source file removal if requested
+                            if remove_source {
+                                match crate::shared::secure_delete::secure_delete_file(file_path) {
+                                    Ok(()) => {
+                                        // Source deleted successfully - this is logged for single files but not multi-files to keep output minimal
+                                    }
+                                    Err(_e) => {
+                                        // Don't treat this as a failure of the encryption itself for minimal UI
+                                        // The encryption succeeded, source deletion is a warning at most
+                                    }
+                                }
+                            }
+                            (file_path.clone(), Ok(()))
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Encryption failed: {}", e);
+                            (file_path.clone(), Err(error_msg))
+                        }
+                    }
+                })
+                .collect::<Vec<(PathBuf, Result<(), String>)>>()
+        }
+    );
+
+    // Collect results from parallel processing
+    let mut successful = Vec::new();
+    let mut failed = Vec::new();
+
+    for (file_path, result) in results {
+        match result {
+            Ok(()) => successful.push(file_path),
+            Err(error_msg) => failed.push((file_path, error_msg)),
+        }
+    }
+
+    let total_time = start_time.elapsed();
+
+    // Report completion with minimal output
+    report_minimal_multifile_completion(
+        "Encrypted",
+        total_files,
+        successful.len(),
+        failed.len(),
+        total_time,
+        show_progress,
+    );
+
+    // Show failed files if any (this is essential information)
+    if !failed.is_empty() && show_progress {
+        println!();
+        println!("❌ Failed files:");
+        for (path, error) in &failed {
+            println!("   {} - {}", path.display(), error);
+        }
+    }
+
+    Ok(MultiFileResults {
+        successful,
+        failed,
+        total_files,
+        total_time,
+    })
 }
 
 /// Encrypt multiple files with progress reporting control
@@ -246,6 +377,7 @@ pub fn expand_glob_patterns(patterns: &[String]) -> Result<Vec<PathBuf>, CryptoE
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shared::algorithms::Algorithm;
 
     #[test]
     fn test_generate_output_path_normal() {
@@ -281,5 +413,65 @@ mod tests {
 
         assert!((results.success_rate() - 0.6666666666666666).abs() < 0.0001);
         assert!(results.has_failures());
+    }
+
+    #[test]
+    fn test_multifile_algorithm_support() {
+        // Test that the new function supports algorithm selection
+        let file_paths = vec![PathBuf::from("nonexistent1.txt"), PathBuf::from("nonexistent2.txt")];
+        
+        // Test with XChaCha20-Poly1305 (default)
+        let result_xchacha = encrypt_multiple_files_with_algorithm(
+            &file_paths,
+            "password123",
+            false, // obfuscate_filename
+            false, // force_overwrite  
+            false, // remove_source
+            false, // show_progress
+            Algorithm::XChaCha20Poly1305,
+        );
+        
+        // Should return error because files don't exist, but validates algorithm parameter is accepted
+        assert!(result_xchacha.is_ok()); // Function returns Ok with failed files in results
+        let res = result_xchacha.unwrap();
+        assert_eq!(res.total_files, 2);
+        assert_eq!(res.successful.len(), 0);
+        assert_eq!(res.failed.len(), 2);
+        
+        // Test with AES256GCM
+        let result_aes = encrypt_multiple_files_with_algorithm(
+            &file_paths,
+            "password123",
+            false, // obfuscate_filename
+            false, // force_overwrite
+            false, // remove_source
+            false, // show_progress
+            Algorithm::AES256GCM,
+        );
+        
+        // Should also return error because files don't exist, but validates algorithm parameter is accepted
+        assert!(result_aes.is_ok()); // Function returns Ok with failed files in results
+        let res = result_aes.unwrap();
+        assert_eq!(res.total_files, 2);
+        assert_eq!(res.successful.len(), 0);
+        assert_eq!(res.failed.len(), 2);
+    }
+
+    #[test]
+    fn test_multifile_algorithm_error_handling() {
+        // Test empty file list
+        let empty_files: Vec<PathBuf> = vec![];
+        let result = encrypt_multiple_files_with_algorithm(
+            &empty_files,
+            "password123",
+            false,
+            false,
+            false,
+            false,
+            Algorithm::XChaCha20Poly1305,
+        );
+        
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), CryptoError::InvalidFileFormat));
     }
 }

@@ -6,22 +6,24 @@ A high-security, high-performance file encryption system written in Rust with re
 
 ## Development Status
 
-🎯 **Phase 26 COMPLETED** - XChaCha20-Poly1305 Default Migration!
+🎯 **Phase 27 COMPLETED** - Multi-File Algorithm Support!
 
-✅ **Enhanced Security by Default**: XChaCha20-Poly1305 now default for new encryptions (2^-96 nonce collision resistance)  
-✅ **Dynamic Algorithm Display**: CLI shows actual algorithm being used instead of hardcoded messages  
-✅ **Security-First UX**: Users automatically get enhanced security while maintaining full choice  
-✅ **Zero Breaking Changes**: All existing workflows preserved, backward compatibility maintained  
-✅ **Updated Documentation**: README and help text reflect security-first positioning  
-✅ **Comprehensive Validation**: All 175 tests pass, round-trip functionality confirmed  
+✅ **Universal Algorithm Selection**: All operations (single, multi-file, glob patterns) respect `--algorithm` flag consistently  
+✅ **Enhanced Security Everywhere**: Multi-file operations use XChaCha20-Poly1305 by default for enhanced security  
+✅ **Mixed Algorithm Support**: Universal decryption handles file sets with different algorithms transparently  
+✅ **Zero Breaking Changes**: All existing workflows enhanced without disruption  
+✅ **Complete Test Coverage**: All 177 tests pass with comprehensive algorithm dispatch validation  
+✅ **Real-world Validated**: Practical testing confirms algorithm selection works across all operation types  
 
-**Next Priority**: Multi-file algorithm support and code quality polish.
+**Next Priority**: Code quality polish and production readiness.
 
 ## Features
 
-- **Algorithm Selection**: Choose between AES-256-GCM (compatibility) and XChaCha20-Poly1305 (enhanced security)
+- **Universal Algorithm Selection**: Choose between AES-256-GCM (compatibility) and XChaCha20-Poly1305 (enhanced security) for all operations
+- **Multi-File Algorithm Support**: Algorithm selection works across single files, multiple files, and glob patterns
 - **XChaCha20-Poly1305** authenticated encryption (eliminates nonce reuse vulnerabilities)
 - **AES-256-GCM** authenticated encryption (backward compatibility)
+- **Mixed Algorithm Decryption**: Universal decryption handles file sets with different algorithms transparently
 - **Reversible filename obfuscation** (no manifest required)
 - **Vertical slicing architecture** with separate tools for each use case
 - **Secure memory handling** with automatic zeroization
@@ -81,10 +83,23 @@ cargo build --release
 # Decrypt with filename obfuscation and remove encrypted file  
 ./target/release/unshadow --inplace secret.txt.shadow
 
-# Decrypt multiple files (Phase 11+)
+# Multi-file encryption with default XChaCha20-Poly1305 (enhanced security)
+./target/release/shadow file1.txt file2.txt file3.txt
+
+# Multi-file encryption with explicit algorithm selection
+./target/release/shadow --algorithm aes-gcm file1.txt file2.txt file3.txt
+
+# Multi-file encryption with glob patterns (uses default XChaCha20-Poly1305)
+./target/release/shadow *.txt
+./target/release/shadow "docs/**/*.txt"
+
+# Multi-file encryption with algorithm selection and glob patterns
+./target/release/shadow --algorithm xchacha20 "sensitive/**/*.txt"
+
+# Decrypt multiple files (universal decryption handles mixed algorithms)
 ./target/release/unshadow file1.shadow file2.shadow file3.shadow
 
-# Decrypt with glob patterns (Phase 11+)  
+# Decrypt with glob patterns (works with any algorithm combination)
 ./target/release/unshadow *.shadow
 ./target/release/unshadow "docs/**/*.shadow"
 

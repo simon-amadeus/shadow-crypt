@@ -9,7 +9,7 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::{encrypt_multiple_files_with_progress, expand_glob_patterns, encrypt_single_file_with_algorithm_and_params};
+use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_with_algorithm_and_params};
 use shadow_crypt::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
@@ -196,15 +196,25 @@ fn handle_multiple_files(
     force_overwrite: bool,
     remove_source: bool,
     show_progress: bool,
-    _algorithm: &str
+    algorithm: &str
 ) {
-    let results = encrypt_multiple_files_with_progress(
+    // Parse algorithm 
+    let selected_algorithm = match Algorithm::from_cli_string(algorithm) {
+        Ok(alg) => alg,
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            process::exit(1);
+        }
+    };
+
+    let results = encrypt_multiple_files_with_algorithm(
         file_paths,
         password,
         obfuscate_filename,
         force_overwrite,
         remove_source,
-        show_progress
+        show_progress,
+        selected_algorithm
     );
 
     // Handle the Result wrapper
