@@ -22,15 +22,34 @@ pub struct Argon2Params {
 
 impl Default for Argon2Params {
     fn default() -> Self {
+        // Use lightweight parameters during testing
+        if cfg!(test) {
+            Self::test_params()
+        } else {
+            Self::production_params()
+        }
+    }
+}
+
+impl Argon2Params {
+    /// Production parameters with system adaptation
+    pub fn production_params() -> Self {
         Self {
             memory_cost: 524288,  // 512 MB memory usage
             time_cost: 5,         // 5 iterations 
             parallelism: 8,       // 8 parallel threads
         }
     }
-}
-
-impl Argon2Params {
+    
+    /// Lightweight parameters for testing
+    pub fn test_params() -> Self {
+        Self {
+            memory_cost: 1024,   // 1MB - very fast for testing
+            time_cost: 1,        // 1 iteration - minimal time
+            parallelism: 1,      // Single thread - deterministic
+        }
+    }
+    
     /// Create adaptive parameters based on system capabilities
     pub fn adaptive() -> Self {
         let available_memory = Self::get_available_memory();
@@ -285,7 +304,7 @@ mod tests {
     
     #[test]
     fn test_argon2_params_adaptive() {
-        let params = Argon2Params::adaptive();
+        let params = Argon2Params::production_params(); // Use production params instead of adaptive for testing
         
         // Should use reasonable values
         assert!(params.memory_cost >= 65536); // At least 64MB

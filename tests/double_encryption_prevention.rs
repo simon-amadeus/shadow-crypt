@@ -5,7 +5,8 @@
 use std::fs::File;
 use std::io::Write;
 use tempfile::tempdir;
-use shadow_crypt::encryption::encrypt_single_file;
+use shadow_crypt::encryption::{encrypt_single_file_with_params};
+use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
 use shadow_crypt::shared::file_detection::is_encrypted_file;
 
 #[test]
@@ -22,7 +23,8 @@ fn test_is_encrypted_file_detection() {
     
     // Encrypt the file
     let encrypted_file = dir.path().join("plain.txt.shadow");
-    encrypt_single_file(&plain_file, &encrypted_file, "password123", false).unwrap();
+    let fast_params = Argon2Params::test_params(); // Use fast parameters for testing
+    encrypt_single_file_with_params(&plain_file, &encrypted_file, "password123", false, &fast_params).unwrap();
     
     // Should now be detected as encrypted
     assert_eq!(is_encrypted_file(&encrypted_file).unwrap(), true);
