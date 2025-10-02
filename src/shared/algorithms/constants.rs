@@ -45,7 +45,7 @@ pub const CURRENT_VERSION: u16 = 1;
 pub const MIN_SUPPORTED_VERSION: u16 = 1;
 
 /// Maximum supported version for forward compatibility
-pub const MAX_SUPPORTED_VERSION: u16 = 1;
+pub const MAX_SUPPORTED_VERSION: u16 = 2;
 
 /// Version information for migration decisions
 #[derive(Debug, Clone, PartialEq, Eq)]

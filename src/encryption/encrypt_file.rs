@@ -9,6 +9,14 @@ use crate::shared::algorithms::{Algorithm};
 use crate::shared::algorithms::aes_gcm::{
     generate_secure_nonce, encrypt_aes_gcm, derive_master_key, generate_salt, Argon2Params
 };
+use crate::shared::algorithms::xchacha20_poly1305::{
+    generate_secure_nonce as generate_xchacha20_nonce, 
+    encrypt_xchacha20_poly1305, 
+    derive_master_key as derive_xchacha20_master_key,
+    generate_salt as generate_xchacha20_salt,
+    Argon2Params as XChaCha20Argon2Params,
+};
+use crate::shared::versions::v2::header::HeaderV2;
 use crate::encryption::filename_obfuscation::obfuscate_filename;
 use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
@@ -74,10 +82,13 @@ pub fn encrypt_single_file_with_algorithm_and_params(
             encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, params)
         }
         Algorithm::XChaCha20Poly1305 => {
-            // TODO: Implement XChaCha20-Poly1305 encryption dispatch
-            Err(CryptoError::CryptographicError(
-                "XChaCha20-Poly1305 encryption not yet implemented in dispatch".to_string()
-            ))
+            // Convert AES Argon2Params to XChaCha20 Argon2Params
+            let xchacha20_params = XChaCha20Argon2Params {
+                memory_cost: params.memory_cost,
+                time_cost: params.time_cost,
+                parallelism: params.parallelism,
+            };
+            encrypt_single_file_with_xchacha20_params(input_path, output_path, password, obfuscate_filename, &xchacha20_params)
         }
     }
 }
@@ -468,6 +479,131 @@ fn write_encrypted_file(
     // Atomically move temporary file to final location
     std::fs::rename(&temp_path, output_path)
         .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    Ok(())
+}
+
+/// Encrypt a single file with XChaCha20-Poly1305 using V2 header format
+fn encrypt_single_file_with_xchacha20_params(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    params: &XChaCha20Argon2Params,
+) -> Result<(), CryptoError> {
+    // Read input file
+    let mut input_file = File::open(input_path)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    let mut plaintext = Vec::new();
+    input_file.read_to_end(&mut plaintext)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    // Get file metadata
+    let file_metadata = extract_file_metadata(input_path, &plaintext)?;
+    
+    // Generate cryptographic materials for XChaCha20
+    let salt = generate_xchacha20_salt()?;
+    let key_material = derive_xchacha20_master_key(password, &salt, params)?;
+    let nonce = generate_xchacha20_nonce()?;
+    
+    // Determine actual output path (obfuscated or original)
+    let actual_output_path = if obfuscate_filename {
+        // Use AES key material for filename obfuscation (keeping compatibility)
+        let aes_params = Argon2Params {
+            memory_cost: params.memory_cost,
+            time_cost: params.time_cost,
+            parallelism: params.parallelism,
+        };
+        let mut aes_salt = [0u8; 16];
+        aes_salt.copy_from_slice(&salt[0..16]);
+        let aes_key_material = derive_master_key(password, &aes_salt, &aes_params)?;
+        generate_obfuscated_output_path(input_path, output_path, &aes_key_material)?
+    } else {
+        output_path.to_path_buf()
+    };
+    
+    // Create V2 header
+    let mut header = HeaderV2::new(
+        AlgorithmId::ChaCha20Poly1305,
+        salt,
+        nonce.to_vec(),
+    );
+    
+    // Encrypt metadata
+    let metadata_bytes = file_metadata.serialize();
+    let encrypted_metadata = encrypt_xchacha20_poly1305(
+        key_material.expose_secret(),
+        &nonce,
+        &metadata_bytes,
+        &[]
+    )?;
+    header.encrypted_metadata = encrypted_metadata.clone();
+    header.metadata_length = encrypted_metadata.len() as u16;
+    
+    // Encrypt filename
+    if let Some(filename) = input_path.file_name() {
+        if let Some(filename_str) = filename.to_str() {
+            let filename_bytes = filename_str.as_bytes();
+            let encrypted_filename = encrypt_xchacha20_poly1305(
+                key_material.expose_secret(),
+                &nonce,
+                filename_bytes,
+                &[]
+            )?;
+            header.encrypted_filename = encrypted_filename.clone();
+            header.filename_length = encrypted_filename.len() as u16;
+        }
+    }
+    
+    // Encrypt main file content
+    let ciphertext = encrypt_xchacha20_poly1305(
+        key_material.expose_secret(),
+        &nonce,
+        &plaintext,
+        &[]
+    )?;
+    
+    // Write V2 encrypted file
+    write_encrypted_file_v2(&actual_output_path, &header, &ciphertext)?;
+    
+    Ok(())
+}
+
+/// Write V2 encrypted file atomically to prevent corruption
+fn write_encrypted_file_v2(
+    output_path: &Path,
+    header: &HeaderV2,
+    ciphertext: &[u8],
+) -> Result<(), CryptoError> {
+    // Create temporary file for atomic write
+    let temp_path = output_path.with_extension("tmp");
+    
+    {
+        let mut temp_file = File::create(&temp_path)
+            .map_err(|e| CryptoError::FileSystemError(e))?;
+        
+        // Write V2 header
+        let header_bytes = header.serialize();
+        temp_file.write_all(&header_bytes)
+            .map_err(|e| CryptoError::FileSystemError(e))?;
+        
+        // Write ciphertext
+        temp_file.write_all(ciphertext)
+            .map_err(|e| CryptoError::FileSystemError(e))?;
+        
+        // Ensure all data is written to disk
+        temp_file.sync_all()
+            .map_err(|e| CryptoError::FileSystemError(e))?;
+    }
+    
+    // Atomic rename from temp to final destination
+    std::fs::rename(&temp_path, output_path)
+        .map_err(|e| {
+            // Cleanup temp file on failure
+            let _ = std::fs::remove_file(&temp_path);
+            CryptoError::FileSystemError(e)
+        })?;
     
     Ok(())
 }

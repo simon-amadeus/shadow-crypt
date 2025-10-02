@@ -4,6 +4,7 @@
 //! for different Shadow file format versions.
 
 pub mod v1;
+pub mod v2;
 pub mod detection;
 pub mod dispatch;
 

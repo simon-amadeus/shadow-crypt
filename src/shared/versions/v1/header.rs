@@ -6,6 +6,8 @@
 use crate::shared::core::errors::CryptoError;
 use crate::shared::algorithms::{AlgorithmId, VersionInfo, CURRENT_VERSION, MIN_SUPPORTED_VERSION, MAX_SUPPORTED_VERSION, MAX_FILENAME_LENGTH, MAX_DIRECTORY_PATH_LENGTH, MAX_METADATA_LENGTH};
 
+pub const MAGIC_NUMBER_V1: [u8; 6] = *b"SHADOW";
+
 /// File header structure with all encrypted components
 #[derive(Debug)]
 pub struct Header {
