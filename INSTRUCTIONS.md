@@ -49,16 +49,16 @@ Then start your first development cycle immediately without asking for further i
 - Delete docs/CURRENT_CYCLE.md (work is now in docs/CHANGELOG.md)
 - **Decision Gate**: Only proceed if all quality gates pass
 
-### 7. **ADAPT** - *Optional*
-**Purpose**: Add feedback if new backlog items are required
+### 7. **ADAPT**
+**Purpose**: Add newly required backlog items
 **Triggers**: Execute only if any of these occurred:
+- Further work is needed to complete original item
 - Discovered new work items during implementation
 - Found better approaches that affect other backlog items
 - Identified technical debt that needs prioritization
 - Architectural insights emerged during development
 **Actions**:
-- Add new requirements to "New Feedback" section
-- Document discoveries as internal feedback items
+- Add new requirements to docs/BACKLOG.md as new items
 - Let next INTAKE phase process these through normal feedback pipeline
 
 ## Quality Gates
