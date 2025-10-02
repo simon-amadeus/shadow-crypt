@@ -89,6 +89,20 @@ pub fn encrypt_multiple_files_with_progress(
                         return (file_path.clone(), Err(error_msg));
                     }
 
+                    // Check if file is already encrypted (prevent double-encryption)
+                    match crate::shared::file_detection::is_encrypted_file(file_path) {
+                        Ok(true) => {
+                            let error_msg = "File is already encrypted (skipped)".to_string();
+                            return (file_path.clone(), Err(error_msg));
+                        }
+                        Ok(false) => {
+                            // File is not encrypted, proceed with encryption
+                        }
+                        Err(_e) => {
+                            // Could not check if encrypted - proceed with encryption (fail-safe)
+                        }
+                    }
+
                     // Determine output path
                     let output_path = generate_output_path(file_path, obfuscate_filename);
 

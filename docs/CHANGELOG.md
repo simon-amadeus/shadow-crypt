@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2025-10-02
+
+### Added - Double-Encryption Prevention
+- **Smart Detection**: Shadow now prevents encrypting already encrypted files by checking for the "SHADOW" magic header
+- **Clear Error Messages**: Single file operations provide helpful error messages with guidance when attempting to encrypt `.shadow` files
+- **Multi-File Intelligence**: Batch operations skip already encrypted files with warnings rather than failing entirely
+- **User Guidance**: Error messages suggest using `unshadow` to decrypt or `shadowview` to view encrypted files
+
+### Enhanced - User Experience & Safety
+- **Prevent User Confusion**: Eliminates creation of double-encrypted files like `secret.txt.shadow.shadow`
+- **File Management**: Cleaner file organization without nested encryption extensions
+- **Performance Optimization**: Avoids unnecessary double encryption that provides no security benefit
+- **Graceful Handling**: Multi-file operations report skipped files in completion summary
+
+### Technical - Detection Architecture
+- **Magic Header Check**: Fast detection using first 6 bytes of files to identify Shadow encrypted files
+- **Fail-Safe Design**: File I/O errors during detection are treated as "not encrypted" to avoid blocking legitimate operations
+- **Zero Performance Impact**: Detection adds only microseconds to operation time with minimal file I/O
+- **Comprehensive Testing**: 5 new integration tests validate detection behavior including edge cases
+
 ## [0.19.0] - 2025-10-02
 
 ### Enhanced - Multi-File UX Polish (Customer Feedback Response)

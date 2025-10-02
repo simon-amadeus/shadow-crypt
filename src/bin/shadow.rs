@@ -66,6 +66,22 @@ fn handle_single_file(
     remove_source: bool,
     show_progress: bool
 ) {
+    // Check if file is already encrypted (prevent double-encryption)
+    match shadow_crypt::shared::file_detection::is_encrypted_file(input_path) {
+        Ok(true) => {
+            eprintln!("Error: The file '{}' is already encrypted", input_path.display());
+            eprintln!("Hint: Use 'unshadow' to decrypt it first, or use 'shadowview' to view its contents");
+            process::exit(1);
+        }
+        Ok(false) => {
+            // File is not encrypted, proceed with encryption
+        }
+        Err(e) => {
+            eprintln!("Warning: Could not check if file is encrypted ({})", e);
+            eprintln!("Proceeding with encryption...");
+        }
+    }
+
     // Determine output path automatically
     let output_path = if obfuscate_filename {
         // When obfuscating, use input file directory with .shadow extension
