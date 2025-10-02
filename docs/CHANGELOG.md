@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.1] - 2025-10-02
+
+### Documentation - Configuration System Reference
+- **Comprehensive Architecture Documentation**: Added detailed configuration system section to `docs/ARCHITECTURE.md` covering trait design, provider patterns, and usage examples
+- **Developer Guide Creation**: New `docs/CONFIG_GUIDE.md` provides practical examples, migration patterns, testing strategies, and troubleshooting guide
+- **Enhanced Inline Documentation**: Improved module-level documentation in `src/shared/algorithms/` with usage examples and migration patterns
+- **Clean Module Organization**: Organized re-exports in `algorithms/mod.rs` for easy access to configuration system components
+
+### Developer Experience - Configuration Pattern Guidance
+- **Migration Guide**: Clear before/after examples for transitioning from manual `Argon2Params` injection to configuration providers
+- **Testing Patterns**: Comprehensive documentation of test configuration injection patterns and mock creation strategies  
+- **Algorithm-Agnostic Examples**: Demonstrated how to write generic functions that work across all encryption algorithms
+- **Best Practices**: Documented configuration selection guidelines, dependency injection patterns, and advanced usage scenarios
+
 ## [0.30.0] - 2025-10-02
 
 ### Architecture - Configuration Provider Pattern Migration

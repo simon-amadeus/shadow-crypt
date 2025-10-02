@@ -174,6 +174,180 @@ src/shared/
 - Temporary file cleanup and protection
 - Permission validation and enforcement
 
+## Configuration Architecture
+
+### Design Goals
+
+The configuration system provides **algorithm-agnostic abstractions** that enable:
+- **Dependency Injection**: Clean separation between configuration and usage
+- **Testing Isolation**: Easy mocking and test parameter injection  
+- **Algorithm Independence**: Same interfaces work across all encryption algorithms
+- **Future Extensibility**: New algorithms integrate seamlessly
+
+### Core Configuration Traits
+
+#### `KeyDerivationConfig` - Password-based key derivation interface
+```rust
+pub trait KeyDerivationConfig: Send + Sync + Clone {
+    /// Derive key material from password and salt
+    fn derive_key_material(&self, password: &str, salt: &[u8]) -> Result<KeyMaterial, CryptoError>;
+    
+    /// Get recommended salt length in bytes
+    fn salt_length(&self) -> usize { 16 }
+    
+    /// Get configuration name for debugging/logging
+    fn name(&self) -> &'static str;
+}
+```
+
+#### `EncryptionConfig` - Algorithm-specific parameters
+```rust
+pub trait EncryptionConfig: Send + Sync + Clone {
+    /// Get the key size required by this algorithm
+    fn key_size(&self) -> usize;
+    
+    /// Get the nonce size required by this algorithm  
+    fn nonce_size(&self) -> usize;
+    
+    /// Get algorithm identifier for header serialization
+    fn algorithm_id(&self) -> u16;
+    
+    /// Get human-readable algorithm name
+    fn algorithm_name(&self) -> &'static str;
+}
+```
+
+#### `CryptoConfig` - Combined configuration interface
+```rust
+pub trait CryptoConfig: KeyDerivationConfig + EncryptionConfig {
+    /// Create a test configuration with fast parameters
+    fn test_config() -> Self;
+    
+    /// Create a production configuration with secure parameters
+    fn production_config() -> Self;
+}
+```
+
+### Provider Pattern for Dependency Injection
+
+#### `ConfigProvider` - Clean dependency injection
+```rust
+pub trait ConfigProvider {
+    type Config: CryptoConfig;
+    
+    /// Get the current configuration
+    fn config(&self) -> &Self::Config;
+}
+
+/// Default provider implementation
+pub struct DefaultConfigProvider<T: CryptoConfig> {
+    config: T,
+}
+```
+
+### Algorithm Implementations
+
+#### AES-GCM Configuration
+```rust
+/// AES-256-GCM configuration with Argon2id key derivation
+#[derive(Debug, Clone)]
+pub struct AesGcmConfig {
+    argon2_params: Argon2Params,
+}
+
+impl CryptoConfig for AesGcmConfig {
+    fn test_config() -> Self {
+        Self::new(Argon2Params::test_params())
+    }
+    
+    fn production_config() -> Self {
+        Self::new(Argon2Params::production())
+    }
+}
+```
+
+#### XChaCha20 Configuration
+```rust
+/// XChaCha20-Poly1305 configuration with Argon2id key derivation
+#[derive(Debug, Clone)]
+pub struct XChaCha20Config {
+    argon2_params: Argon2Params,
+}
+
+// Same CryptoConfig interface as AES-GCM
+```
+
+### Usage Patterns
+
+#### Generic Operations with Configuration
+```rust
+// Algorithm-agnostic encryption
+pub fn encrypt_with_config<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    config: &C,
+) -> Result<(), CryptoError>
+
+// Provider-based operations for dependency injection
+pub fn encrypt_with_provider<P: ConfigProvider>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    provider: &P,
+) -> Result<(), CryptoError>
+```
+
+#### Testing Patterns
+```rust
+// OLD: Manual parameter injection
+let params = Argon2Params::test_params();
+encrypt_single_file_with_params(&input, &output, password, false, &params)?;
+
+// NEW: Configuration provider pattern
+let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+encrypt_with_provider(&input, &output, password, false, &provider)?;
+```
+
+### Configuration Benefits
+
+**Algorithm Agnostic**: Same test patterns work for AES-GCM, XChaCha20, and future algorithms
+**Easy Mocking**: Create mock configurations for edge case testing
+**Dependency Injection**: Runtime configuration without coupling to concrete types
+**Type Safety**: Compile-time guarantees about configuration compatibility
+**Migration Support**: Backward compatibility with existing parameter types
+
+### Migration Guidelines
+
+**Step 1**: Replace direct `Argon2Params` usage with configuration providers
+```rust
+// Before
+let params = Argon2Params::test_params();
+
+// After  
+let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+```
+
+**Step 2**: Use generic operations instead of algorithm-specific functions
+```rust
+// Before
+encrypt_single_file_with_params(&input, &output, password, false, &params)?;
+
+// After
+encrypt_with_provider(&input, &output, password, false, &provider)?;
+```
+
+**Step 3**: Leverage configuration traits for algorithm flexibility
+```rust
+// Generic function accepting any algorithm
+fn test_encryption<C: CryptoConfig>(config: &C) {
+    // Works with AES-GCM, XChaCha20, future algorithms
+    encrypt_with_config(&input, &output, password, false, config)?;
+}
+```
+
 ## Implementation Status
 
 ### Completed (Phase 9.94.6)
