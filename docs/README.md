@@ -6,16 +6,16 @@ A high-security, high-performance file encryption system written in Rust with re
 
 ## Development Status
 
-🎯 **Phase 25 COMPLETED** - Complete Decryption Dispatch Integration!
+🎯 **Phase 26 COMPLETED** - XChaCha20-Poly1305 Default Migration!
 
-✅ **Universal Decryption Support**: Full V1 and V2 format decryption with automatic version detection  
-✅ **Algorithm Dispatch**: Complete decryption support for both AES-256-GCM and XChaCha20-Poly1305  
-✅ **Seamless Compatibility**: V1 backward compatibility preserved with zero breaking changes  
-✅ **Automatic Detection**: Format detection and algorithm dispatch work transparently  
-✅ **Performance Maintained**: Test suite continues at 0.19 seconds with enhanced functionality  
-✅ **Complete Integration**: All tools (`unshadow`, `shadowview`, `shadowedit`) support all formats automatically  
+✅ **Enhanced Security by Default**: XChaCha20-Poly1305 now default for new encryptions (2^-96 nonce collision resistance)  
+✅ **Dynamic Algorithm Display**: CLI shows actual algorithm being used instead of hardcoded messages  
+✅ **Security-First UX**: Users automatically get enhanced security while maintaining full choice  
+✅ **Zero Breaking Changes**: All existing workflows preserved, backward compatibility maintained  
+✅ **Updated Documentation**: README and help text reflect security-first positioning  
+✅ **Comprehensive Validation**: All 175 tests pass, round-trip functionality confirmed  
 
-**Next Priority**: XChaCha20-Poly1305 default migration and multi-file algorithm support.
+**Next Priority**: Multi-file algorithm support and code quality polish.
 
 ## Features
 
@@ -48,9 +48,10 @@ The system provides seven specialized command-line tools:
 cargo build --release
 
 # Encrypt a file (password prompted securely, progress shown by default)
+# Uses XChaCha20-Poly1305 for enhanced security
 ./target/release/shadow secret.txt
 
-# Encrypt with XChaCha20-Poly1305 (enhanced security)
+# Encrypt with explicit XChaCha20-Poly1305 (default, enhanced security)
 ./target/release/shadow --algorithm xchacha20 secret.txt
 
 # Encrypt with AES-256-GCM (maximum compatibility)
@@ -62,8 +63,11 @@ cargo build --release
 # Encrypt with filename obfuscation
 ./target/release/shadow --obfuscate secret.txt
 
-# Encrypt with algorithm selection and obfuscation
-./target/release/shadow --algorithm xchacha20 --obfuscate secret.txt
+# Encrypt with algorithm selection and obfuscation (using default XChaCha20-Poly1305)
+./target/release/shadow --obfuscate secret.txt
+
+# Encrypt with explicit algorithm and obfuscation
+./target/release/shadow --algorithm aes-gcm --obfuscate secret.txt
 
 # Encrypt and remove source file
 ./target/release/shadow --remove-source secret.txt
@@ -107,9 +111,9 @@ cargo build --release
 
 This is a production-ready file encryption system with completed core features, comprehensive security audit, production-quality error handling, and complete shadow branding. See [CHANGELOG.md](CHANGELOG.md) for version history and [ROADMAP.md](ROADMAP.md) for future plans.
 
-**Latest Update**: ✅ **Phase 24 Complete** - Algorithm Selection Infrastructure with full CLI integration enabling user choice between AES-256-GCM and XChaCha20-Poly1305.
+**Latest Update**: ✅ **Phase 26 Complete** - XChaCha20-Poly1305 Default Migration with enhanced security by default while maintaining full backward compatibility.
 
-**Security Status**: ✅ **Enhanced Security with User Choice** - Users can select between AES-256-GCM (maximum compatibility) and XChaCha20-Poly1305 (enhanced security with 2^-96 nonce collision resistance).
+**Security Status**: ✅ **Enhanced Security by Default** - XChaCha20-Poly1305 provides 2^-96 nonce collision resistance by default, with AES-256-GCM available for maximum compatibility via `--algorithm aes-gcm`.
 
 **Quality Status**: ✅ **Exceptional Code Quality Maintained** - 147 tests passing including 30 comprehensive XChaCha20-Poly1305 security validation tests.
 

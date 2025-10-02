@@ -117,13 +117,8 @@ fn handle_single_file(
         println!("📄 Output file: {}", output_path.display());
         println!("🎭 Filename obfuscation: DISABLED");
     }
-    println!("🔑 Using password-based encryption with AES-256-GCM");
     
-    // Perform encryption with progress indicators
-    use std::time::Instant;
-    let start_time = Instant::now();
-    
-    // Parse algorithm
+    // Parse algorithm first
     let selected_algorithm = match Algorithm::from_cli_string(algorithm) {
         Ok(alg) => alg,
         Err(e) => {
@@ -131,6 +126,17 @@ fn handle_single_file(
             process::exit(1);
         }
     };
+    
+    // Display algorithm information
+    let algorithm_name = match selected_algorithm {
+        Algorithm::AES256GCM => "AES-256-GCM",
+        Algorithm::XChaCha20Poly1305 => "XChaCha20-Poly1305",
+    };
+    println!("🔑 Using password-based encryption with {}", algorithm_name);
+    
+    // Perform encryption with progress indicators
+    use std::time::Instant;
+    let start_time = Instant::now();
     
     // Use fast test parameters for better development experience  
     let argon2_params = AESArgon2Params::default();
@@ -227,7 +233,7 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool, String) 
     let mut force = false;
     let mut remove_source = false;
     let mut quiet = false;
-    let mut algorithm = "aes-gcm".to_string(); // Default to AES-GCM for compatibility
+    let mut algorithm = "xchacha20".to_string(); // Default to XChaCha20-Poly1305 for enhanced security
     
     let mut i = 1;
     while i < args.len() {
@@ -297,7 +303,7 @@ fn print_usage(program_name: &str) {
     eprintln!("  <input_files_or_patterns>  One or more files or glob patterns to encrypt");
     eprintln!();
     eprintln!("Options:");
-    eprintln!("  -a, --algorithm <ALG>     Encryption algorithm: aes-gcm (default), xchacha20");
+    eprintln!("  -a, --algorithm <ALG>     Encryption algorithm: xchacha20 (default), aes-gcm");
     eprintln!("  -o, --obfuscate           Obfuscate the original filename for privacy");
     eprintln!("  -f, --force               Overwrite existing output files without prompting");
     eprintln!("  -r, --remove-source       Remove source files after successful encryption");
@@ -306,8 +312,8 @@ fn print_usage(program_name: &str) {
     eprintln!("  -h, --help                Show this help message");
     eprintln!();
     eprintln!("Algorithms:");
-    eprintln!("  aes-gcm      AES-256-GCM (default, maximum compatibility)");
-    eprintln!("  xchacha20    XChaCha20-Poly1305 (enhanced security, no nonce reuse risk)");
+    eprintln!("  xchacha20    XChaCha20-Poly1305 (default, enhanced security)");
+    eprintln!("  aes-gcm      AES-256-GCM (maximum compatibility)");
     eprintln!();
     eprintln!("Behavior:");
     eprintln!("  Normal mode: 'secret.txt' → 'secret.txt.shadow'");
