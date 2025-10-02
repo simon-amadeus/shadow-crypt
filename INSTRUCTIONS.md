@@ -69,7 +69,7 @@ Then start your first development cycle immediately without asking for further i
 - ✅ Cargo.toml version matches changelog version for releases
 
 ## Git Usage
-Follow the [Conventional Commits](https://www.conventionalcommits.org/) standard for all commit messages to enable automated versioning and changelog generation.
+Read and follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) standard for all commit messages to enable automated versioning and changelog generation. Keep commit messages short and focused. The headline should describe the what, the body (if needed) should explain the why and how.
 
 ## Cycle Optimization
 - **2-4 hour cycles** with 1-3 testable outcomes
