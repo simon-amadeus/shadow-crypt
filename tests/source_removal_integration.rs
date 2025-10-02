@@ -5,9 +5,7 @@
 use std::fs;
 use std::path::Path;
 use tempfile::TempDir;
-use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
-use shadow_crypt::decryption::decrypt_file::decrypt_single_file_with_params;
+use shadow_crypt::shared::algorithms::{encrypt_with_provider, decrypt_with_provider, DefaultConfigProvider, AesGcmConfig};
 use shadow_crypt::shared::secure_delete::secure_delete_file;
 
 #[test]
@@ -25,7 +23,8 @@ fn test_source_removal_workflow() {
     let encrypted_file = Path::new(&auto_output_path);
     
     // Encrypt the file (simulating simplified CLI: lock secret_document.txt)
-    encrypt_single_file_with_params(&original_file, encrypted_file, password, false, &Argon2Params::test_params()).unwrap();
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    encrypt_with_provider(&original_file, encrypted_file, password, false, &provider).unwrap();
     
     // Verify encrypted file exists and original still exists
     assert!(encrypted_file.exists(), "Encrypted file should be created");
@@ -44,7 +43,7 @@ fn test_source_removal_workflow() {
     // The decryption should restore the original filename from the header
     let restored_file = temp_dir.path().join("secret_document.txt");
     
-    decrypt_single_file_with_params(encrypted_file, &restored_file, password, &Argon2Params::test_params()).unwrap();
+    decrypt_with_provider(encrypted_file, &restored_file, password, &provider).unwrap();
     
     // Verify decryption worked and content matches
     assert!(restored_file.exists(), "Restored file should exist");
@@ -113,13 +112,14 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     fs::write(&input_file, "private content").unwrap();
     
     let password = "obfuscation_test";
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
     
     // Test obfuscated encryption (simulating: lock --obfuscate private_doc.pdf)
     // When obfuscating, the output should be in the same directory with .shadow extension
     let parent_dir = input_file.parent().unwrap();
     let temp_output = parent_dir.join("temp_obfuscated.shadow"); // Placeholder name
     
-    encrypt_single_file_with_params(&input_file, &temp_output, password, true, &Argon2Params::test_params()).unwrap();
+    encrypt_with_provider(&input_file, &temp_output, password, true, &provider).unwrap();
     
     // Find the actual obfuscated file that was created (filename will be different)
     let enc_files: Vec<_> = fs::read_dir(parent_dir).unwrap()
@@ -138,7 +138,7 @@ fn test_obfuscated_workflow_with_simplified_cli() {
     
     // Test that we can decrypt and restore original filename
     let restored_file = temp_dir.path().join("restored_private_doc.pdf");
-    decrypt_single_file_with_params(obfuscated_file, &restored_file, password, &Argon2Params::test_params()).unwrap();
+    decrypt_with_provider(obfuscated_file, &restored_file, password, &provider).unwrap();
     
     // Verify restoration worked
     assert!(restored_file.exists(), "Restored file should exist");

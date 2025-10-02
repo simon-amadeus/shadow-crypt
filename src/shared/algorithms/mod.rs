@@ -10,6 +10,7 @@ pub mod registry;
 pub mod constants;
 pub mod config;
 pub mod aes_gcm_config;
+pub mod xchacha20_config;
 pub mod generic_ops;
 pub mod test_examples;
 
@@ -21,6 +22,7 @@ pub use constants::{AlgorithmId, CURRENT_VERSION, MIN_SUPPORTED_VERSION, MAX_SUP
 // Re-export configuration traits and types
 pub use config::{KeyDerivationConfig, EncryptionConfig, CryptoConfig, ConfigProvider, DefaultConfigProvider};
 pub use aes_gcm_config::AesGcmConfig;
+pub use xchacha20_config::XChaCha20Config;
 pub use generic_ops::{encrypt_with_config, decrypt_with_config, encrypt_with_provider, decrypt_with_provider};
 
 // Re-export AES-GCM functions for backward compatibility

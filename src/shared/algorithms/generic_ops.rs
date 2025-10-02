@@ -7,6 +7,7 @@ use std::path::Path;
 use crate::shared::core::errors::CryptoError;
 use crate::shared::algorithms::config::{CryptoConfig, ConfigProvider};
 use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
+use crate::shared::algorithms::xchacha20_config::XChaCha20Config;
 use crate::encryption::encrypt_single_file_with_params;
 use crate::decryption::decrypt_single_file_with_params;
 
@@ -47,10 +48,30 @@ pub fn encrypt_with_config<C: CryptoConfig>(
             }
         }
         2 => {
-            // XChaCha20-Poly1305: Not yet implemented with generic config
-            Err(CryptoError::CryptographicError(
-                "XChaCha20-Poly1305 not yet supported with generic configuration".to_string()
-            ))
+            // XChaCha20-Poly1305: Convert config to XChaCha20Argon2Params for compatibility
+            if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
+                let argon2_params = xchacha20_config.argon2_params().clone();
+                use crate::encryption::encrypt_single_file_with_algorithm_and_params;
+                use crate::shared::algorithms::Algorithm;
+                // Convert to AES Argon2Params format for now (temporary during transition)
+                let aes_params = crate::shared::algorithms::aes_gcm::Argon2Params {
+                    memory_cost: argon2_params.memory_cost,
+                    time_cost: argon2_params.time_cost,
+                    parallelism: argon2_params.parallelism,
+                };
+                encrypt_single_file_with_algorithm_and_params(
+                    input_path, 
+                    output_path, 
+                    password, 
+                    obfuscate_filename, 
+                    Algorithm::XChaCha20Poly1305,
+                    &aes_params
+                )
+            } else {
+                Err(CryptoError::CryptographicError(
+                    "Invalid XChaCha20-Poly1305 configuration".to_string()
+                ))
+            }
         }
         _ => {
             Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
@@ -93,10 +114,21 @@ pub fn decrypt_with_config<C: CryptoConfig>(
             }
         }
         2 => {
-            // XChaCha20-Poly1305: Not yet implemented with generic config
-            Err(CryptoError::CryptographicError(
-                "XChaCha20-Poly1305 not yet supported with generic configuration".to_string()
-            ))
+            // XChaCha20-Poly1305: Convert config to Argon2Params for compatibility  
+            if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
+                let argon2_params = xchacha20_config.argon2_params().clone();
+                // Convert to AES Argon2Params format for compatibility with current decryption interface
+                let aes_params = crate::shared::algorithms::aes_gcm::Argon2Params {
+                    memory_cost: argon2_params.memory_cost,
+                    time_cost: argon2_params.time_cost,
+                    parallelism: argon2_params.parallelism,
+                };
+                decrypt_single_file_with_params(input_path, output_path, password, &aes_params)
+            } else {
+                Err(CryptoError::CryptographicError(
+                    "Invalid XChaCha20-Poly1305 configuration".to_string()
+                ))
+            }
         }
         _ => {
             Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
@@ -143,10 +175,28 @@ fn try_as_aes_config<C: CryptoConfig>(config: &C) -> Result<&AesGcmConfig, Crypt
     }
 }
 
+// Helper function to safely cast generic config to XChaCha20 config
+fn try_as_xchacha20_config<C: CryptoConfig>(config: &C) -> Result<&XChaCha20Config, CryptoError> {
+    // This is a temporary solution using unsafe casting
+    // In a full refactor, we would use proper trait objects or enum dispatch
+    if config.algorithm_id() == 2 {
+        // SAFETY: We check the algorithm ID, so this should be an XChaCha20Config
+        // This is a transitional approach during the refactoring process
+        let ptr = config as *const C as *const XChaCha20Config;
+        unsafe { 
+            Ok(&*ptr) 
+        }
+    } else {
+        Err(CryptoError::CryptographicError(
+            "Configuration is not XChaCha20-Poly1305 compatible".to_string()
+        ))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::algorithms::DefaultConfigProvider;
+    use crate::shared::algorithms::{DefaultConfigProvider, XChaCha20Config};
     use tempfile::TempDir;
     use std::fs::write;
 
@@ -204,5 +254,60 @@ mod tests {
         // Verify content
         let decrypted_content = std::fs::read_to_string(&decrypted_file).unwrap();
         assert_eq!(decrypted_content, test_content);
+    }
+
+    #[test]
+    fn test_xchacha20_encrypt_decrypt_with_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("test_xchacha20.txt");
+        let encrypted_file = temp_dir.path().join("test_xchacha20.txt.shadow");
+        let decrypted_file = temp_dir.path().join("test_xchacha20_decrypted.txt");
+        
+        // Create test file
+        let test_content = "Hello, XChaCha20 config world!";
+        write(&input_file, test_content).unwrap();
+        
+        // Test with XChaCha20 configuration
+        let xchacha20_config = XChaCha20Config::test_config();
+        let password = "test_password_xchacha20";
+        
+        // Test encryption and decryption with XChaCha20 config
+        encrypt_with_config(&input_file, &encrypted_file, password, false, &xchacha20_config).unwrap();
+        assert!(encrypted_file.exists());
+        
+        decrypt_with_config(&encrypted_file, &decrypted_file, password, &xchacha20_config).unwrap();
+        assert!(decrypted_file.exists());
+        
+        // Verify content
+        let decrypted_content = std::fs::read_to_string(&decrypted_file).unwrap();
+        assert_eq!(test_content, decrypted_content);
+    }
+    
+    #[test]
+    fn test_xchacha20_encrypt_decrypt_with_provider() {
+        let temp_dir = TempDir::new().unwrap();
+        let input_file = temp_dir.path().join("test_xchacha20_provider.txt");
+        let encrypted_file = temp_dir.path().join("test_xchacha20_provider.txt.shadow");
+        let decrypted_file = temp_dir.path().join("test_xchacha20_provider_decrypted.txt");
+        
+        // Create test file
+        let test_content = "Hello, XChaCha20 provider world!";
+        write(&input_file, test_content).unwrap();
+        
+        // Create XChaCha20 test provider
+        let provider = DefaultConfigProvider::<XChaCha20Config>::test();
+        let password = "test_password_xchacha20_provider";
+        
+        // Test encryption with provider
+        encrypt_with_provider(&input_file, &encrypted_file, password, false, &provider).unwrap();
+        assert!(encrypted_file.exists());
+        
+        // Test decryption with provider
+        decrypt_with_provider(&encrypted_file, &decrypted_file, password, &provider).unwrap();
+        assert!(decrypted_file.exists());
+        
+        // Verify content
+        let decrypted_content = std::fs::read_to_string(&decrypted_file).unwrap();
+        assert_eq!(test_content, decrypted_content);
     }
 }

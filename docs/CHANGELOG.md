@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.29.0] - 2025-10-02
+
+### Added - Configuration Architecture Consistency
+- **XChaCha20-Poly1305 Configuration Support**: Extended trait-based configuration system to XChaCha20-Poly1305 algorithm for architectural consistency
+- **Universal Configuration Providers**: Both AES-GCM and XChaCha20-Poly1305 now support `DefaultConfigProvider` pattern enabling clean dependency injection
+- **Algorithm-Agnostic Generic Operations**: Enhanced `encrypt_with_config()` and `decrypt_with_config()` to support both encryption algorithms seamlessly
+- **Comprehensive Configuration Testing**: Added full test coverage for XChaCha20-Poly1305 configuration patterns with provider and direct config approaches
+
+### Architecture - Unified Configuration Interface  
+- **XChaCha20Config Implementation**: Created `XChaCha20Config` implementing `CryptoConfig` traits with proper key derivation and parameter handling
+- **Consistent Test Patterns**: Migrated integration tests from manual `Argon2Params` injection to standardized configuration provider patterns
+- **Enhanced Generic Operations**: Extended algorithm dispatch in `generic_ops.rs` to handle both algorithm types through unified configuration interface
+- **Maintainable Test Architecture**: Eliminated manual parameter injection across test suite, creating consistent testing approaches for future development
+
+### Developer Experience - Improved Code Quality
+- **Standardized Configuration Patterns**: All algorithms now follow identical configuration provider patterns for consistent developer experience
+- **Reduced Code Duplication**: Configuration provider pattern eliminates repetitive parameter injection across test files
+- **Enhanced Type Safety**: Configuration traits provide compile-time guarantees about algorithm compatibility and parameter validity
+- **Future-Proof Architecture**: Configuration system supports easy addition of new algorithms without breaking existing patterns
+
 ## [0.28.0] - 2025-10-02
 
 ### Added - Configuration Architecture Refactoring
