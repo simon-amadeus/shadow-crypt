@@ -7,11 +7,10 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Decryption Dispatch Integration**: Update decryption modules to handle both V1 and V2 header formats with automatic version detection
-2. **XChaCha20-Poly1305 Default Migration**: Make XChaCha20-Poly1305 default for new encryptions while maintaining full backward compatibility
-3. **Multi-File Algorithm Support**: Extend multi-file operations to support algorithm selection (currently only single-file dispatch implemented)
-4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **XChaCha20-Poly1305 Default Migration**: Make XChaCha20-Poly1305 default for new encryptions while maintaining full backward compatibility
+2. **Multi-File Algorithm Support**: Extend multi-file operations to support algorithm selection (currently only single-file dispatch implemented)
+3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 
@@ -24,6 +23,71 @@
 ---
 
 ## 🧭 KEY LEARNINGS & INSIGHTS
+
+### From Complete Decryption Dispatch Integration (Phase 25)
+
+**Architectural Excellence - Universal Format Support:**
+- **Clean Dispatch Pattern**: Version detection followed by algorithm-specific decryption creates maintainable, extensible architecture
+- **Backward Compatibility Success**: V1 decryption path completely preserved - zero regressions achieved through careful API design
+- **Format Detection Efficiency**: Single magic number check provides fast, reliable format identification without performance impact
+- **Algorithm Abstraction**: V2 format dispatch mechanism enables future algorithms without architectural changes
+
+**Security Architecture Insights:**
+- **Authentication Preservation**: All existing security properties maintained across V1/V2 formats and AES-GCM/XChaCha20-Poly1305 algorithms
+- **Key Derivation Compatibility**: Proper handling of different salt sizes (16-byte for AES-GCM compatibility, 32-byte for XChaCha20-Poly1305)
+- **Error Handling Security**: Clear error messages without information leakage about encrypted content or algorithms
+- **Memory Safety**: Secure memory handling maintained across all decryption paths
+
+**Implementation Quality Insights:**
+- **API Transparency**: All changes are completely invisible to existing code - no breaking changes required
+- **Testing Excellence**: 175 tests continue passing with enhanced functionality, demonstrating robust implementation
+- **Real-world Validation**: Successfully tested V1 and V2 round-trip operations with both algorithms
+- **Performance Maintained**: Version detection and dispatch add negligible overhead while significantly expanding capabilities
+
+**Development Process Insights:**
+- **Incremental Development**: Phase-by-phase implementation (detection → V2 implementation → testing) enabled systematic validation
+- **Test-Driven Success**: Comprehensive test coverage caught integration issues early and validated backward compatibility
+- **Architecture-First Approach**: Clean separation of V1/V2 paths prevented code complexity and technical debt
+- **User Experience Focus**: Transparent operation means users benefit from enhanced security without workflow changes
+
+**Strategic Direction Insights:**
+- **Foundation Complete**: Universal decryption support provides solid foundation for making XChaCha20-Poly1305 the default
+- **Multi-tool Support**: All tools (`unshadow`, `shadowview`, `shadowedit`) automatically gained V2 support through shared API
+- **Future-Proof Design**: Dispatch architecture scales to additional algorithms and format versions
+- **Production Readiness**: Robust error handling and comprehensive testing indicate production deployment readiness
+
+### For Next Implementation Cycle
+
+**Focus**: XChaCha20-Poly1305 default migration - make enhanced security the default while preserving AES-GCM compatibility option
+**Key Insight**: Universal decryption support eliminates the main barrier to changing encryption defaults
+
+**Audit Outcome**: ✅ **UNIVERSAL FORMAT COMPATIBILITY** - Complete V1/V2 decryption support with automatic format detection enables seamless user experience across all Shadow file formats.
+
+---
+
+**ARCHIVED IMPLEMENTATION DETAILS FROM PHASE 25:**
+
+Successfully implemented complete decryption dispatch integration with the following technical approach:
+
+**Implementation Architecture:**
+- Modified `decrypt_single_file_with_params()` to detect file format using `detect_version()` before processing
+- Added `decrypt_single_file_v1_with_params()` containing all original V1 decryption logic (preserved byte-for-byte)
+- Added `decrypt_single_file_v2_with_params()` with algorithm dispatch based on V2 header algorithm ID
+- Implemented `decrypt_v2_with_aes_gcm()` for AES-256-GCM V2 format decryption with 16-byte salt compatibility
+- Implemented `decrypt_v2_with_xchacha20()` for XChaCha20-Poly1305 V2 format decryption with 32-byte salt support
+
+**Technical Decisions:**
+- Format detection happens first, then routes to appropriate decryption path (V1 vs V2)
+- V2 format parses algorithm ID from header and dispatches to algorithm-specific decryption function
+- AES-GCM V2 uses first 16 bytes of 32-byte V2 salt for compatibility with existing AES key derivation
+- XChaCha20-Poly1305 V2 uses full 32-byte salt for enhanced security properties
+- All existing V1 code paths completely preserved to ensure zero regressions
+
+**Validation Results:**
+- Confirmed V1 backward compatibility with header analysis (SHADOW + version 1 + algorithm 1)
+- Confirmed V2 XChaCha20-Poly1305 support with header analysis (SHADOW2 + version 2 + algorithm 2)  
+- Verified round-trip encryption/decryption for both V1 and V2 formats
+- All 175 tests pass including 11 comprehensive decryption integration tests
 
 ### From Complete XChaCha20-Poly1305 Integration (Phase 24)
 

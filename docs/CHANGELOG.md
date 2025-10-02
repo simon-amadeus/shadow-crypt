@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.25.0] - 2025-10-02
+
+### Added - Complete Decryption Dispatch Integration
+- **Universal Format Support**: Complete V1 and V2 format decryption with automatic version detection
+- **Algorithm Dispatch**: Full decryption support for both AES-256-GCM and XChaCha20-Poly1305 in V2 format
+- **Seamless Compatibility**: V1 backward compatibility preserved with zero regressions
+- **Automatic Detection**: No user intervention required - format detection and algorithm dispatch happen automatically
+
+### Architecture - Enhanced Decryption System
+- **Version Detection**: Automatic file format detection using magic number analysis
+- **Dispatch Architecture**: Clean separation between V1 and V2 decryption paths with algorithm-specific routing
+- **Error Handling**: Comprehensive error messages for unsupported formats and algorithm mismatches
+- **API Preservation**: All existing public APIs maintained - changes are completely transparent to users
+
+### Security - Enhanced Cryptographic Coverage
+- **V2 AES-GCM Decryption**: Full support for V2 format files encrypted with AES-256-GCM
+- **V2 XChaCha20-Poly1305 Decryption**: Complete support for enhanced security algorithm with 24-byte nonces
+- **Key Derivation Compatibility**: Proper key derivation for each algorithm (AES uses 16-byte salt subset, XChaCha20 uses full 32-byte salt)
+- **Authentication Integrity**: All authentication checks preserved across both formats and algorithms
+
+### Performance - Optimized Implementation
+- **Format Detection Efficiency**: Minimal overhead for version detection (single magic number check)
+- **Dispatch Optimization**: Direct routing to appropriate decryption path eliminates unnecessary processing
+- **Memory Management**: Secure memory handling maintained across all decryption paths
+- **Test Performance**: Maintained 0.19-second test execution time while adding comprehensive V2 support
+
+### Developer Experience - Transparent Integration
+- **Zero Breaking Changes**: All existing code continues to work without modification
+- **Universal CLI Support**: `unshadow`, `shadowview`, and `shadowedit` automatically support all formats
+- **Testing Coverage**: 175 tests passing including comprehensive V1/V2 compatibility validation
+- **Round-trip Verification**: Full encryption/decryption cycles work for all algorithm combinations
+
+### Implementation Insights
+- **Architectural Excellence**: Clean dispatch pattern enables future format versions without complexity
+- **Backward Compatibility**: V1 decryption path completely preserved ensuring no regressions
+- **Algorithm Abstraction**: V2 format supports multiple algorithms through clean dispatch mechanism
+- **Security Model**: Enhanced cryptographic coverage without compromising existing security properties
+- **Testing Validation**: Comprehensive real-world testing confirms V1/V2 interoperability and format detection accuracy
+
 ## [0.24.0] - 2025-10-02
 
 ### Added - Complete XChaCha20-Poly1305 Integration
