@@ -71,21 +71,8 @@ fn main() -> Result<(), CryptoError> {
             // Create UI formatter for beautiful output
             let formatter = UIFormatter::new();
             
-            // Print title and overview
-            print!("{}", formatter.format_title(files.len()));
-            
-            // Print headers and separator
-            println!("{}", formatter.format_headers());
-            println!("{}", formatter.format_separator());
-            
-            // Print file information with beautiful formatting
-            for file_info in &files {
-                println!("{}", formatter.format_file_info(file_info));
-            }
-            
-            // Print closing separator and legend
-            println!("{}", formatter.format_separator());
-            print!("{}", formatter.format_legend());
+            // Print complete formatted file listing
+            print!("{}", formatter.format_file_listing(&files));
         },
         Err(e) => {
             eprintln!("{}", e.user_friendly_message());

@@ -8,12 +8,11 @@
 //! - Beautiful UI formatting with colors and visual hierarchy
 
 // Core listing functionality
-pub mod file_scanner;
-pub mod metadata_extractor;
 pub mod cli;
+pub mod file_scanner;
 pub mod ui_formatter;
+pub mod modern_grid;
 
-// Re-export main functions for convenience
-pub use file_scanner::list_encrypted_files;
-pub use metadata_extractor::extract_file_info;
+// Export main functionality from sub-modules
+pub use file_scanner::{list_encrypted_files, FileInfo};
 pub use ui_formatter::UIFormatter;
