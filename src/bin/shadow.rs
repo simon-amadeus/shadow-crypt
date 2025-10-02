@@ -16,7 +16,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     
     // Parse command line arguments - password will be prompted securely
-    let (input_patterns, obfuscate_filename, force_overwrite, remove_source) = parse_args(&args);
+    let (input_patterns, obfuscate_filename, force_overwrite, remove_source, quiet) = parse_args(&args);
     
     // Expand glob patterns into file paths
     let file_paths = match expand_glob_patterns(&input_patterns) {
@@ -50,7 +50,7 @@ fn main() {
     if file_paths.len() == 1 {
         // Single file - use existing logic for better UX
         let input_path = &file_paths[0];
-        handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source);
+        handle_single_file(input_path, &password, obfuscate_filename, force_overwrite, remove_source, !quiet);
     } else {
         // Multiple files - use batch processing
         handle_multiple_files(&file_paths, &password, obfuscate_filename, force_overwrite, remove_source);
@@ -63,7 +63,8 @@ fn handle_single_file(
     password: &str,
     obfuscate_filename: bool,
     force_overwrite: bool,
-    remove_source: bool
+    remove_source: bool,
+    show_progress: bool
 ) {
     // Determine output path automatically
     let output_path = if obfuscate_filename {
@@ -100,8 +101,23 @@ fn handle_single_file(
     }
     println!("🔑 Using password-based encryption with AES-256-GCM");
     
+    // Perform encryption with progress indicators
+    use std::time::Instant;
+    let start_time = Instant::now();
+    
+    if show_progress {
+        print!("🔄 Encrypting file...");
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+    }
+    
     match encrypt_single_file(&input_path, &output_path, &password, obfuscate_filename) {
         Ok(()) => {
+            if show_progress {
+                let duration = start_time.elapsed();
+                println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(duration));
+                println!("✅ Encryption completed in {}", shadow_crypt::shared::performance::format_duration(duration));
+            }
+            
             println!("✅ File encrypted successfully!");
             if obfuscate_filename {
                 println!("🎭 Original filename is obfuscated and stored securely in the file header");
@@ -248,7 +264,7 @@ fn handle_multiple_files(
 /// Parse command line arguments
 /// 
 /// Now supports multiple input patterns for batch processing
-fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool) {
+fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool, bool) {
     if args.len() < 2 {
         print_usage(&args[0]);
         process::exit(1);
@@ -258,6 +274,7 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool) {
     let mut obfuscate = false;
     let mut force = false;
     let mut remove_source = false;
+    let mut quiet = false;
     
     let mut i = 1;
     while i < args.len() {
@@ -272,6 +289,10 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool) {
             }
             "--remove-source" | "--inplace" | "-r" => {
                 remove_source = true;
+                i += 1;
+            }
+            "--quiet" | "-q" => {
+                quiet = true;
                 i += 1;
             }
             "--help" | "-h" => {
@@ -293,7 +314,7 @@ fn parse_args(args: &[String]) -> (Vec<String>, bool, bool, bool) {
         process::exit(1);
     }
     
-    (input_patterns, obfuscate, force, remove_source)
+    (input_patterns, obfuscate, force, remove_source, quiet)
 }
 
 /// Print usage information
@@ -308,6 +329,7 @@ fn print_usage(program_name: &str) {
     eprintln!("  -f, --force           Overwrite existing output files without prompting");
     eprintln!("  -r, --remove-source   Remove source files after successful encryption");
     eprintln!("      --inplace         Alias for --remove-source");
+    eprintln!("  -q, --quiet           Minimal output (no progress indicators)");
     eprintln!("  -h, --help            Show this help message");
     eprintln!();
     eprintln!("Behavior:");

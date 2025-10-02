@@ -1,8 +1,89 @@
 //! Progress reporting utilities for multi-file operations
 //! 
 //! Provides enhanced progress indicators with timing, throughput, and estimates.
+//! Also supports single-file operation progress with phase reporting.
 
 use std::time::{Duration, Instant};
+
+/// Progress reporter for single-file operations with phase tracking
+pub struct SingleFileProgress {
+    start_time: Instant,
+    current_phase: Option<(String, Instant)>,
+    completed_phases: Vec<(String, Duration)>,
+    show_phases: bool,
+}
+
+impl SingleFileProgress {
+    /// Create a new single-file progress reporter
+    pub fn new(show_phases: bool) -> Self {
+        Self {
+            start_time: Instant::now(),
+            current_phase: None,
+            completed_phases: Vec::new(),
+            show_phases,
+        }
+    }
+    
+    /// Start a new phase of the operation
+    pub fn start_phase(&mut self, phase_name: &str) {
+        // End current phase if one is running
+        if let Some((current_name, start_time)) = self.current_phase.take() {
+            let duration = start_time.elapsed();
+            self.completed_phases.push((current_name, duration));
+        }
+        
+        // Start new phase
+        if self.show_phases {
+            print!("🔄 {}...", phase_name);
+            std::io::Write::flush(&mut std::io::stdout()).ok();
+        }
+        self.current_phase = Some((phase_name.to_string(), Instant::now()));
+    }
+    
+    /// End the current phase with success
+    pub fn end_phase(&mut self) {
+        if let Some((phase_name, start_time)) = self.current_phase.take() {
+            let duration = start_time.elapsed();
+            self.completed_phases.push((phase_name, duration));
+            
+            if self.show_phases {
+                println!(" ✓ ({})", crate::shared::performance::format_duration(duration));
+            }
+        }
+    }
+    
+    /// End the current phase with error
+    pub fn end_phase_with_error(&mut self, error: &str) {
+        if let Some((phase_name, start_time)) = self.current_phase.take() {
+            let duration = start_time.elapsed();
+            self.completed_phases.push((phase_name, duration));
+            
+            if self.show_phases {
+                println!(" ❌ ({}) - {}", crate::shared::performance::format_duration(duration), error);
+            }
+        }
+    }
+    
+    /// Get total elapsed time
+    pub fn total_elapsed(&self) -> Duration {
+        self.start_time.elapsed()
+    }
+    
+    /// Show a simple spinner for ongoing operations
+    pub fn show_spinner(&self, message: &str) {
+        if self.show_phases {
+            print!("⏳ {}...", message);
+            std::io::Write::flush(&mut std::io::stdout()).ok();
+        }
+    }
+    
+    /// Complete the spinner with success
+    pub fn complete_spinner(&self) {
+        if self.show_phases {
+            println!(" ✓");
+        }
+    }
+}
 
 /// Progress reporter for multi-file operations
 pub struct ProgressReporter {

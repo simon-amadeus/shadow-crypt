@@ -18,7 +18,7 @@ fn main() -> Result<(), CryptoError> {
     let args: Vec<String> = env::args().collect();
     
     // Simple argument parsing with flags
-    let (force_overwrite, remove_source, input_patterns) = parse_args(&args);
+    let (force_overwrite, remove_source, quiet, input_patterns) = parse_args(&args);
     
     // Expand glob patterns into file paths
     let file_paths = match expand_glob_patterns(&input_patterns) {
@@ -74,21 +74,22 @@ fn main() -> Result<(), CryptoError> {
     if file_paths.len() == 1 {
         // Single file - use existing logic for better UX
         let input_path = &file_paths[0];
-        handle_single_file(input_path, &password, force_overwrite, remove_source)?;
+        handle_single_file(input_path, &password, force_overwrite, remove_source, !quiet)?;
     } else {
         // Multiple files - use batch processing
-        handle_multiple_files(&file_paths, &password, force_overwrite, remove_source)?;
+        handle_multiple_files(&file_paths, &password, force_overwrite, remove_source, !quiet)?;
     }
     
     Ok(())
 }
 
-/// Handle single file decryption with detailed progress reporting
+/// Handle single file decryption with progress reporting
 fn handle_single_file(
     input_path: &Path,
     password: &str,
     force_overwrite: bool,
-    remove_source: bool
+    remove_source: bool,
+    show_progress: bool
 ) -> Result<(), CryptoError> {
     // Determine output file path with automatic filename restoration
     let output_path = determine_output_path_with_restoration(input_path, password)?;
@@ -103,37 +104,61 @@ fn handle_single_file(
         ));
     }
     
-    // Perform decryption
+    // Perform decryption with progress indicators  
     println!("🔓 Decrypting file: {}", input_path.display());
     println!("📄 Output file: {}", output_path.display());
     println!("🔑 Using password-based decryption with AES-256-GCM");
     
-    match decrypt_single_file(input_path, &output_path, password) {
-        Ok(()) => {
-            println!("✅ Decryption successful!");
-            println!("📄 Decrypted file: {}", output_path.display());
-            
-            // Handle source file removal if requested
-            if remove_source {
-                println!();
-                if confirm_destructive_operation("Source file removal", input_path) {
-                    match secure_delete_file(input_path) {
-                        Ok(()) => {
-                            println!("🗑️  Source file securely deleted: {}", input_path.display());
-                        }
-                        Err(e) => {
-                            eprintln!("⚠️  Warning: Failed to delete source file: {}", e);
-                            eprintln!("   Decryption was successful, but source file remains");
-                            eprintln!("   You may need to delete it manually");
-                        }
-                    }
-                } else {
-                    println!("🔄 Source file removal cancelled - file remains at: {}", input_path.display());
-                }
+    // Show progress if enabled
+    if show_progress {
+        // Simple progress wrapper - show that work is happening
+        use std::time::Instant;
+        let start_time = Instant::now();
+        
+        print!("🔄 Decrypting and verifying file...");
+        std::io::Write::flush(&mut std::io::stdout()).ok();
+        
+        match decrypt_single_file(input_path, &output_path, password) {
+            Ok(()) => {
+                let duration = start_time.elapsed();
+                println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(duration));
+                println!("✅ Decryption completed in {}", shadow_crypt::shared::performance::format_duration(duration));
+                println!("📄 Decrypted file: {}", output_path.display());
+            }
+            Err(e) => {
+                println!(" ❌ ({})", shadow_crypt::shared::performance::format_duration(start_time.elapsed()));
+                return Err(display_error_and_return(e));
             }
         }
-        Err(e) => {
-            return Err(display_error_and_return(e));
+    } else {
+        // Quiet mode - just do the work
+        match decrypt_single_file(input_path, &output_path, password) {
+            Ok(()) => {
+                println!("✅ Decryption successful!");
+                println!("📄 Decrypted file: {}", output_path.display());
+            }
+            Err(e) => {
+                return Err(display_error_and_return(e));
+            }
+        }
+    }
+    
+    // Handle source file removal if requested
+    if remove_source {
+        println!();
+        if confirm_destructive_operation("Source file removal", input_path) {
+            match secure_delete_file(input_path) {
+                Ok(()) => {
+                    println!("🗑️  Source file securely deleted: {}", input_path.display());
+                }
+                Err(e) => {
+                    eprintln!("⚠️  Warning: Failed to delete source file: {}", e);
+                    eprintln!("   Decryption was successful, but source file remains");
+                    eprintln!("   You may need to delete it manually");
+                }
+            }
+        } else {
+            println!("🔄 Source file removal cancelled - file remains at: {}", input_path.display());
         }
     }
     
@@ -145,11 +170,14 @@ fn handle_multiple_files(
     file_paths: &[PathBuf],
     password: &str,
     force_overwrite: bool,
-    remove_source: bool
+    remove_source: bool,
+    show_progress: bool
 ) -> Result<(), CryptoError> {
-    println!("🔓 Decrypting {} files...", file_paths.len());
-    println!("🔑 Using password-based decryption with AES-256-GCM");
-    println!();
+    if show_progress {
+        println!("🔓 Decrypting {} files...", file_paths.len());
+        println!("🔑 Using password-based decryption with AES-256-GCM");
+        println!();
+    }
 
     let results = decrypt_multiple_files(
         file_paths,
@@ -227,8 +255,8 @@ fn determine_output_path_with_restoration(
 /// Try to restore filename from header without full decryption
 /// Parse command line arguments for unshadow tool
 /// 
-/// Returns (force_overwrite, remove_source, input_patterns)
-fn parse_args(args: &[String]) -> (bool, bool, Vec<String>) {
+/// Returns (force_overwrite, remove_source, quiet, input_patterns)
+fn parse_args(args: &[String]) -> (bool, bool, bool, Vec<String>) {
     if args.len() < 2 || args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
         print_usage();
         std::process::exit(0);
@@ -236,6 +264,7 @@ fn parse_args(args: &[String]) -> (bool, bool, Vec<String>) {
     
     let mut force = false;
     let mut remove_source = false;
+    let mut quiet = false;
     let mut input_patterns = Vec::new();
     
     let mut i = 1;
@@ -247,6 +276,10 @@ fn parse_args(args: &[String]) -> (bool, bool, Vec<String>) {
             }
             "--remove-source" | "--inplace" | "-r" => {
                 remove_source = true;
+                i += 1;
+            }
+            "--quiet" | "-q" => {
+                quiet = true;
                 i += 1;
             }
             "--help" | "-h" => {
@@ -267,7 +300,7 @@ fn parse_args(args: &[String]) -> (bool, bool, Vec<String>) {
         std::process::exit(1);
     }
     
-    (force, remove_source, input_patterns)
+    (force, remove_source, quiet, input_patterns)
 }
 
 fn print_usage() {

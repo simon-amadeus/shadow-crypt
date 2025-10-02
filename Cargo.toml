@@ -32,6 +32,10 @@ path = "src/bin/shadowedit.rs"
 name = "shadowmigrate"
 path = "src/bin/shadowmigrate.rs"
 
+[[bin]]
+name = "shadowbench"
+path = "src/bin/shadowbench.rs"
+
 [dependencies]
 # Cryptographic dependencies for Phase 3
 aes-gcm = "0.10"         # AES-256-GCM authenticated encryption
@@ -50,6 +54,8 @@ hmac = "0.12"            # HMAC for filename authentication
 glob = "0.3"             # Glob pattern matching for multi-file support
 rayon = "1.8"            # Parallel processing for multi-file operations
 colored = "3.0"          # Modern terminal colors for enhanced UI
+num_cpus = "1"        # CPU count detection for benchmarking
+tempfile = "3"         # For temporary files in benchmarking
 # clap = "4.0"  # For CLI parsing in later phases
 
 [dev-dependencies]

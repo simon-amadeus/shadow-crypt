@@ -47,6 +47,18 @@ pub fn encrypt_single_file(
     encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, &params)
 }
 
+/// Encrypt a single file with progress reporting
+pub fn encrypt_single_file_with_progress(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    show_progress: bool,
+) -> Result<(), CryptoError> {
+    let params = Argon2Params::default();
+    encrypt_single_file_with_params_and_progress(input_path, output_path, password, obfuscate_filename, &params, show_progress)
+}
+
 /// Internal function that accepts custom Argon2 parameters for testing
 pub fn encrypt_single_file_with_params(
     input_path: &Path,
@@ -153,6 +165,153 @@ pub fn encrypt_single_file_with_params(
     write_encrypted_file(&actual_output_path, &header, &ciphertext)?;
     
     if obfuscate_filename {
+        println!("🎭 File saved with obfuscated name: {}", actual_output_path.display());
+    }
+    
+    Ok(())
+}
+
+/// Internal function with custom Argon2 parameters and optional progress reporting
+pub fn encrypt_single_file_with_params_and_progress(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    params: &Argon2Params,
+    show_progress: bool,
+) -> Result<(), CryptoError> {
+    use crate::shared::progress::SingleFileProgress;
+    
+    let mut progress = SingleFileProgress::new(show_progress);
+    
+    // Phase 1: File I/O
+    progress.start_phase("Reading file");
+    let mut input_file = File::open(input_path)
+        .map_err(|e| {
+            progress.end_phase_with_error(&format!("Failed to open file: {}", e));
+            CryptoError::FileSystemError(e)
+        })?;
+    
+    let mut plaintext = Vec::new();
+    input_file.read_to_end(&mut plaintext)
+        .map_err(|e| {
+            progress.end_phase_with_error(&format!("Failed to read file: {}", e));
+            CryptoError::FileSystemError(e)
+        })?;
+    
+    let file_metadata = extract_file_metadata(input_path, &plaintext)?;
+    progress.end_phase();
+    
+    // Phase 2: Key derivation (usually the slowest part)
+    progress.start_phase("Deriving encryption key");
+    let salt = generate_salt(16)?;
+    let key_material = derive_master_key(password, &salt, params)
+        .map_err(|e| {
+            progress.end_phase_with_error(&format!("Key derivation failed: {}", e));
+            e
+        })?;
+    progress.end_phase();
+    
+    // Phase 3: Cryptographic operations
+    progress.start_phase("Encrypting data");
+    let nonce = generate_secure_nonce()?;
+    
+    // Determine actual output path
+    let actual_output_path = if obfuscate_filename {
+        generate_obfuscated_output_path(input_path, output_path, &key_material)?
+    } else {
+        output_path.to_path_buf()
+    };
+    
+    // Create header
+    let mut header = create_encryption_header(
+        input_path,
+        &file_metadata,
+        &salt,
+        &nonce,
+        obfuscate_filename,
+    )?;
+    
+    // Encrypt metadata
+    let metadata_bytes = file_metadata.serialize();
+    let encrypted_metadata = encrypt_aes_gcm(
+        key_material.encryption_key.expose_secret(),
+        &nonce,
+        &metadata_bytes,
+        &[]
+    )?;
+    header.encrypted_metadata = encrypted_metadata.clone();
+    header.metadata_length = encrypted_metadata.len() as u16;
+    
+    // Encrypt filename
+    if let Some(filename) = input_path.file_name() {
+        if let Some(filename_str) = filename.to_str() {
+            let filename_bytes = filename_str.as_bytes();
+            let encrypted_filename = encrypt_aes_gcm(
+                key_material.encryption_key.expose_secret(),
+                &nonce,
+                filename_bytes,
+                &[]
+            )?;
+            header.encrypted_filename = encrypted_filename.clone();
+            header.filename_length = encrypted_filename.len() as u16;
+        }
+    }
+    
+    // Encrypt directory path
+    if let Some(parent) = input_path.parent() {
+        if let Some(parent_str) = parent.to_str() {
+            let path_bytes = parent_str.as_bytes();
+            let encrypted_path = encrypt_aes_gcm(
+                key_material.encryption_key.expose_secret(),
+                &nonce,
+                path_bytes,
+                &[]
+            )?;
+            header.encrypted_directory_path = encrypted_path.clone();
+            header.directory_path_length = encrypted_path.len() as u16;
+        }
+    }
+    
+    // Main content encryption
+    let ciphertext = encrypt_aes_gcm(
+        key_material.encryption_key.expose_secret(),
+        &nonce,
+        &plaintext,
+        &header.serialize()
+    )?;
+    
+    // Filename authentication if obfuscation enabled
+    if obfuscate_filename {
+        use crate::shared::filename_auth::{compute_filename_auth_tag, extract_filename_for_auth};
+        let obfuscated_filename = extract_filename_for_auth(&actual_output_path)?;
+        let auth_tag = compute_filename_auth_tag(
+            &obfuscated_filename,
+            &header.salt,
+            &header.nonce,
+            &key_material
+        )?;
+        header.obfuscated_filename_auth_tag = auth_tag;
+    }
+    progress.end_phase();
+    
+    // Phase 4: Write output
+    progress.start_phase("Writing encrypted file");
+    write_encrypted_file(&actual_output_path, &header, &ciphertext)
+        .map_err(|e| {
+            progress.end_phase_with_error(&format!("Failed to write file: {}", e));
+            e
+        })?;
+    progress.end_phase();
+    
+    if show_progress {
+        let total_time = progress.total_elapsed();
+        println!("✅ Encryption completed in {}", crate::shared::performance::format_duration(total_time));
+        
+        if obfuscate_filename {
+            println!("🎭 File saved with obfuscated name: {}", actual_output_path.display());
+        }
+    } else if obfuscate_filename {
         println!("🎭 File saved with obfuscated name: {}", actual_output_path.display());
     }
     

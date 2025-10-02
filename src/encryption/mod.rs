@@ -13,6 +13,6 @@ pub mod multi_file;
 pub mod cli;
 
 // Re-export main functions for convenience
-pub use encrypt_file::{encrypt_single_file, encrypt_single_file_with_params};
+pub use encrypt_file::{encrypt_single_file, encrypt_single_file_with_params, encrypt_single_file_with_progress};
 pub use filename_obfuscation::{obfuscate_filename, obfuscate_name_with_collision_resistance};
 pub use multi_file::{encrypt_multiple_files, expand_glob_patterns, MultiFileResults};

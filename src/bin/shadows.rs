@@ -55,9 +55,18 @@ fn main() -> Result<(), CryptoError> {
         return Ok(());
     }
     
-    // List encrypted files in the directory
+    // List encrypted files in the directory with progress indicators
+    use std::time::Instant;
+    let start_time = Instant::now();
+    
+    print!("🔍 Scanning directory for encrypted files...");
+    std::io::Write::flush(&mut std::io::stdout()).ok();
+    
     match file_scanner::list_encrypted_files(directory, &password) {
         Ok(files) => {
+            let scan_duration = start_time.elapsed();
+            println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(scan_duration));
+            
             if files.is_empty() {
                 let display_path = if directory_path == "." {
                     "current directory"
@@ -68,13 +77,26 @@ fn main() -> Result<(), CryptoError> {
                 return Ok(());
             }
             
+            print!("📋 Formatting file listing...");
+            std::io::Write::flush(&mut std::io::stdout()).ok();
+            
+            let format_start = Instant::now();
             // Create UI formatter for beautiful output
             let formatter = UIFormatter::new();
             
             // Print complete formatted file listing
-            print!("{}", formatter.format_file_listing(&files));
+            let formatted_output = formatter.format_file_listing(&files);
+            let format_duration = format_start.elapsed();
+            println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(format_duration));
+            
+            print!("{}", formatted_output);
+            
+            let total_duration = start_time.elapsed();
+            println!("✅ Listed {} files in {}", files.len(), shadow_crypt::shared::performance::format_duration(total_duration));
         },
         Err(e) => {
+            let scan_duration = start_time.elapsed();
+            println!(" ❌ ({})", shadow_crypt::shared::performance::format_duration(scan_duration));
             eprintln!("{}", e.user_friendly_message());
             return Err(e);
         }

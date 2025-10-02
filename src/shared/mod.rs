@@ -15,6 +15,7 @@ pub mod versioning;
 pub mod version_dispatch;
 pub mod session;
 pub mod progress;
+pub mod performance;
 pub mod cli_utils;
 
 // Re-export from core for backward compatibility
