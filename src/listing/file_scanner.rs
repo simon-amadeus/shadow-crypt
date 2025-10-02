@@ -101,8 +101,20 @@ pub fn list_encrypted_files_with_params(directory: &Path, password: &str, params
         });
     }
     
-    // Sort files by original name for consistent output
-    files.sort_by(|a, b| a.original_name.cmp(&b.original_name));
+    // Sort files by decryption status first (successful decryptions first),
+    // then alphabetically by original name for successfully decrypted files only.
+    // This prevents filename guessing attacks by users with wrong passwords.
+    files.sort_by(|a, b| {
+        match (a.filename_decrypted, b.filename_decrypted) {
+            // Both successfully decrypted - sort alphabetically by original name
+            (true, true) => a.original_name.cmp(&b.original_name),
+            // Successfully decrypted files come first
+            (true, false) => std::cmp::Ordering::Less,
+            (false, true) => std::cmp::Ordering::Greater,
+            // Both failed decryption - preserve original filesystem order (no sorting)
+            (false, false) => std::cmp::Ordering::Equal,
+        }
+    });
     
     Ok(files)
 }

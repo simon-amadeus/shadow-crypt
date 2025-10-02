@@ -89,22 +89,28 @@ impl UIFormatter {
             "STATUS".normal()
         };
         
-        let filename_header = if self.use_colors {
-            "FILENAME MAPPING".bold().color(self.color_scheme.header)
+        let original_header = if self.use_colors {
+            "ORIGINAL NAME".bold().color(self.color_scheme.header)
         } else {
-            "FILENAME MAPPING".normal()
+            "ORIGINAL NAME".normal()
+        };
+        
+        let obfuscated_header = if self.use_colors {
+            "OBFUSCATED NAME".bold().color(self.color_scheme.header)
+        } else {
+            "OBFUSCATED NAME".normal()
         };
         
         let size_header = if self.use_colors {
-            "SIZE".bold().color(self.color_scheme.header)
+            "ORIGINAL SIZE".bold().color(self.color_scheme.header)
         } else {
-            "SIZE".normal()
+            "ORIGINAL SIZE".normal()
         };
         
         let encrypted_size_header = if self.use_colors {
-            "ENCRYPTED".bold().color(self.color_scheme.header)
+            "ENCRYPTED SIZE".bold().color(self.color_scheme.header)
         } else {
-            "ENCRYPTED".normal()
+            "ENCRYPTED SIZE".normal()
         };
         
         let modified_header = if self.use_colors {
@@ -114,14 +120,14 @@ impl UIFormatter {
         };
         
         format!(
-            "{:<8} {:<60} {:>10} {:>12} {:>20}",
-            status_header, filename_header, size_header, encrypted_size_header, modified_header
+            "{:<8} {:<30} {:<25} {:>12} {:>14} {:>20}",
+            status_header, original_header, obfuscated_header, size_header, encrypted_size_header, modified_header
         )
     }
     
     /// Format a separator line
     pub fn format_separator(&self) -> String {
-        let separator = "─".repeat(115); // Increased width to accommodate wider columns
+        let separator = "─".repeat(112); // Updated width to accommodate new column structure
         if self.use_colors {
             separator.color(self.color_scheme.header).dimmed().to_string()
         } else {
@@ -141,98 +147,97 @@ impl UIFormatter {
     
     /// Format individual file information
     pub fn format_file_info(&self, info: &FileInfo) -> String {
-        // Status indicator with color
-        let (status_icon, status_color) = if info.filename_decrypted {
-            ("✓", self.color_scheme.success)
+        // Calculate the plain text for each column to determine proper spacing
+        let status_plain = if info.filename_decrypted { "✓" } else { "✗" };
+        
+        let original_name_plain = if info.filename_decrypted {
+            self.truncate_with_ellipsis(&info.original_name, 30)
         } else {
-            ("✗", self.color_scheme.error)
+            "[ENCRYPTED]".to_string()
         };
         
-        let status = if self.use_colors {
-            status_icon.color(status_color).bold()
-        } else {
-            status_icon.normal()
-        };
+        let obfuscated_name_plain = self.truncate_with_ellipsis(&info.obfuscated_name, 25);
+        let size_plain = self.format_file_size(info.size);
+        let encrypted_size_plain = self.format_file_size(info.encrypted_size);
+        let timestamp_plain = self.format_timestamp(info.modified);
         
-        // Filename mapping with appropriate styling and truncation
-        let filename_display = if info.filename_decrypted {
-            // Create the plain text version first for length calculation
-            let plain_mapping = format!("{} → {}", info.obfuscated_name, info.original_name);
-            let truncated_plain = self.truncate_with_ellipsis(&plain_mapping, 60);
-            
-            // If truncated, use plain version; otherwise, use colored version
-            if truncated_plain.len() < plain_mapping.len() {
-                truncated_plain
+        // Apply colors if enabled
+        let status_colored = if self.use_colors {
+            let color = if info.filename_decrypted {
+                self.color_scheme.success
             } else {
-                let obfuscated = if self.use_colors {
-                    info.obfuscated_name.color(self.color_scheme.warning).dimmed().to_string()
-                } else {
-                    info.obfuscated_name.clone()
-                };
-                
-                let arrow = if self.use_colors {
-                    " → ".color(self.color_scheme.info).to_string()
-                } else {
-                    " -> ".to_string()
-                };
-                
-                let original = if self.use_colors {
-                    info.original_name.color(self.color_scheme.filename).bold().to_string()
-                } else {
-                    info.original_name.clone()
-                };
-                
-                format!("{}{}{}", obfuscated, arrow, original)
+                self.color_scheme.error
+            };
+            status_plain.color(color).bold().to_string()
+        } else {
+            status_plain.to_string()
+        };
+        
+        let original_name_colored = if self.use_colors {
+            if info.filename_decrypted {
+                original_name_plain.color(self.color_scheme.filename).bold().to_string()
+            } else {
+                original_name_plain.color(self.color_scheme.error).dimmed().to_string()
             }
         } else {
-            // Create the plain text version first for length calculation
-            let plain_mapping = format!("{} → [ENCRYPTED]", info.obfuscated_name);
-            let truncated_plain = self.truncate_with_ellipsis(&plain_mapping, 60);
-            
-            // If truncated, use plain version; otherwise, use colored version
-            if truncated_plain.len() < plain_mapping.len() {
-                truncated_plain
-            } else {
-                let obfuscated = if self.use_colors {
-                    info.obfuscated_name.color(self.color_scheme.warning).to_string()
-                } else {
-                    info.obfuscated_name.clone()
-                };
-                
-                let encrypted_label = if self.use_colors {
-                    " → [ENCRYPTED]".color(self.color_scheme.error).dimmed().to_string()
-                } else {
-                    " -> [ENCRYPTED]".to_string()
-                };
-                
-                format!("{}{}", obfuscated, encrypted_label)
-            }
+            original_name_plain.clone()
         };
         
-        // File sizes with color
-        let size = if self.use_colors {
-            self.format_file_size(info.size).color(self.color_scheme.size)
+        let obfuscated_name_colored = if self.use_colors {
+            obfuscated_name_plain.color(self.color_scheme.warning).dimmed().to_string()
         } else {
-            self.format_file_size(info.size).normal()
+            obfuscated_name_plain.clone()
         };
         
-        let encrypted_size = if self.use_colors {
-            self.format_file_size(info.encrypted_size).color(self.color_scheme.size).dimmed()
+        let size_colored = if self.use_colors {
+            size_plain.color(self.color_scheme.size).to_string()
         } else {
-            self.format_file_size(info.encrypted_size).normal()
+            size_plain.clone()
         };
         
-        // Timestamp with color
-        let timestamp = if self.use_colors {
-            self.format_timestamp(info.modified).color(self.color_scheme.timestamp)
+        let encrypted_size_colored = if self.use_colors {
+            encrypted_size_plain.color(self.color_scheme.size).dimmed().to_string()
         } else {
-            self.format_timestamp(info.modified).normal()
+            encrypted_size_plain.clone()
         };
         
-        format!(
-            "{:<8} {:<60} {:>10} {:>12} {:>20}",
-            status, filename_display, size, encrypted_size, timestamp
-        )
+        let timestamp_colored = if self.use_colors {
+            timestamp_plain.color(self.color_scheme.timestamp).to_string()
+        } else {
+            timestamp_plain.clone()
+        };
+        
+        // Manually construct the line with proper spacing
+        let mut line = String::new();
+        
+        // Status column (9 chars)
+        line.push_str(&status_colored);
+        line.push_str(&" ".repeat(9 - status_plain.chars().count()));
+        
+        // Original name column (31 chars)
+        line.push_str(&original_name_colored);
+        line.push_str(&" ".repeat(31 - original_name_plain.chars().count()));
+        
+        // Obfuscated name column (26 chars)
+        line.push_str(&obfuscated_name_colored);
+        line.push_str(&" ".repeat(26 - obfuscated_name_plain.chars().count()));
+        
+        // Size column (13 chars, right-aligned)
+        let size_padding = 13 - size_plain.chars().count();
+        line.push_str(&" ".repeat(size_padding));
+        line.push_str(&size_colored);
+        
+        // Encrypted size column (15 chars, right-aligned)
+        let encrypted_size_padding = 15 - encrypted_size_plain.chars().count();
+        line.push_str(&" ".repeat(encrypted_size_padding));
+        line.push_str(&encrypted_size_colored);
+        
+        // Timestamp column (21 chars, right-aligned)
+        let timestamp_padding = 21 - timestamp_plain.chars().count();
+        line.push_str(&" ".repeat(timestamp_padding));
+        line.push_str(&timestamp_colored);
+        
+        line
     }
     
     /// Format the legend/help section
@@ -258,13 +263,13 @@ impl UIFormatter {
         };
         
         let note = if self.use_colors {
-            "     [ENCRYPTED] entries show the obfuscated filename only"
+            "     [ENCRYPTED] appears in original name column when decryption fails"
                 .color(self.color_scheme.info).dimmed()
         } else {
-            "     [ENCRYPTED] entries show the obfuscated filename only".normal()
+            "     [ENCRYPTED] appears in original name column when decryption fails".normal()
         };
         
-        format!("{}\n{}\n{}\n{}", legend_title, success_line, error_line, note)
+        format!("{}\n{}\n{}\n{}\n", legend_title, success_line, error_line, note)
     }
     
     /// Format file size in human-readable format
@@ -358,7 +363,7 @@ mod tests {
         let formatter = UIFormatter::without_colors();
         let separator = formatter.format_separator();
         // Check character count, not byte count (Unicode ─ characters)
-        assert_eq!(separator.chars().count(), 115);
+        assert_eq!(separator.chars().count(), 112);
         assert!(separator.chars().all(|c| c == '─'));
     }
     

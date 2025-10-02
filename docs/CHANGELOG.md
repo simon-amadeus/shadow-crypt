@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.1] - 2025-10-02
+
+### Enhanced - Structured Column View (Customer Feedback Response)
+- **Enhanced shadows UI**: Implemented structured 6-column view (status, original name, obfuscated name, original size, encrypted size, modified)
+- **Alphabetical Sorting**: Files ordered alphabetically by original name for consistent viewing
+- **Improved Readability**: Separate columns for obfuscated and original names with optimized widths
+- **Professional Layout**: Clean column alignment with proper spacing and visual hierarchy
+- **Customer Response**: Direct implementation of urgent customer feedback for improved workflow
+
+## [0.15.1] - 2025-10-02
+
+### Enhanced - Enhanced shadows UI with Customer-Requested Improvements
+- **Structured Column Layout**: Implemented 6-column display (status, original name, obfuscated name, original size, encrypted size, modified) as requested by customer feedback
+- **Perfect Column Alignment**: Fixed color-code alignment issues for professional tabular display across all terminal types
+- **Security-First Sorting**: Successfully decrypted files listed first (alphabetically sorted), followed by failed decryptions (unsorted to prevent filename guessing attacks)
+- **Anti-Guessing Protection**: Users with wrong passwords cannot infer filename patterns through sort order, enhancing security
+
+### Security - Enhanced Privacy Protection
+- **Filename Attack Prevention**: Modified sorting algorithm to prevent filename guessing by unauthorized users
+- **Status-Based Grouping**: Clear separation between accessible and inaccessible files based on authentication status
+- **Preserved Security Model**: Maintained all existing cryptographic protections while improving usability
+
+### Technical - Code Quality Improvements
+- **Column Alignment Algorithm**: Implemented proper padding calculation for colored terminal text
+- **Clean Code Structure**: Refactored UI formatting for maintainable column layout system
+- **Test Coverage Maintained**: All 112 tests continue to pass with enhanced functionality
+
 ## [0.15.0] - 2025-10-01
 
 ### Enhanced - User Experience Improvements (Phase 15 Partial Complete)
