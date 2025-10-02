@@ -40,13 +40,14 @@ pub fn decrypt_multiple_files(
     force_overwrite: bool,
     remove_source: bool,
 ) -> Result<MultiFileResults, CryptoError> {
-    use crate::shared::algorithms::aes_gcm::Argon2Params;
+    use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
+    let config = AesGcmConfig::test_config(); // Use test config for compatibility
     decrypt_multiple_files_with_params_and_progress(
         file_paths,
         password,
         force_overwrite,
         remove_source,
-        &Argon2Params::default(),
+        config.argon2_params(),
         true // show_progress = true for backward compatibility
     )
 }

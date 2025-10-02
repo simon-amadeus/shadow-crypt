@@ -3,9 +3,9 @@
 //! This binary provides performance analysis and benchmarking for Shadow crypto operations.
 //! Helps users understand where time is spent and whether timing is appropriate for security.
 
-use shadow_crypt::shared::algorithms::aes_gcm::{Argon2Params, derive_master_key, generate_salt};
+use shadow_crypt::shared::algorithms::{AesGcmConfig, DefaultConfigProvider, encrypt_with_provider, CryptoConfig};
+use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, generate_salt};
 use shadow_crypt::shared::performance::{PerformanceBenchmark, format_duration};
-use shadow_crypt::encryption::encrypt_single_file_with_params;
 use std::fs::File;
 use std::io::Write;
 use tempfile::TempDir;
@@ -40,14 +40,18 @@ fn show_system_info() {
     let total_memory_mb = sys.total_memory() / 1024 / 1024;
     println!("   Memory: {} MB", total_memory_mb);
     
-    // Show Argon2 parameters
-    let prod_params = Argon2Params::production_params();
-    let test_params = Argon2Params::test_params();
+    // Show configuration parameters
+    let prod_config = AesGcmConfig::production_config();
+    let test_config = AesGcmConfig::test_config();
     
     println!("   Production Argon2: {}KB memory, {} iterations, {} threads", 
-             prod_params.memory_cost, prod_params.time_cost, prod_params.parallelism);
+             prod_config.argon2_params().memory_cost, 
+             prod_config.argon2_params().time_cost, 
+             prod_config.argon2_params().parallelism);
     println!("   Test Argon2: {}KB memory, {} iterations, {} threads\n", 
-             test_params.memory_cost, test_params.time_cost, test_params.parallelism);
+             test_config.argon2_params().memory_cost, 
+             test_config.argon2_params().time_cost, 
+             test_config.argon2_params().parallelism);
 }
 
 fn run_crypto_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
@@ -59,16 +63,16 @@ fn run_crypto_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
     benchmark.add_operation("Key Derivation (Production)", || {
         let password = "benchmark_password_123";
         let salt = generate_salt(16)?;
-        let params = Argon2Params::production_params();
-        let _key_material = derive_master_key(password, &salt, &params)?;
+        let config = AesGcmConfig::production_config();
+        let _key_material = derive_master_key(password, &salt, config.argon2_params())?;
         Ok(())
     });
     
     benchmark.add_operation("Key Derivation (Test/Fast)", || {
         let password = "benchmark_password_123";
         let salt = generate_salt(16)?;
-        let params = Argon2Params::test_params();
-        let _key_material = derive_master_key(password, &salt, &params)?;
+        let config = AesGcmConfig::test_config();
+        let _key_material = derive_master_key(password, &salt, config.argon2_params())?;
         Ok(())
     });
     
@@ -105,9 +109,9 @@ fn run_file_operation_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
         let input = small_file.clone();
         let temp_dir = temp_dir.path().to_path_buf();
         move || {
-            let test_params = Argon2Params::test_params(); // Create inside closure
+            let provider = DefaultConfigProvider::<AesGcmConfig>::test(); // Create inside closure
             let output = temp_dir.join("small.txt.shadow");
-            encrypt_single_file_with_params(&input, &output, test_password, false, &test_params)?;
+            encrypt_with_provider(&input, &output, test_password, false, &provider)?;
             Ok(())
         }
     });
@@ -117,9 +121,9 @@ fn run_file_operation_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
         let input = medium_file.clone();
         let temp_dir = temp_dir.path().to_path_buf();
         move || {
-            let test_params = Argon2Params::test_params(); // Create inside closure
+            let provider = DefaultConfigProvider::<AesGcmConfig>::test(); // Create inside closure
             let output = temp_dir.join("medium.txt.shadow");
-            encrypt_single_file_with_params(&input, &output, test_password, false, &test_params)?;
+            encrypt_with_provider(&input, &output, test_password, false, &provider)?;
             Ok(())
         }
     });
@@ -129,9 +133,9 @@ fn run_file_operation_benchmarks() -> Result<(), Box<dyn std::error::Error>> {
         let input = large_file.clone();
         let temp_dir = temp_dir.path().to_path_buf();
         move || {
-            let test_params = Argon2Params::test_params(); // Create inside closure
+            let provider = DefaultConfigProvider::<AesGcmConfig>::test(); // Create inside closure
             let output = temp_dir.join("large.txt.shadow");
-            encrypt_single_file_with_params(&input, &output, test_password, false, &test_params)?;
+            encrypt_with_provider(&input, &output, test_password, false, &provider)?;
             Ok(())
         }
     });

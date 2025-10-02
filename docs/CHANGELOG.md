@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.2] - 2025-10-02
+
+### Configuration Migration - Complete Legacy Pattern Removal
+- **Binary Migration Complete**: All binaries (`shadowbench`, `shadow`, `unshadow`) now use `DefaultConfigProvider<AesGcmConfig>` instead of direct `Argon2Params` 
+- **Core Module Updates**: Removed legacy `Argon2Params::default()` usage in `filename_auth.rs` and `multi_file.rs` with configuration provider injection
+- **Test Infrastructure Modernized**: Updated test functions to use `AesGcmConfig::test_config()` pattern for consistent test configuration
+- **API Consistency**: All user-facing binaries now utilize the trait-based configuration system
+
+### Architecture - Configuration System Adoption
+- **Legacy Pattern Elimination**: Systematic removal of manual `Argon2Params` construction across codebase
+- **Provider-Based Interface**: Migrated performance benchmarking, encryption operations, and file handling to use configuration providers
+- **Compatibility Maintenance**: Preserved API compatibility while adopting modern configuration patterns internally
+- **Test Coverage Validation**: All 175 unit tests and integration tests pass with new configuration system
+
 ## [0.30.1] - 2025-10-02
 
 ### Documentation - Configuration System Reference

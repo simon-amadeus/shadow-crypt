@@ -173,14 +173,15 @@ fn handle_multiple_files(
     remove_source: bool,
     show_progress: bool
 ) -> Result<(), CryptoError> {
-    use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
+    use shadow_crypt::shared::algorithms::{AesGcmConfig, DefaultConfigProvider, CryptoConfig, ConfigProvider};
     
+    let provider = DefaultConfigProvider::<AesGcmConfig>::new(AesGcmConfig::test_config());
     let results = decrypt_multiple_files_with_params_and_progress(
         file_paths,
         password,
         force_overwrite,
         remove_source,
-        &Argon2Params::default(),
+        provider.config().argon2_params(),
         show_progress
     )?;
 

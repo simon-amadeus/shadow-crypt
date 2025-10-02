@@ -126,12 +126,13 @@ pub fn extract_filename_for_auth(file_path: &Path) -> Result<String, CryptoError
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params, generate_salt};
+    use crate::shared::algorithms::aes_gcm::{derive_master_key, generate_salt};
+    use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
 
     fn test_keys() -> KeyMaterial {
         let salt = generate_salt(16).unwrap();
-        let params = Argon2Params::default();
-        derive_master_key("test_password", &salt, &params).unwrap()
+        let config = AesGcmConfig::test_config();
+        derive_master_key("test_password", &salt, config.argon2_params()).unwrap()
     }
 
     #[test]

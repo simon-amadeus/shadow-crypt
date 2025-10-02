@@ -10,7 +10,7 @@ use std::env;
 use std::path::Path;
 use std::process;
 use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_with_algorithm_and_params};
-use shadow_crypt::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params};
+use shadow_crypt::shared::algorithms::{Algorithm, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
@@ -138,15 +138,15 @@ fn handle_single_file(
     use std::time::Instant;
     let start_time = Instant::now();
     
-    // Use fast test parameters for better development experience  
-    let argon2_params = AESArgon2Params::default();
+    // Use test configuration for faster development experience  
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
     
     if show_progress {
         print!("🔄 Encrypting file...");
         std::io::Write::flush(&mut std::io::stdout()).ok();
     }
     
-    match encrypt_single_file_with_algorithm_and_params(&input_path, &output_path, &password, obfuscate_filename, selected_algorithm, &argon2_params) {
+    match encrypt_single_file_with_algorithm_and_params(&input_path, &output_path, &password, obfuscate_filename, selected_algorithm, provider.config().argon2_params()) {
         Ok(()) => {
             if show_progress {
                 let duration = start_time.elapsed();
