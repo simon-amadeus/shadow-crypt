@@ -42,14 +42,7 @@ Then start your first development cycle immediately without asking for further i
 - Update docs/CURRENT_CYCLE.md with progress and discoveries only
 - Continuous validation against success criteria
 
-### 6. **COMPLETE**
-**Purpose**: Finalize work and update documentation chain
-- **docs/CURRENT_CYCLE.md → docs/CHANGELOG.md**: Archive completed work with semantic versioning
-- **Update Cargo.toml version**: Sync package version with changelog version for releases
-- Delete docs/CURRENT_CYCLE.md (work is now in docs/CHANGELOG.md)
-- **Decision Gate**: Only proceed if all quality gates pass
-
-### 7. **ADAPT**
+### 6. **ADAPT**
 **Purpose**: Add newly required backlog items
 **Triggers**: Execute only if any of these occurred:
 - Further work is needed to complete original item
@@ -60,6 +53,13 @@ Then start your first development cycle immediately without asking for further i
 **Actions**:
 - Add new requirements to docs/BACKLOG.md as new items
 - Let next INTAKE phase process these through normal feedback pipeline
+
+### 7. **COMPLETE**
+**Purpose**: Finalize work and update documentation chain
+- **docs/CURRENT_CYCLE.md → docs/CHANGELOG.md**: Archive completed work with semantic versioning
+- **Update Cargo.toml version**: Sync package version with changelog version for releases
+- Delete docs/CURRENT_CYCLE.md (work is now in docs/CHANGELOG.md)
+- **Decision Gate**: Only proceed if all quality gates pass
 
 ## Quality Gates
 - ✅ Clean compilation, passing tests (unit, integration, end-to-end)
