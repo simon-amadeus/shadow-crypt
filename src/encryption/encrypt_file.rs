@@ -848,7 +848,7 @@ mod tests {
     fn test_trait_based_roundtrip() {
         let temp_dir = tempdir().unwrap();
         let input_path = temp_dir.path().join("roundtrip.txt");
-        let encrypted_path = temp_dir.path().join("roundtrip.shadow");
+        let encrypted_path = temp_dir.path().join("roundtrip.txt.shadow");
         let decrypted_path = temp_dir.path().join("roundtrip_decrypted.txt");
         
         let original_content = b"This is a roundtrip test with trait-based encryption!";

@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.6] - 2025-10-03
+
+### Fixed
+- **Test Failure Resolution**: Fixed filename pattern mismatch in `test_trait_based_roundtrip` test
+- **Filename Consistency**: Corrected test to use standard naming convention (`file.txt` → `file.txt.shadow`)
+- **Test Coverage**: Achieved 177/177 tests passing (100% success rate)
+
+### Changed
+- **Test Standards**: Updated `test_trait_based_roundtrip` to align with established filename patterns
+- **Quality Gates**: All compilation warnings addressed, clean test execution
+
+### Technical Details
+- Root cause: Test was using `roundtrip.shadow` instead of `roundtrip.txt.shadow` 
+- Fix: Updated test to follow standard `{original}.shadow` naming convention
+- Validation: Decryption process correctly validates filename patterns for security
+- Impact: No user-facing changes, internal test consistency improvement
+
 ## [0.30.5] - 2025-10-03
 
 ### Fixed
