@@ -14,6 +14,14 @@ pub trait KeyDerivationConfig: Send + Sync + Clone {
     /// Get recommended salt length in bytes
     fn salt_length(&self) -> usize { 16 }
     
+    /// Generate a cryptographically secure salt of appropriate length
+    fn generate_salt(&self) -> Result<Vec<u8>, CryptoError> {
+        let mut salt = vec![0u8; self.salt_length()];
+        getrandom::fill(&mut salt)
+            .map_err(|e| CryptoError::CryptographicError(format!("Failed to generate salt: {}", e)))?;
+        Ok(salt)
+    }
+    
     /// Get configuration name for debugging/logging
     fn name(&self) -> &'static str;
 }

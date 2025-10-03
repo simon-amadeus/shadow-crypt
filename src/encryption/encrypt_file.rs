@@ -238,7 +238,7 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
     let file_metadata = extract_file_metadata(input_path, &plaintext)?;
     
     // Generate cryptographic materials using trait methods
-    let salt = generate_salt(config.salt_length())?;
+    let salt = config.generate_salt()?;
     let key_material = config.derive_key_material(password, &salt)?;
     let nonce = generate_secure_nonce()?;  // TODO: Make this trait-based too
     

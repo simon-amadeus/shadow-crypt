@@ -8,12 +8,14 @@
 ## 📋 PRIORITY ROADMAP
 
 1. **Test Suite Stabilization**: Fix XChaCha20 salt length validation, filename output path edge cases, and add comprehensive XChaCha20 default algorithm selection tests
-2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
-3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+2. **Trait-Based System Architecture Review**: Address V1/V2 header version selection issues discovered during integration test analysis
+3. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 
+- **Integration Test Modernization**: Update tests to use trait-based system (BLOCKED: requires trait system architecture fixes first)
 - **Secure Viewing (`shadowview`)**: View encrypted files without persistent decryption
 - **Secure Editing (`shadowedit`)**: Edit encrypted text files in-place  
 - **Post-Quantum Cryptography**: Future-proof encryption algorithms leveraging V2 header extensibility
