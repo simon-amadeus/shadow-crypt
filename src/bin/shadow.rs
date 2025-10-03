@@ -9,8 +9,10 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_with_algorithm_and_params};
-use shadow_crypt::shared::algorithms::{Algorithm, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
+use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_with_config};
+use shadow_crypt::shared::algorithms::{Algorithm, AesGcmConfig};
+use shadow_crypt::shared::algorithms::xchacha20_config::XChaCha20Config;
+use shadow_crypt::shared::algorithms::config::CryptoConfig;
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 
 fn main() {
@@ -138,15 +140,25 @@ fn handle_single_file(
     use std::time::Instant;
     let start_time = Instant::now();
     
-    // Use test configuration for faster development experience  
-    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    // Use production configuration for security
     
     if show_progress {
         print!("🔄 Encrypting file...");
         std::io::Write::flush(&mut std::io::stdout()).ok();
     }
     
-    match encrypt_single_file_with_algorithm_and_params(input_path, &output_path, password, obfuscate_filename, selected_algorithm, provider.config().argon2_params()) {
+    let encryption_result = match selected_algorithm {
+        Algorithm::AES256GCM => {
+            let config = AesGcmConfig::production_config();
+            encrypt_single_file_with_config(input_path, &output_path, password, obfuscate_filename, &config)
+        }
+        Algorithm::XChaCha20Poly1305 => {
+            let config = XChaCha20Config::production_config();
+            encrypt_single_file_with_config(input_path, &output_path, password, obfuscate_filename, &config)
+        }
+    };
+    
+    match encryption_result {
         Ok(()) => {
             if show_progress {
                 let duration = start_time.elapsed();

@@ -189,8 +189,11 @@ pub fn decrypt_multiple_files_with_params_and_progress(
                         return (input_path.clone(), Err(error_msg));
                     }
 
-                    // Attempt decryption with custom parameters
-                    match crate::decryption::decrypt_single_file_with_params(input_path, &output_path, password, argon2_params) {
+                    // Attempt decryption using AES-GCM (compatible with legacy argon2_params)
+                    use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
+                    use crate::shared::algorithms::config::CryptoConfig;
+                    let config = AesGcmConfig::production_config();
+                    match crate::decryption::decrypt_single_file_with_config(input_path, &output_path, password, &config) {
                         Ok(()) => {
                             (input_path.clone(), Ok(output_path))
                         }

@@ -55,21 +55,24 @@
 //! # Quick Start
 //! 
 //! ```rust,no_run
-//! use shadow_crypt::encryption::encrypt_single_file;
-//! use shadow_crypt::decryption::decrypt_single_file;
+//! use shadow_crypt::encryption::encrypt_single_file_with_config;
+//! use shadow_crypt::decryption::decrypt_single_file_with_config;
+//! use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
+//! use shadow_crypt::shared::algorithms::config::CryptoConfig;
 //! use std::path::Path;
 //! 
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! // Encrypt a file
 //! let input = Path::new("document.txt");
 //! let encrypted = Path::new("document.txt.shadow");
-//! let password = "secure_password".to_string();
+//! let password = "secure_password";
+//! let config = AesGcmConfig::production_config();
 //! 
-//! encrypt_single_file(input, encrypted, password.clone(), false)?;
+//! encrypt_single_file_with_config(input, encrypted, password, false, &config)?;
 //! 
 //! // Decrypt it back
 //! let decrypted = Path::new("document_restored.txt");
-//! decrypt_single_file(encrypted, decrypted, password)?;
+//! decrypt_single_file_with_config(encrypted, decrypted, password, &config)?;
 //! # Ok(())
 //! # }
 //! ```

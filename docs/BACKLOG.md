@@ -7,7 +7,7 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Legacy Function Cleanup**: Complete trait-based system adoption across all modules, remove legacy function exports that bypass the new architecture
+1. **Test Suite Stabilization**: Fix XChaCha20 salt length validation, filename output path edge cases, and add comprehensive XChaCha20 default algorithm selection tests
 2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation

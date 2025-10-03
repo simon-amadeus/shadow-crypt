@@ -85,8 +85,8 @@ use crate::shared::core::errors::CryptoError;
 use crate::shared::algorithms::config::{CryptoConfig, ConfigProvider};
 use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
 use crate::shared::algorithms::xchacha20_config::XChaCha20Config;
-use crate::encryption::encrypt_single_file_with_params;
-use crate::decryption::decrypt_single_file_with_params;
+use crate::encryption::encrypt_single_file_with_config;
+use crate::decryption::decrypt_single_file_with_config;
 
 /// Encrypt a single file using generic configuration
 /// 
@@ -114,10 +114,9 @@ pub fn encrypt_with_config<C: CryptoConfig>(
     // until we refactor the underlying encryption functions
     match config.algorithm_id() {
         1 => {
-            // AES-GCM: Convert config to Argon2Params for compatibility
+            // AES-GCM: Use trait-based approach directly
             if let Ok(aes_config) = try_as_aes_config(config) {
-                let argon2_params = aes_config.argon2_params().clone();
-                encrypt_single_file_with_params(input_path, output_path, password, obfuscate_filename, &argon2_params)
+                encrypt_single_file_with_config(input_path, output_path, password, obfuscate_filename, aes_config)
             } else {
                 Err(CryptoError::CryptographicError(
                     "Invalid AES-GCM configuration".to_string()
@@ -125,25 +124,9 @@ pub fn encrypt_with_config<C: CryptoConfig>(
             }
         }
         2 => {
-            // XChaCha20-Poly1305: Convert config to XChaCha20Argon2Params for compatibility
+            // XChaCha20-Poly1305: Use trait-based approach directly
             if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
-                let argon2_params = xchacha20_config.argon2_params().clone();
-                use crate::encryption::encrypt_single_file_with_algorithm_and_params;
-                use crate::shared::algorithms::Algorithm;
-                // Convert to AES Argon2Params format for now (temporary during transition)
-                let aes_params = crate::shared::algorithms::aes_gcm::Argon2Params {
-                    memory_cost: argon2_params.memory_cost,
-                    time_cost: argon2_params.time_cost,
-                    parallelism: argon2_params.parallelism,
-                };
-                encrypt_single_file_with_algorithm_and_params(
-                    input_path, 
-                    output_path, 
-                    password, 
-                    obfuscate_filename, 
-                    Algorithm::XChaCha20Poly1305,
-                    &aes_params
-                )
+                encrypt_single_file_with_config(input_path, output_path, password, obfuscate_filename, xchacha20_config)
             } else {
                 Err(CryptoError::CryptographicError(
                     "Invalid XChaCha20-Poly1305 configuration".to_string()
@@ -180,10 +163,9 @@ pub fn decrypt_with_config<C: CryptoConfig>(
     // until we refactor the underlying decryption functions
     match config.algorithm_id() {
         1 => {
-            // AES-GCM: Convert config to Argon2Params for compatibility
+            // AES-GCM: Use trait-based approach directly
             if let Ok(aes_config) = try_as_aes_config(config) {
-                let argon2_params = aes_config.argon2_params().clone();
-                decrypt_single_file_with_params(input_path, output_path, password, &argon2_params)
+                decrypt_single_file_with_config(input_path, output_path, password, aes_config)
             } else {
                 Err(CryptoError::CryptographicError(
                     "Invalid AES-GCM configuration".to_string()
@@ -191,16 +173,9 @@ pub fn decrypt_with_config<C: CryptoConfig>(
             }
         }
         2 => {
-            // XChaCha20-Poly1305: Convert config to Argon2Params for compatibility  
+            // XChaCha20-Poly1305: Use trait-based approach directly  
             if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
-                let argon2_params = xchacha20_config.argon2_params().clone();
-                // Convert to AES Argon2Params format for compatibility with current decryption interface
-                let aes_params = crate::shared::algorithms::aes_gcm::Argon2Params {
-                    memory_cost: argon2_params.memory_cost,
-                    time_cost: argon2_params.time_cost,
-                    parallelism: argon2_params.parallelism,
-                };
-                decrypt_single_file_with_params(input_path, output_path, password, &aes_params)
+                decrypt_single_file_with_config(input_path, output_path, password, xchacha20_config)
             } else {
                 Err(CryptoError::CryptographicError(
                     "Invalid XChaCha20-Poly1305 configuration".to_string()

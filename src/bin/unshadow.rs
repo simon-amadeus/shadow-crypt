@@ -6,7 +6,9 @@
 //! - Progress reporting for batch operations
 //! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header};
+use shadow_crypt::decryption::{decrypt_single_file_with_config, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header};
+use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
+use shadow_crypt::shared::algorithms::config::CryptoConfig;
 use shadow_crypt::shared::errors::CryptoError;
 use shadow_crypt::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use shadow_crypt::shared::cli_utils::{display_error_and_exit, display_validation_error_and_exit, io_error_with_context, display_error_and_return};
@@ -118,7 +120,7 @@ fn handle_single_file(
         print!("🔄 Decrypting and verifying file...");
         std::io::Write::flush(&mut std::io::stdout()).ok();
         
-        match decrypt_single_file(input_path, &output_path, password) {
+        match decrypt_single_file_with_config(input_path, &output_path, password, &AesGcmConfig::production_config()) {
             Ok(()) => {
                 let duration = start_time.elapsed();
                 println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(duration));
@@ -132,7 +134,7 @@ fn handle_single_file(
         }
     } else {
         // Quiet mode - just do the work
-        match decrypt_single_file(input_path, &output_path, password) {
+        match decrypt_single_file_with_config(input_path, &output_path, password, &AesGcmConfig::production_config()) {
             Ok(()) => {
                 println!("✅ Decryption successful!");
                 println!("📄 Decrypted file: {}", output_path.display());

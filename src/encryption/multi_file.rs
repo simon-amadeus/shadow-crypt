@@ -6,8 +6,8 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
-use crate::encryption::{encrypt_single_file, encrypt_single_file_with_algorithm_and_params, encrypt_single_file_with_config};
-use crate::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
+use crate::encryption::encrypt_single_file_with_config;
+use crate::shared::algorithms::{Algorithm, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use rayon::prelude::*;
@@ -204,8 +204,6 @@ pub fn encrypt_multiple_files_with_algorithm(
         return Err(CryptoError::InvalidFileFormat); // No files to process
     }
 
-    let argon2_params = AESArgon2Params::default();
-
     let results = show_minimal_multifile_progress(
         "Encrypting",
         total_files,
@@ -250,7 +248,22 @@ pub fn encrypt_multiple_files_with_algorithm(
                     }
 
                     // Attempt encryption with algorithm selection
-                    match encrypt_single_file_with_algorithm_and_params(file_path, &output_path, password, obfuscate_filename, algorithm, &argon2_params) {
+                    let encryption_result = match algorithm {
+                        Algorithm::AES256GCM => {
+                            use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
+                            use crate::shared::algorithms::config::CryptoConfig;
+                            let config = AesGcmConfig::production_config();
+                            encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config)
+                        }
+                        Algorithm::XChaCha20Poly1305 => {
+                            use crate::shared::algorithms::xchacha20_config::XChaCha20Config;
+                            use crate::shared::algorithms::config::CryptoConfig;
+                            let config = XChaCha20Config::production_config();
+                            encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config)
+                        }
+                    };
+                    
+                    match encryption_result {
                         Ok(()) => {
                             // Handle source file removal if requested
                             if remove_source {
@@ -376,8 +389,11 @@ pub fn encrypt_multiple_files_with_progress(
                         return (file_path.clone(), Err(error_msg));
                     }
 
-                    // Attempt encryption
-                    match encrypt_single_file(file_path, &output_path, password, obfuscate_filename) {
+                    // Attempt encryption using AES-256-GCM (default algorithm)
+                    use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
+                    use crate::shared::algorithms::config::CryptoConfig;
+                    let config = AesGcmConfig::production_config();
+                    match encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config) {
                         Ok(()) => {
                             // Handle source file removal if requested
                             if remove_source {

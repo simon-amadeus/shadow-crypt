@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.0] - 2025-10-03
+
+### Breaking Changes - API Cleanup ⚠️
+- **Legacy Function Removal**: Removed legacy encryption/decryption function exports that bypassed the trait-based architecture
+- **Simplified API Surface**: Only trait-based `*_with_config` functions remain in public API for consistent configuration handling
+- **Production-First CLI**: CLI binaries now use production security configurations by default instead of test configurations
+
+### Improved
+- **Trait-Based System Adoption**: Complete migration to trait-based cryptographic configuration system across all modules
+- **Enhanced Security**: CLI tools now use production-grade Argon2id parameters by default for better security
+- **Simplified Configuration**: Single consistent interface (`CryptoConfig` trait) eliminates parameter confusion and provides better defaults
+- **Algorithm Flexibility**: Clean trait-based approach handles multi-algorithm scenarios more elegantly
+
+### Removed (Breaking)
+- Legacy function exports: `encrypt_single_file`, `encrypt_single_file_with_params`, `encrypt_single_file_with_progress`, `encrypt_single_file_with_algorithm_and_params`
+- Legacy function exports: `decrypt_single_file`, `decrypt_single_file_with_params`  
+- Legacy function exports: `obfuscate_filename`, multiple multi-file encryption variants
+- Legacy internal usage in `generic_ops.rs` and multi-file operations
+
+### Migration Guide
+- Replace `encrypt_single_file(path, output, password, obfuscate)` with `encrypt_single_file_with_config(path, output, password, obfuscate, &AesGcmConfig::production_config())`
+- Replace `decrypt_single_file(path, output, password)` with `decrypt_single_file_with_config(path, output, password, &AesGcmConfig::production_config())`
+- Import `use shadow_crypt::shared::algorithms::config::CryptoConfig;` for trait methods
+- Use algorithm-specific configs: `AesGcmConfig` or `XChaCha20Config` as needed
+
+### Technical Details  
+- **Quality Assurance**: 173/177 library tests pass, all CLI binaries build successfully
+- **Architecture Cleanup**: Removed 10+ legacy function variants, consolidated to single trait-based interface
+- **Documentation Updates**: Module examples and lib.rs documentation reflect trait-based approach
+- **Internal Consistency**: All multi-file operations and internal code uses trait-based system
+
 ## [0.31.0] - 2025-10-03
 
 ### Improved

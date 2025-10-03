@@ -3,9 +3,10 @@
 //! These tests verify that the filename authentication prevents file
 //! substitution attacks in obfuscated mode.
 
-use shadow_crypt::encryption::encrypt_single_file_with_params;
-use shadow_crypt::decryption::decrypt_single_file_with_params;
-use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
+use shadow_crypt::encryption::encrypt_single_file_with_config;
+use shadow_crypt::decryption::decrypt_single_file_with_config;
+use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
+use shadow_crypt::shared::algorithms::config::CryptoConfig;
 use std::fs::{write, read};
 use tempfile::TempDir;
 

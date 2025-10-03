@@ -23,15 +23,18 @@
 //! # Example Usage
 //! 
 //! ```rust,no_run
-//! use shadow_crypt::decryption::decrypt_single_file;
+//! use shadow_crypt::decryption::decrypt_single_file_with_config;
+//! use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
+//! use shadow_crypt::shared::algorithms::config::CryptoConfig;
 //! use std::path::Path;
 //! 
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let input = Path::new("document.txt.shadow");
 //! let output = Path::new("document.txt");
-//! let password = "secure_password".to_string();
+//! let password = "secure_password";
+//! let config = AesGcmConfig::production_config();
 //! 
-//! decrypt_single_file(input, output, password)?;
+//! decrypt_single_file_with_config(input, output, password, &config)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -51,10 +54,6 @@ pub mod multi_file;
 pub mod cli;
 
 // Re-export main functions for convenience
-pub use decrypt_file::{
-    decrypt_single_file, 
-    decrypt_single_file_with_params,
-    decrypt_single_file_with_config,  // New trait-based function
-};
+pub use decrypt_file::decrypt_single_file_with_config;  // New trait-based function
 pub use filename_restoration::restore_original_filename;
-pub use multi_file::{decrypt_multiple_files, decrypt_multiple_files_with_params, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, MultiFileResults, try_restore_filename_from_header};
+pub use multi_file::{decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, MultiFileResults, try_restore_filename_from_header};
