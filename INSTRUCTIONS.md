@@ -16,6 +16,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Purpose**: Ensure all documentation reflects current reality
 - Verify docs/BACKLOG.md matches actual priorities
 - Confirm no orphaned docs/CURRENT_CYCLE.md exists
+- **Decision Gate**: If unfinished work exists in docs/CURRENT_CYCLE.md, either complete it or move it back to docs/BACKLOG.md before proceeding
 
 ### 2. **INTAKE**
 **Purpose**: Process new information into the system
@@ -65,6 +66,18 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - Delete docs/CURRENT_CYCLE.md (work is now in docs/CHANGELOG.md)
 - **Update README.md** Ensure it only contains essentials and is in sync with latest changes
 - **Decision Gate**: Only proceed if all quality gates pass
+
+## Development Philosophy
+**Favor Breaking Changes Over Backward Compatibility**
+- This project is in early development with no production usage
+- **Always implement the best possible solution**, even if it breaks existing functionality
+- Backward compatibility is explicitly deprioritized in favor of:
+  - Clean, lean codebase architecture
+  - Optimal solutions without compromise
+  - Elimination of re-export chaos and technical debt
+  - Forward-looking design decisions
+- Breaking changes are preferred over suboptimal implementations
+- Focus on what the codebase should be, not what it was
 
 ## Quality Gates
 - ✅ Clean compilation, passing tests (unit, integration, end-to-end)

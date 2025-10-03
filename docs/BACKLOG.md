@@ -7,9 +7,11 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
-2. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-3. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Versioning & Algorithm Review and V3 Design**: Evaluate current versioning scheme and algorithm usage for future extensibility. Then design V3 header structure. No migration or backwards compatibility needed. this project is unreleased so breaking changes are acceptable.
+2. **Deprecate v1 Header**: Deprecate and remove v1 and v2 header support. no backwards compatibility needed. clean up codebase.
+3. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
+4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 
