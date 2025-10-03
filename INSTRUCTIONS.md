@@ -2,7 +2,7 @@
 
 Please follow these instructions exactly to ensure a smooth, efficient, and high-quality development process.
 Start by reading the entire document to understand the workflow and expectations.
-Then start your first development cycle immediately without asking for further instructions.
+Then begin the first development cycle immediately, starting with the SYNC phase without asking for further instructions.
 
 ## File-Based Workflow
 - **docs/BACKLOG.md**: Priority queue of future work (high-level only, keep concise)
