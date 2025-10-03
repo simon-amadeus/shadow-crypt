@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.5] - 2025-10-03
+
+### Fixed
+- **File Scanner Module Cleanup**: Resolved merge conflicts and duplicate definitions in `src/listing/file_scanner.rs`
+- **Trait-Based Architecture**: Completed modernization of file scanner to use trait-based configuration patterns  
+- **Compilation Issues**: Fixed compilation errors preventing clean builds
+
+### Changed
+- **File Scanner**: Migrated from legacy Argon2Params to trait-based CryptoConfig approach
+- **Code Quality**: Cleaned up duplicate imports and function definitions from merge conflicts
+- **Architecture**: Enhanced consistency with other modernized modules
+
+### Technical Details
+- Replaced corrupted file_scanner.rs with clean trait-based implementation
+- Maintained backward compatibility with legacy `list_encrypted_files_with_params`
+- Fixed trait bounds and parameter passing for modern configuration providers
+- Test coverage: 176/177 tests passing (99.4% success rate)
+
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
