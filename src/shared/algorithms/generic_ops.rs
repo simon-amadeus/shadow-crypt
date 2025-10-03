@@ -86,20 +86,17 @@ use crate::shared::core::errors::CryptoError;
 use crate::shared::algorithms::config::{CryptoConfig, ConfigProvider};
 use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
 use crate::shared::algorithms::xchacha20_config::XChaCha20Config;
-use crate::encryption::encrypt_single_file_with_config;
-use crate::decryption::decrypt_single_file_with_config;
+use crate::encryption::encrypt_single_file_v3;
+use crate::decryption::decrypt_single_file_v3;
 
-/// Encrypt a single file using generic configuration
-/// 
-/// This function accepts any configuration that implements CryptoConfig,
-/// providing algorithm-agnostic encryption with proper dependency injection.
+/// V3-only encryption with XChaCha20-Poly1305
 /// 
 /// # Arguments
 /// * `input_path` - Path to the file to encrypt
 /// * `output_path` - Path where encrypted file will be saved
 /// * `password` - Password for key derivation
 /// * `obfuscate_filename` - Whether to obfuscate the output filename
-/// * `config` - Configuration implementing CryptoConfig trait
+/// * `_config` - Configuration (unused in V3-only implementation)
 /// 
 /// # Returns
 /// * `Ok(())` - File encrypted successfully
@@ -109,41 +106,22 @@ pub fn encrypt_with_config<C: CryptoConfig>(
     output_path: &Path,
     password: &str,
     obfuscate_filename: bool,
-    config: &C,
+    _config: &C,
 ) -> Result<(), CryptoError> {
-    // For now, we need to handle the algorithm dispatch manually
-    // until we refactor the underlying encryption functions
-    match config.algorithm_id() {
-        1 => {
-            // AES-GCM: Use trait-based approach directly
-            if let Ok(aes_config) = try_as_aes_config(config) {
-                encrypt_single_file_with_config(input_path, output_path, password, obfuscate_filename, aes_config)
-            } else {
-                Err(CryptoError::CryptographicError(
-                    "Invalid AES-GCM configuration".to_string()
-                ))
-            }
-        }
-        2 => {
-            // XChaCha20-Poly1305: Use trait-based approach directly
-            if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
-                encrypt_single_file_with_config(input_path, output_path, password, obfuscate_filename, xchacha20_config)
-            } else {
-                Err(CryptoError::CryptographicError(
-                    "Invalid XChaCha20-Poly1305 configuration".to_string()
-                ))
-            }
-        }
-        _ => {
-            Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
-        }
-    }
-}
+    // V3-only: Always use XChaCha20-Poly1305
+    encrypt_single_file_v3(input_path, output_path, password, obfuscate_filename)
+} 
 
-/// Decrypt a single file using generic configuration
+/// V3-only decryption with XChaCha20-Poly1305
 /// 
-/// This function accepts any configuration that implements CryptoConfig,
-/// providing algorithm-agnostic decryption with proper dependency injection.
+/// # Arguments
+/// * `input_path` - Path to the encrypted file
+/// * `output_path` - Path where decrypted file will be saved
+/// * `password` - Password for key derivation
+/// * `_config` - Configuration (unused in V3-only implementation)
+/// 
+/// # Returns
+/// * `Ok(())`
 /// 
 /// # Arguments
 /// * `input_path` - Path to the encrypted file
@@ -158,35 +136,10 @@ pub fn decrypt_with_config<C: CryptoConfig>(
     input_path: &Path,
     output_path: &Path,
     password: &str,
-    config: &C,
+    _config: &C,
 ) -> Result<(), CryptoError> {
-    // For now, we need to handle the algorithm dispatch manually
-    // until we refactor the underlying decryption functions
-    match config.algorithm_id() {
-        1 => {
-            // AES-GCM: Use trait-based approach directly
-            if let Ok(aes_config) = try_as_aes_config(config) {
-                decrypt_single_file_with_config(input_path, output_path, password, aes_config)
-            } else {
-                Err(CryptoError::CryptographicError(
-                    "Invalid AES-GCM configuration".to_string()
-                ))
-            }
-        }
-        2 => {
-            // XChaCha20-Poly1305: Use trait-based approach directly  
-            if let Ok(xchacha20_config) = try_as_xchacha20_config(config) {
-                decrypt_single_file_with_config(input_path, output_path, password, xchacha20_config)
-            } else {
-                Err(CryptoError::CryptographicError(
-                    "Invalid XChaCha20-Poly1305 configuration".to_string()
-                ))
-            }
-        }
-        _ => {
-            Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
-        }
-    }
+    // V3-only: Always use XChaCha20-Poly1305
+    decrypt_single_file_v3(input_path, output_path, password)
 }
 
 /// Encrypt using a config provider (dependency injection)

@@ -6,7 +6,7 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
-use crate::encryption::encrypt_single_file_with_config;
+use crate::encryption::encrypt_single_file_v3;
 use crate::shared::algorithms::{Algorithm, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -138,7 +138,7 @@ pub fn encrypt_multiple_files_with_provider_and_progress<P: ConfigProvider + Syn
                     }
 
                     // Attempt encryption with trait-based configuration
-                    match encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, config) {
+                    match encrypt_single_file_v3(file_path, &output_path, password, obfuscate_filename) {
                         Ok(()) => {
                             // Handle source file removal if requested
                             if remove_source {
@@ -247,21 +247,8 @@ pub fn encrypt_multiple_files_with_algorithm(
                         return (file_path.clone(), Err(error_msg));
                     }
 
-                    // Attempt encryption with algorithm selection
-                    let encryption_result = match algorithm {
-                        Algorithm::AES256GCM => {
-                            use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
-                            use crate::shared::algorithms::config::CryptoConfig;
-                            let config = AesGcmConfig::production_config();
-                            encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config)
-                        }
-                        Algorithm::XChaCha20Poly1305 => {
-                            use crate::shared::algorithms::xchacha20_config::XChaCha20Config;
-                            use crate::shared::algorithms::config::CryptoConfig;
-                            let config = XChaCha20Config::production_config();
-                            encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config)
-                        }
-                    };
+                    // V3-only encryption with XChaCha20-Poly1305
+                    let encryption_result = encrypt_single_file_v3(file_path, &output_path, password, obfuscate_filename);
                     
                     match encryption_result {
                         Ok(()) => {
@@ -390,10 +377,8 @@ pub fn encrypt_multiple_files_with_progress(
                     }
 
                     // Attempt encryption using AES-256-GCM (default algorithm)
-                    use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
-                    use crate::shared::algorithms::config::CryptoConfig;
-                    let config = AesGcmConfig::production_config();
-                    match encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, &config) {
+                    // V3-only encryption
+                    match encrypt_single_file_v3(file_path, &output_path, password, obfuscate_filename) {
                         Ok(()) => {
                             // Handle source file removal if requested
                             if remove_source {

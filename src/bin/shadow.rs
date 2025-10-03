@@ -9,7 +9,7 @@
 use std::env;
 use std::path::Path;
 use std::process;
-use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_with_config};
+use shadow_crypt::encryption::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, encrypt_single_file_v3};
 use shadow_crypt::shared::algorithms::{Algorithm, AesGcmConfig};
 use shadow_crypt::shared::algorithms::xchacha20_config::XChaCha20Config;
 use shadow_crypt::shared::algorithms::config::CryptoConfig;
@@ -147,16 +147,8 @@ fn handle_single_file(
         std::io::Write::flush(&mut std::io::stdout()).ok();
     }
     
-    let encryption_result = match selected_algorithm {
-        Algorithm::AES256GCM => {
-            let config = AesGcmConfig::production_config();
-            encrypt_single_file_with_config(input_path, &output_path, password, obfuscate_filename, &config)
-        }
-        Algorithm::XChaCha20Poly1305 => {
-            let config = XChaCha20Config::production_config();
-            encrypt_single_file_with_config(input_path, &output_path, password, obfuscate_filename, &config)
-        }
-    };
+    // V3-only: Always use XChaCha20-Poly1305
+    let encryption_result = encrypt_single_file_v3(input_path, &output_path, password, obfuscate_filename);
     
     match encryption_result {
         Ok(()) => {

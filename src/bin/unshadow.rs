@@ -6,7 +6,7 @@
 //! - Progress reporting for batch operations
 //! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file_with_config, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header, detect_algorithm_from_file};
+use shadow_crypt::decryption::{decrypt_single_file_v3, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header};
 use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
 use shadow_crypt::shared::algorithms::config::CryptoConfig;
 use shadow_crypt::shared::errors::CryptoError;
@@ -106,11 +106,8 @@ fn handle_single_file(
         ));
     }
     
-    // Detect algorithm from file header for accurate reporting
-    let algorithm_name = match detect_algorithm_from_file(input_path) {
-        Ok(name) => name,
-        Err(_) => "Unknown".to_string(), // Fallback if detection fails
-    };
+    // V3-only: Always use XChaCha20-Poly1305
+    let algorithm_name = "XChaCha20-Poly1305";
     
     // Perform decryption with progress indicators  
     println!("🔓 Decrypting file: {}", input_path.display());
@@ -126,7 +123,7 @@ fn handle_single_file(
         print!("🔄 Decrypting and verifying file...");
         std::io::Write::flush(&mut std::io::stdout()).ok();
         
-        match decrypt_single_file_with_config(input_path, &output_path, password, &AesGcmConfig::production_config()) {
+        match decrypt_single_file_v3(input_path, &output_path, password) {
             Ok(()) => {
                 let duration = start_time.elapsed();
                 println!(" ✓ ({})", shadow_crypt::shared::performance::format_duration(duration));
@@ -140,7 +137,7 @@ fn handle_single_file(
         }
     } else {
         // Quiet mode - just do the work
-        match decrypt_single_file_with_config(input_path, &output_path, password, &AesGcmConfig::production_config()) {
+        match decrypt_single_file_v3(input_path, &output_path, password) {
             Ok(()) => {
                 println!("✅ Decryption successful!");
                 println!("📄 Decrypted file: {}", output_path.display());

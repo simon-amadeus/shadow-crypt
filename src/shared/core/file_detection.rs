@@ -5,6 +5,7 @@
 
 use crate::shared::core::errors::CryptoError;
 use crate::shared::header::Header;
+use crate::shared::versioning::VersionedHeader;
 use std::fs::File;
 use std::io::Read;
 use std::path::Path;
@@ -31,7 +32,7 @@ pub fn is_encrypted_file(path: &Path) -> Result<bool, CryptoError> {
     }
 }
 
-/// Read and parse just the header from an encrypted file (V1 only)
+/// Read and parse just the header from an encrypted file (V3 only)
 pub fn read_header_only(path: &Path) -> Result<Header, CryptoError> {
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();
@@ -39,13 +40,8 @@ pub fn read_header_only(path: &Path) -> Result<Header, CryptoError> {
     
     let (header, _) = Header::deserialize(&buffer)?;
     
-    if !header.validate_magic() {
-        return Err(CryptoError::InvalidFileFormat);
-    }
-    
-    if !header.supports_algorithm() {
-        return Err(CryptoError::UnsupportedAlgorithm(header.algorithm_id as u16));
-    }
+    // V3 validate() checks magic number and other properties
+    header.validate()?;
     
     Ok(header)
 }
@@ -56,17 +52,12 @@ pub fn get_header_size(path: &Path) -> Result<usize, CryptoError> {
     Ok(header.serialize().len())
 }
 
-/// Check if file has valid encrypted format and supported algorithm
+/// Check if file has valid encrypted format and supported algorithm (V3 only)
 pub fn validate_encrypted_file(path: &Path) -> Result<(), CryptoError> {
     let header = read_header_only(path)?;
     
-    if !header.validate_magic() {
-        return Err(CryptoError::InvalidFileFormat);
-    }
-    
-    if !header.supports_algorithm() {
-        return Err(CryptoError::UnsupportedAlgorithm(header.algorithm_id as u16));
-    }
+    // V3 validate() already checks magic number and algorithm support
+    header.validate()?;
     
     Ok(())
 }

@@ -1,65 +1,27 @@
-//! Filename restoration implementation
-//! 
-//! This module provides functionality to restore original filenames from encrypted
-//! file headers, supporting both obfuscated and non-obfuscated files.
+//! V3-only filename restoration implementation
 
-use crate::shared::errors::CryptoError;
+use crate::shared::core::errors::CryptoError;
 use crate::shared::header::Header;
-use crate::shared::core::crypto::KeyMaterial;
-use crate::shared::algorithms::aes_gcm::decrypt_aes_gcm;
+use crate::shared::versions::v3::TlvFieldType;
+use crate::shared::algorithms::xchacha20_poly1305::decrypt_xchacha20_poly1305;
 
-/// Restore original filename from encrypted header
-/// 
-/// Decrypts the original filename stored in the file header during encryption.
-/// This works for both obfuscated and non-obfuscated files, as the original
-/// filename is always encrypted and stored in the header.
-/// 
-/// # Arguments
-/// * `header` - Parsed file header containing encrypted filename
-/// * `keys` - Key material derived from password for decryption
-/// 
-/// # Returns
-/// * `Ok(String)` - Original filename as UTF-8 string
-/// * `Err(CryptoError)` - Restoration failed (wrong password, corruption, etc.)
-/// 
-/// # Security
-/// * Uses AES-256-GCM for authenticated decryption
-/// * Validates UTF-8 encoding of restored filename
-/// * Fails securely on authentication or decryption errors
-/// 
-/// # Usage
-/// ```rust,no_run
-/// use shadow_crypt::decryption::restore_original_filename;
-/// use shadow_crypt::shared::header::Header;
-/// use shadow_crypt::shared::algorithms::aes_gcm::{derive_master_key, Argon2Params};
-/// 
-/// # fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # let encrypted_data = vec![]; // dummy data
-/// # let password = "example_password";
-/// # let params = Argon2Params::default();
-/// let (header, _) = Header::deserialize(&encrypted_data)?;
-/// let keys = derive_master_key(password, &header.salt, &params)?;
-/// let original_name = restore_original_filename(&header, &keys)?;
-/// # Ok(())
-/// # }
-/// ```
+/// Restore original filename from V3 TLV fields
 pub fn restore_original_filename(
     header: &Header,
-    keys: &KeyMaterial
+    master_key: &[u8]
 ) -> Result<String, CryptoError> {
-    // Check if header contains an encrypted filename
-    if header.encrypted_filename.is_empty() {
-        return Err(CryptoError::CryptographicError(
-            "No encrypted filename found in header".to_string()
-        ));
-    }
+    // Check if header contains an encrypted filename in TLV fields
+    let encrypted_filename = header.tlv_fields.get_field(TlvFieldType::OriginalFilename)
+        .ok_or_else(|| CryptoError::CryptographicError(
+            "No encrypted filename found in TLV fields".to_string()
+        ))?;
     
-    // Decrypt the filename using AES-256-GCM
-    let filename_bytes = decrypt_aes_gcm(
-        keys.encryption_key.expose_secret(),
+    // Decrypt the filename using XChaCha20-Poly1305
+    let filename_bytes = decrypt_xchacha20_poly1305(
+        master_key,
         &header.nonce,
-        &header.encrypted_filename,
-        &[] // No additional authenticated data for filename
+        encrypted_filename,
+        &[]
     ).map_err(|e| CryptoError::CryptographicError(
         format!("Failed to decrypt filename: {}", e)
     ))?;

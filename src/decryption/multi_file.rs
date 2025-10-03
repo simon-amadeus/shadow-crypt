@@ -5,6 +5,7 @@
 //! for improved performance when decrypting multiple files.
 
 use crate::shared::errors::CryptoError;
+use crate::shared::versioning::VersionedHeader;
 use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
 use crate::shared::secure_delete::{secure_delete_file, confirm_destructive_operation};
 use std::path::{Path, PathBuf};
@@ -61,7 +62,7 @@ pub fn decrypt_multiple_files_with_provider<P: crate::shared::algorithms::Config
     provider: &P,
     show_progress: bool,
 ) -> Result<MultiFileResults, CryptoError> {
-    use crate::decryption::decrypt_file::decrypt_single_file_with_config;
+    use crate::decryption::decrypt_file::decrypt_single_file_v3;
     
     let start_time = Instant::now();
     let total_files = file_paths.len();
@@ -96,7 +97,7 @@ pub fn decrypt_multiple_files_with_provider<P: crate::shared::algorithms::Config
                     }
 
                     // Decrypt the file
-                    decrypt_single_file_with_config(input_path, &output_path, password, config)?;
+                    decrypt_single_file_v3(input_path, &output_path, password)?;
 
                     // Remove source file if requested
                     if remove_source
@@ -193,7 +194,7 @@ pub fn decrypt_multiple_files_with_params_and_progress(
                     use crate::shared::algorithms::aes_gcm_config::AesGcmConfig;
                     use crate::shared::algorithms::config::CryptoConfig;
                     let config = AesGcmConfig::production_config();
-                    match crate::decryption::decrypt_single_file_with_config(input_path, &output_path, password, &config) {
+                    match crate::decryption::decrypt_single_file_v3(input_path, &output_path, password) {
                         Ok(()) => {
                             (input_path.clone(), Ok(output_path))
                         }
@@ -353,7 +354,7 @@ fn try_restore_filename_from_header_with_params(
 ) -> Result<String, CryptoError> {
     use crate::decryption::filename_restoration::restore_original_filename;
     use crate::shared::header::Header;
-    use crate::shared::algorithms::aes_gcm::derive_master_key;
+    use crate::shared::algorithms::xchacha20_poly1305::{derive_master_key, Argon2Params};
     use std::fs::File;
     use std::io::Read;
 
@@ -369,10 +370,11 @@ fn try_restore_filename_from_header_with_params(
     let (header, _) = Header::deserialize(&encrypted_data)?;
     
     // Derive master key from password and salt
-    let key_material = derive_master_key(password, &header.salt, argon2_params)?;
+    let argon2_params = crate::shared::algorithms::xchacha20_poly1305::Argon2Params::default();
+    let key_material = derive_master_key(password, &header.salt, &argon2_params)?;
     
     // Restore original filename
-    restore_original_filename(&header, &key_material)
+    restore_original_filename(&header, key_material.expose_secret())
 }
 
 /// Expand glob patterns into file paths for decryption
@@ -509,7 +511,7 @@ fn try_restore_filename_from_header_with_config<C: crate::shared::algorithms::Cr
     let key_material = config.derive_key_material(password, &header.salt)?;
     
     // Restore original filename
-    restore_original_filename(&header, &key_material)
+    restore_original_filename(&header, key_material.encryption_key.expose_secret())
 }
 
 #[cfg(test)]
