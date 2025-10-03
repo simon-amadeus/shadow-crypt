@@ -53,9 +53,10 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Actions**:
 - Reflect on the current implementation cycle in docs/CURRENT_CYCLE.md
 - If further work is needed:
-    - Add new requirements to docs/BACKLOG.md as new items with clear descriptions for other developers
-    - Order backlog items strategically by priority and dependencies
-    - Let next INTAKE phase process these through normal feedback pipeline
+    - Add detailed requirements to FEEDBACK.md with full context, technical details, and rationale
+    - Include implementation considerations, root causes, and any architectural insights
+    - Let next INTAKE phase process these through normal feedback pipeline (FEEDBACK.md → docs/BACKLOG.md)
+    - This preserves rich context that would be lost in high-level backlog items
 
 ### 7. **FINALIZE**
 **Purpose**: Finalize work and update documentation chain
@@ -87,22 +88,22 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 FEEDBACK.md → docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
 
 **Extended Flow (When Additional Work Discovered):**
-docs/CURRENT_CYCLE.md → docs/BACKLOG.md (new items) → next cycle's docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
+docs/CURRENT_CYCLE.md → FEEDBACK.md (detailed context) → next cycle's docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
 
 **Entry Points:**
 - **User Feedback**: FEEDBACK.md → docs/BACKLOG.md (via INTAKE phase)
-- **Discovery During Work**: docs/CURRENT_CYCLE.md → docs/BACKLOG.md (via REFLECT & ADAPT phase)
+- **Discovery During Work**: docs/CURRENT_CYCLE.md → FEEDBACK.md (via REFLECT & ADAPT phase)
 
 **Exit Points:**
 - **Completed Work**: docs/CURRENT_CYCLE.md → docs/CHANGELOG.md (via FINALIZE phase)
-- **Additional Requirements**: docs/CURRENT_CYCLE.md → docs/BACKLOG.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
+- **Additional Requirements**: docs/CURRENT_CYCLE.md → FEEDBACK.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
 
 **Cycle Restart**: Each new cycle begins with SYNC phase checking current state of docs/BACKLOG.md
 
 **File Hygiene Rules**:
 - **docs/BACKLOG.md**: Only future work, remove completed items immediately
 - **docs/CHANGELOG.md**: Only significant changes that impact users
-- **FEEDBACK.md**: Process "New Feedback" regularly, archive resolved items
+- **FEEDBACK.md**: Process "New Feedback" regularly, remove resolved items
 - **Cargo.toml**: Keep version field synchronized with changelog for proper release management
 - **README.md**: Aesthetic minimalism is key; Written for users; Only essentials, no fluff
 

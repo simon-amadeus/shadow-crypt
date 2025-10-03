@@ -7,10 +7,9 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Shadows Command File Detection Bug**: Fix `shadows` binary not detecting .shadow files in directory scanning
-2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
-3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
+2. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+3. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 

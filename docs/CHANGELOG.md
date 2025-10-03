@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.33.0] - 2025-10-03
+
+### Analysis
+- **✅ COMPLETED: Versioning & Algorithm Review**: Comprehensive audit of versioning system and algorithm compatibility
+- **Architecture Discovery**: Identified and documented dual V1 header implementations causing potential confusion
+- **Algorithm Compatibility**: Confirmed V1 format supports both AES-256-GCM and XChaCha20-Poly1305 algorithms
+- **Future-Proofing Assessment**: Validated V2 framework readiness and post-quantum algorithm extensibility design
+- **Migration Framework**: Evaluated version migration capabilities and found robust planning infrastructure
+
+### Technical Analysis
+- **Working System**: Encryption/decryption properly uses `versions::v1::header::Header` supporting both algorithms
+- **Versioning Gap**: Separate `versioning.rs::HeaderV1` implementation restricts to AES-GCM only (not actively used)
+- **Architecture Pattern**: Working system uses proper header via `shared::header_core` alias to `versions::v1::header`
+- **V2 Readiness**: Directory structure and framework exists for V2 implementation
+- **Post-Quantum**: AlgorithmId enum includes reserved ranges (0x1000-0x1FFF) for future cryptographic algorithms
+
+### Recommendations
+- **High Priority**: Unify versioning system with working header implementations to eliminate technical debt
+- **V2 Integration**: Complete V2 versioning system integration with existing framework
+- **Display Enhancement**: Add version/algorithm information to `shadows` command output
+
+## [0.32.9] - 2025-10-03
+
+### Fixed
+- **Fixed `shadows` command V2 file detection bug**: The `shadows` binary now correctly detects and lists files encrypted with the default XChaCha20-Poly1305 algorithm (V2 format)
+  - **Root Cause**: File detection was hardcoded to only recognize V1 format magic number `"SHADOW"` (6 bytes), but V2 files use `"SHADOW2\0"` (8 bytes)
+  - **Solution**: Enhanced `is_encrypted_file()` to detect both V1 and V2 magic numbers
+  - **Impact**: V2 files (created by default encryption) are now properly visible to the `shadows` listing command
+  - **Backward Compatibility**: V1 files continue to work with full filename decryption support
+  - **Test Coverage**: Added integration test to prevent regression of V2 file detection
+
+### Technical Details
+- Modified `src/shared/core/file_detection.rs` to handle both magic number formats
+- Enhanced `src/listing/file_scanner.rs` with version-aware header processing
+- Added comprehensive test in `tests/shadows_file_detection_integration.rs`
+- Maintained full backward compatibility with existing V1 encrypted files
+
 ## [0.32.8] - 2025-10-03
 
 ### Added

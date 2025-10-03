@@ -12,15 +12,26 @@ use std::path::Path;
 /// Check if a file is encrypted by examining its magic number
 pub fn is_encrypted_file(path: &Path) -> Result<bool, CryptoError> {
     let mut file = File::open(path)?;
-    let mut magic = [0u8; 6];
+    let mut magic = [0u8; 8]; // Read 8 bytes to handle both V1 and V2 formats
     
-    match file.read_exact(&mut magic) {
-        Ok(()) => Ok(&magic == b"SHADOW"),
-        Err(_) => Ok(false), // File too small or other read error
+    match file.read(&mut magic) {
+        Ok(bytes_read) if bytes_read >= 6 => {
+            // Check for V1 format: "SHADOW" (6 bytes)
+            if &magic[..6] == b"SHADOW" {
+                if bytes_read >= 8 && &magic[..8] == b"SHADOW2\0" {
+                    Ok(true) // V2 format: "SHADOW2\0" (8 bytes)
+                } else {
+                    Ok(true) // V1 format: "SHADOW" (6 bytes)  
+                }
+            } else {
+                Ok(false) // Not a Shadow encrypted file
+            }
+        },
+        _ => Ok(false), // File too small or read error
     }
 }
 
-/// Read and parse just the header from an encrypted file
+/// Read and parse just the header from an encrypted file (V1 only)
 pub fn read_header_only(path: &Path) -> Result<Header, CryptoError> {
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();
