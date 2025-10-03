@@ -226,6 +226,29 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
     obfuscate_filename: bool,
     config: &C,
 ) -> Result<(), CryptoError> {
+    match config.algorithm_id() {
+        1 => {
+            // AES-GCM: Use existing V1 logic
+            encrypt_single_file_v1(input_path, output_path, password, obfuscate_filename, config)
+        }
+        2 => {
+            // XChaCha20-Poly1305: Use V2 header
+            encrypt_single_file_v2(input_path, output_path, password, obfuscate_filename, config)
+        }
+        _ => {
+            Err(CryptoError::UnsupportedAlgorithm(config.algorithm_id()))
+        }
+    }
+}
+
+/// Encrypt file using V1 header format (for AES-GCM)
+fn encrypt_single_file_v1<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    config: &C,
+) -> Result<(), CryptoError> {
     // Read input file
     let mut input_file = File::open(input_path)
         .map_err(CryptoError::FileSystemError)?;
@@ -896,4 +919,84 @@ mod tests {
         let result = encrypt_single_file(&input_path, &output_path, "password123", false);
         assert!(result.is_err(), "Should fail for nonexistent file");
     }
+}
+
+/// Encrypt file using V2 header format (for XChaCha20-Poly1305)  
+fn encrypt_single_file_v2<C: CryptoConfig>(
+    input_path: &Path,
+    output_path: &Path,
+    password: &str,
+    obfuscate_filename: bool,
+    config: &C,
+) -> Result<(), CryptoError> {
+    // Read input file
+    let mut input_file = File::open(input_path)
+        .map_err(CryptoError::FileSystemError)?;
+    
+    let mut plaintext = Vec::new();
+    input_file.read_to_end(&mut plaintext)
+        .map_err(CryptoError::FileSystemError)?;
+    
+    // Get file metadata
+    let file_metadata = extract_file_metadata(input_path, &plaintext)?;
+    
+    // Generate cryptographic materials using trait methods
+    let salt = config.generate_salt()?;  // XChaCha20 generates 32-byte salt
+    let key_material = config.derive_key_material(password, &salt)?;
+    let nonce = generate_xchacha20_nonce()?;  // Generate 24-byte nonce for XChaCha20
+    
+    // Determine actual output path (obfuscated or original)  
+    let actual_output_path = if obfuscate_filename {
+        generate_obfuscated_output_path(input_path, output_path, &key_material)?
+    } else {
+        output_path.to_path_buf()
+    };
+    
+    // Create V2 header (supports 32-byte salt and variable nonce)
+    let salt_array: [u8; 32] = salt.try_into()
+        .map_err(|_| CryptoError::CryptographicError("XChaCha20 requires 32-byte salt".to_string()))?;
+    
+    let mut header = HeaderV2::new(
+        AlgorithmId::ChaCha20Poly1305,
+        salt_array,
+        nonce.to_vec(),
+    );
+    
+    // Encrypt metadata
+    let metadata_bytes = file_metadata.serialize();
+    let encrypted_metadata = encrypt_with_algorithm(
+        &key_material,
+        &nonce,
+        &metadata_bytes,
+        config.algorithm_id(),
+    )?;
+    header.encrypted_metadata = encrypted_metadata.clone();
+    header.metadata_length = encrypted_metadata.len() as u16;
+    
+    // Encrypt filename
+    if let Some(filename) = input_path.file_name()
+        && let Some(filename_str) = filename.to_str() {
+            let filename_bytes = filename_str.as_bytes();
+            let encrypted_filename = encrypt_with_algorithm(
+                &key_material,
+                &nonce,
+                filename_bytes,
+                config.algorithm_id(),
+            )?;
+            header.encrypted_filename = encrypted_filename.clone();
+            header.filename_length = encrypted_filename.len() as u16;
+    }
+    
+    // Encrypt main content
+    let ciphertext = encrypt_with_algorithm(
+        &key_material,
+        &nonce,
+        &plaintext,
+        config.algorithm_id(),
+    )?;
+    
+    // Write encrypted file atomically using V2 writer
+    write_encrypted_file_v2(&actual_output_path, &header, &ciphertext)?;
+    
+    Ok(())
 }

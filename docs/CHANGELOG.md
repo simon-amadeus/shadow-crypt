@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.5] - 2025-10-03
+
+### Fixed
+- **✅ CRITICAL: XChaCha20 Salt Length Issue Resolved**: Fixed "Invalid salt length" error in XChaCha20 trait-based encryption by implementing proper V2 header support
+- **Encryption Architecture**: XChaCha20-Poly1305 (algorithm ID 2) now correctly uses V2 headers with 32-byte salts instead of V1 headers with 16-byte salts
+- **Algorithm Dispatch**: Modified `encrypt_single_file_with_config` to route XChaCha20 to new `encrypt_single_file_v2` function supporting HeaderV2 format
+- **Test Suite Reliability**: Both failing XChaCha20 tests (`test_xchacha20_encrypt_decrypt_with_config` and `test_xchacha20_encrypt_decrypt_with_provider`) now pass
+
+### Security
+- **Specification Compliance**: XChaCha20-Poly1305 now properly uses 32-byte salts and 24-byte nonces as per cryptographic specifications
+- **File Format Correctness**: V2 shadow files with XChaCha20 encryption use proper header format with variable-length nonce support
+
+### Architecture  
+- **Header Version Routing**: Encryption pipeline now correctly selects V1 vs V2 headers based on algorithm requirements
+- **Future-Proof Design**: V2 header implementation supports algorithm-specific salt and nonce lengths for future cryptographic algorithms
+
+### Tests
+- All 177 main tests now pass (previously 175 passed, 2 failed)
+- Manual verification: XChaCha20 encryption/decryption round-trip works correctly end-to-end
+
 ## [0.32.4] - 2025-10-03
 
 ### Fixed
