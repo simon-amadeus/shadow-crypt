@@ -6,8 +6,8 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::progress::{show_minimal_multifile_progress, report_minimal_multifile_completion};
-use crate::encryption::{encrypt_single_file, encrypt_single_file_with_algorithm_and_params};
-use crate::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params};
+use crate::encryption::{encrypt_single_file, encrypt_single_file_with_algorithm_and_params, encrypt_single_file_with_config};
+use crate::shared::algorithms::{Algorithm, Argon2Params as AESArgon2Params, AesGcmConfig, DefaultConfigProvider, ConfigProvider};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 use rayon::prelude::*;
@@ -43,14 +43,147 @@ pub fn encrypt_multiple_files(
     force_overwrite: bool,
     remove_source: bool,
 ) -> Result<MultiFileResults, CryptoError> {
-    encrypt_multiple_files_with_progress(
+    let provider = DefaultConfigProvider::<AesGcmConfig>::production();
+    encrypt_multiple_files_with_provider(
+        file_paths,
+        password,
+        obfuscate_filename,
+        force_overwrite,
+        remove_source,
+        &provider,
+    )
+}
+
+/// Encrypt multiple files with trait-based configuration provider
+/// Uses parallel processing for improved performance
+pub fn encrypt_multiple_files_with_provider<P: ConfigProvider + Sync>(
+    file_paths: &[PathBuf],
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool,
+    provider: &P,
+) -> Result<MultiFileResults, CryptoError> {
+    encrypt_multiple_files_with_provider_and_progress(
         file_paths,
         password,
         obfuscate_filename,
         force_overwrite,
         remove_source,
         true, // show_progress = true for backward compatibility
+        provider,
     )
+}
+
+/// Encrypt multiple files with trait-based configuration provider and progress control
+pub fn encrypt_multiple_files_with_provider_and_progress<P: ConfigProvider + Sync>(
+    file_paths: &[PathBuf],
+    password: &str,
+    obfuscate_filename: bool,
+    force_overwrite: bool,
+    remove_source: bool,
+    show_progress: bool,
+    provider: &P,
+) -> Result<MultiFileResults, CryptoError> {
+    let start_time = Instant::now();
+    let total_files = file_paths.len();
+    
+    if total_files == 0 {
+        return Err(CryptoError::InvalidFileFormat); // No files to process
+    }
+
+    let config = provider.config();
+
+    let results = show_minimal_multifile_progress(
+        "Encrypting",
+        total_files,
+        show_progress,
+        || {
+            // Use parallel processing for multiple files to improve performance
+            file_paths
+                .par_iter()
+                .map(|file_path| {
+                    // Validate file before processing
+                    if !file_path.exists() {
+                        let error_msg = "File does not exist".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    if !file_path.is_file() {
+                        let error_msg = "Not a regular file (directories not supported)".to_string();
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    // Check if file is already encrypted (prevent double-encryption)
+                    match crate::shared::file_detection::is_encrypted_file(file_path) {
+                        Ok(true) => {
+                            let error_msg = "File is already encrypted (skipped)".to_string();
+                            return (file_path.clone(), Err(error_msg));
+                        }
+                        Ok(false) => {
+                            // File is not encrypted, proceed with encryption
+                        }
+                        Err(_e) => {
+                            // Could not check if encrypted - proceed with encryption (fail-safe)
+                        }
+                    }
+
+                    // Determine output path
+                    let output_path = generate_output_path(file_path, obfuscate_filename);
+
+                    // Check for overwrite protection
+                    if output_path.exists() && !force_overwrite {
+                        let error_msg = format!("Output file '{}' already exists (use --force to overwrite)", output_path.display());
+                        return (file_path.clone(), Err(error_msg));
+                    }
+
+                    // Attempt encryption with trait-based configuration
+                    match encrypt_single_file_with_config(file_path, &output_path, password, obfuscate_filename, config) {
+                        Ok(()) => {
+                            // Handle source file removal if requested
+                            if remove_source {
+                                match crate::shared::secure_delete::secure_delete_file(file_path) {
+                                    Ok(()) => {
+                                        // Source deleted successfully - this is logged for single files but not multi-files to keep output minimal
+                                    }
+                                    Err(_e) => {
+                                        // Don't treat this as a failure of the encryption itself for minimal UI
+                                        // The encryption succeeded, source deletion is a warning at most
+                                    }
+                                }
+                            }
+                            (file_path.clone(), Ok(()))
+                        }
+                        Err(e) => {
+                            let error_msg = format!("Encryption failed: {}", e);
+                            (file_path.clone(), Err(error_msg))
+                        }
+                    }
+                })
+                .collect::<Vec<(PathBuf, Result<(), String>)>>()
+        }
+    );
+
+    // Collect results from parallel processing
+    let mut successful = Vec::new();
+    let mut failed = Vec::new();
+
+    for (file_path, result) in results {
+        match result {
+            Ok(()) => successful.push(file_path),
+            Err(error_msg) => failed.push((file_path, error_msg)),
+        }
+    }
+
+    let total_time = start_time.elapsed();
+    report_minimal_multifile_completion("Encrypted", total_files, successful.len(), failed.len(), total_time, show_progress);
+
+    Ok(MultiFileResults {
+        successful,
+        failed,
+        total_files,
+        total_time,
+    })
 }
 
 /// Encrypt multiple files with algorithm selection and progress reporting control

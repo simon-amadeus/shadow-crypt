@@ -42,7 +42,7 @@ Then start your first development cycle immediately without asking for further i
 - Continuous validation against success criteria
 - **Decision Gate**: Assess if another cycle is needed or if work is complete
 
-### 6. **ADAPT**
+### 6. **REFLECT & ADAPT**
 **Purpose**: Incorporate learnings and new insights
 **Triggers**: Execute only if any of these occurred:
 - Further work is needed to complete original item
@@ -56,7 +56,7 @@ Then start your first development cycle immediately without asking for further i
     - Add new requirements to docs/BACKLOG.md as new items
     - Let next INTAKE phase process these through normal feedback pipeline
 
-### 7. **COMPLETE**
+### 7. **FINALIZE**
 **Purpose**: Finalize work and update documentation chain
 - **docs/CURRENT_CYCLE.md → docs/CHANGELOG.md**: Archive completed work with semantic versioning
 - **Update Cargo.toml version**: Sync package version with changelog version for releases
@@ -79,7 +79,23 @@ Then start your first development cycle immediately without asking for further i
 - **Fail fast**: Validate early, pivot quickly when needed
 - **Keep files lean**: Remove completed/irrelevant items; focus on current priorities
 
-**Information Flow**: FEEDBACK.md → docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md → FEEDBACK.md (closed loop)
+**Information Flow**: Multiple pathways exist depending on cycle outcomes:
+
+**Primary Flow (Simple Cycle):**
+FEEDBACK.md → docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
+
+**Extended Flow (When Additional Work Discovered):**
+docs/CURRENT_CYCLE.md → docs/BACKLOG.md (new items) → next cycle's docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
+
+**Entry Points:**
+- **User Feedback**: FEEDBACK.md → docs/BACKLOG.md (via INTAKE phase)
+- **Discovery During Work**: docs/CURRENT_CYCLE.md → docs/BACKLOG.md (via REFLECT & ADAPT phase)
+
+**Exit Points:**
+- **Completed Work**: docs/CURRENT_CYCLE.md → docs/CHANGELOG.md (via FINALIZE phase)
+- **Additional Requirements**: docs/CURRENT_CYCLE.md → docs/BACKLOG.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
+
+**Cycle Restart**: Each new cycle begins with SYNC phase checking current state of docs/BACKLOG.md
 
 **File Hygiene Rules**:
 - **docs/BACKLOG.md**: Only future work, remove completed items immediately
