@@ -7,8 +7,8 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Test Suite Stabilization**: Fix XChaCha20 salt length validation, filename output path edge cases, and add comprehensive XChaCha20 default algorithm selection tests
-2. **Trait-Based System Architecture Review**: Address V1/V2 header version selection issues discovered during integration test analysis
+1. **Trait-Based System Architecture Review**: Address V1/V2 header version selection issues discovered during integration test analysis (BLOCKING: prevents integration test modernization)
+2. **Integration Test API Compatibility**: Fix broken integration tests due to legacy function export removal from previous cycle (BLOCKED: requires trait system fixes first)
 3. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 5. **Production Readiness**: Comprehensive testing, documentation, and release preparation

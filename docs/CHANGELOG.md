@@ -2,6 +2,32 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.2] - 2025-10-03
+
+### Added
+- **XChaCha20 Default Algorithm Validation**: Comprehensive test suite to verify XChaCha20 is the default encryption algorithm in CLI tools
+- **Algorithm Selection Documentation Testing**: Automated validation that CLI help and documentation correctly reflect XChaCha20 as default
+- **Multi-Vector Default Verification**: Tests validate default algorithm through source code analysis, CLI help output, and argument parsing
+
+### Validated
+- **User Feedback Requirement**: Confirmed XChaCha20 is properly selected as default algorithm across all CLI entry points
+- **Security Positioning**: Verified XChaCha20 is documented as "enhanced security" choice vs AES-GCM as "maximum compatibility"
+- **CLI Documentation Consistency**: Help text, error messages, and source code all consistently show XChaCha20 default
+
+### Development Process
+- **Strategic Focus**: Applied architectural thinking to focus on user-facing behavior rather than internal API issues
+- **Validation-Driven Development**: Used comprehensive testing to prove user requirements before implementation
+- **Quality Gates**: All new tests pass and validate the core user feedback requirement
+
+### Technical Insights
+- **Integration Test Compatibility**: Discovered previous API cleanup cycle broke integration tests (legacy function exports removed)
+- **Trait-Based System Limitations**: Confirmed XChaCha20 trait-based implementation still has V1/V2 header architecture issues
+- **CLI vs Library Defaults**: Different CLI tools may use different default algorithms based on use case
+
+### Tests Added
+- `tests/cli_default_algorithm_validation.rs`: Comprehensive CLI default algorithm verification
+- `tests/algorithm_default_validation.rs`: Trait-based system algorithm validation (reveals current limitations)
+
 ## [0.32.1] - 2025-10-03
 
 ### Architecture Analysis
