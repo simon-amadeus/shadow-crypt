@@ -3,9 +3,9 @@
 //! Tests multi-file decryption functionality including glob patterns,
 //! progress reporting, and error handling.
 
-use shadow_crypt::decryption::{decrypt_multiple_files_with_params, expand_glob_patterns};
-use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_params;
-use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
+use shadow_crypt::decryption::{decrypt_multiple_files_with_provider, expand_glob_patterns};
+use shadow_crypt::encryption::encrypt_file::encrypt_single_file_with_config;
+use shadow_crypt::shared::algorithms::{AesGcmConfig, DefaultConfigProvider, CryptoConfig};
 use std::fs;
 use std::path::PathBuf;
 use tempfile::TempDir;
@@ -25,11 +25,11 @@ fn test_decrypt_multiple_files_success() {
     let encrypted1 = temp_path.join("test1.txt.shadow");
     let encrypted2 = temp_path.join("test2.txt.shadow");
     let password = "test_password_123";
-    let params = Argon2Params::test_params();
+    let config = AesGcmConfig::test_config();
     
-    encrypt_single_file_with_params(&file1, &encrypted1, password, false, &params)
+    encrypt_single_file_with_config(&file1, &encrypted1, password, false, &config)
         .expect("Failed to encrypt file 1");
-    encrypt_single_file_with_params(&file2, &encrypted2, password, false, &params)
+    encrypt_single_file_with_config(&file2, &encrypted2, password, false, &config)
         .expect("Failed to encrypt file 2");
     
     // Remove original files
@@ -38,7 +38,8 @@ fn test_decrypt_multiple_files_success() {
     
     // Test multi-file decryption
     let encrypted_files = vec![encrypted1.clone(), encrypted2.clone()];
-    let results = decrypt_multiple_files_with_params(&encrypted_files, password, false, false, &params)
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    let results = decrypt_multiple_files_with_provider(&encrypted_files, password, false, false, &provider, false)
         .expect("Multi-file decryption failed");
     
     // Verify results
@@ -78,11 +79,11 @@ fn test_decrypt_multiple_files_partial_failure() {
     let encrypted2 = temp_path.join("corrupted.txt.shadow");
     let password1 = "correct_password";
     let password2 = "different_password";
-    let params = Argon2Params::test_params();
+    let config = AesGcmConfig::test_config();
     
-    encrypt_single_file_with_params(&file1, &encrypted1, password1, false, &params)
+    encrypt_single_file_with_config(&file1, &encrypted1, password1, false, &config)
         .expect("Failed to encrypt good file");
-    encrypt_single_file_with_params(&file2, &encrypted2, password2, false, &params)
+    encrypt_single_file_with_config(&file2, &encrypted2, password2, false, &config)
         .expect("Failed to encrypt corrupted file");
     
     // Remove original files
@@ -91,7 +92,8 @@ fn test_decrypt_multiple_files_partial_failure() {
     
     // Try to decrypt both with only one correct password
     let encrypted_files = vec![encrypted1.clone(), encrypted2.clone()];
-    let results = decrypt_multiple_files_with_params(&encrypted_files, password1, false, false, &params)
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    let results = decrypt_multiple_files_with_provider(&encrypted_files, password1, false, false, &provider, false)
         .expect("Multi-file decryption should not fail completely");
     
     // Verify partial success
@@ -238,11 +240,11 @@ fn test_decrypt_multiple_files_with_source_removal() {
     let encrypted1 = temp_path.join("temp1.txt.shadow");
     let encrypted2 = temp_path.join("temp2.txt.shadow");
     let password = "test_password_456";
-    let params = Argon2Params::test_params();
+    let config = AesGcmConfig::test_config();
     
-    encrypt_single_file_with_params(&file1, &encrypted1, password, false, &params)
+    encrypt_single_file_with_config(&file1, &encrypted1, password, false, &config)
         .expect("Failed to encrypt file 1");
-    encrypt_single_file_with_params(&file2, &encrypted2, password, false, &params)
+    encrypt_single_file_with_config(&file2, &encrypted2, password, false, &config)
         .expect("Failed to encrypt file 2");
     
     // Remove original files
@@ -259,7 +261,8 @@ fn test_decrypt_multiple_files_with_source_removal() {
     
     // Test multi-file decryption without source removal
     let encrypted_files = vec![encrypted1.clone(), encrypted2.clone()];
-    let results = decrypt_multiple_files_with_params(&encrypted_files, password, false, false, &params)
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    let results = decrypt_multiple_files_with_provider(&encrypted_files, password, false, false, &provider, false)
         .expect("Multi-file decryption failed");
     
     // Verify successful decryption

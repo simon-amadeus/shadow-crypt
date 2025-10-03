@@ -7,10 +7,8 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Integration Test Legacy Function Cleanup**: Complete migration of remaining test files to trait-based functions (discovered during architecture review)
-2. **XChaCha20 Salt Length Investigation**: Resolve "Invalid salt length" error in XChaCha20 trait-based encryption (discovered during architecture review)
-3. **Library Test Suite Stabilization**: Fix remaining 2 failed library tests (salt length related, affects development confidence)
-4. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+1. **XChaCha20 Salt Length Investigation**: Resolve "Invalid salt length" error in XChaCha20 trait-based encryption (discovered during architecture review)
+2. **Library Test Suite Stabilization**: Fix remaining 2 failed library tests (salt length related, affects development confidence)
 3. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
