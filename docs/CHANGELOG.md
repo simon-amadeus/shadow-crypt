@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.35.0] - 2025-10-03
+
+### Changed
+- **BREAKING**: Started V1/V2 header deprecation process
+- Removed V1 and V2 header modules completely (`src/shared/versions/v1/`, `src/shared/versions/v2/`)
+- Updated `versioning.rs` to remove HeaderV1 implementation and V1-specific logic
+- Modified `version_dispatch.rs` to only support V3 headers
+- Updated `file_scanner.rs` to V3-only operation with version validation
+- Cleaned `shared/mod.rs` and `lib.rs` exports to remove V1/V2 references
+- Updated version detection to only support V3 format
+
+### Development Notes
+- **Partial Implementation**: Additional work needed to complete V1/V2 removal from encryption/decryption files
+- **File Corruption**: Some files require manual recreation due to large-scale replacement issues
+- **Testing Impact**: Full test suite validation needed after completing removal process
+
 ## [0.34.0] - 2025-01-03
 
 ### Added

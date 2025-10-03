@@ -7,8 +7,7 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Deprecate v1 & v2 Header**: remove v1 and v2 header support. only use v3 but keep versioning system for future extensability. no backwards compatibility needed for now. clean up codebase. then remove all v1 and v2 code. then rename v3 to v1.
-2. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
+1. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 

@@ -113,5 +113,5 @@ pub use shared::{CryptoError, Header, FileMetadata, AlgorithmId};
 pub use shared::core::crypto::{SecretVec, KeyMaterial};
 
 // Re-export versioning types for migration and compatibility
-pub use shared::{VersionedHeader, HeaderV1, detect_version, CompatibilityMatrix};
+pub use shared::{VersionedHeader, HeaderV3, detect_version, CompatibilityMatrix};
 pub use shared::{AnyHeader, VersionMigrator, MigrationPlan, MigrationStep, MigrationOperation};

@@ -4,20 +4,18 @@
 //! to route operations to appropriate version-specific handlers.
 
 use crate::shared::errors::CryptoError;
-use crate::shared::versioning::{VersionedHeader, HeaderV1, HeaderV3, detect_version, CompatibilityMatrix};
+use crate::shared::versioning::{VersionedHeader, HeaderV3, detect_version, CompatibilityMatrix};
 
 /// Unified header interface that dispatches to version-specific implementations
 #[derive(Debug)]
 pub enum AnyHeader {
-    V1(HeaderV1),
     V3(HeaderV3),
     // Future versions will be added here
-    // V2(HeaderV2),
 }
 
 impl AnyHeader {
-    /// Create a new header of the current version (V3 is now current)
-    pub fn new_current_v3(
+    /// Create a new header of the current version (V3)
+    pub fn new_current(
         algorithm_id: crate::shared::algorithms::AlgorithmId,
         nonce: Vec<u8>,
         salt: [u8; 32],
@@ -25,34 +23,11 @@ impl AnyHeader {
         AnyHeader::V3(HeaderV3::new(algorithm_id, nonce, salt))
     }
     
-    /// Create a new header of version 1 (legacy)
-    pub fn new_v1(
-        algorithm_id: crate::shared::algorithms::AlgorithmId,
-        salt: [u8; 16],
-        nonce: [u8; 12],
-    ) -> Self {
-        AnyHeader::V1(HeaderV1::new(algorithm_id, salt, nonce))
-    }
-    
-    /// Create a new header of the current version (still V1 for backwards compatibility)
-    pub fn new_current(
-        algorithm_id: crate::shared::algorithms::AlgorithmId,
-        salt: [u8; 16],
-        nonce: [u8; 12],
-    ) -> Self {
-        // Keep V1 as current for now to maintain compatibility
-        Self::new_v1(algorithm_id, salt, nonce)
-    }
-    
     /// Deserialize a header from bytes, auto-detecting version
     pub fn deserialize(data: &[u8]) -> Result<(Self, usize), CryptoError> {
         let version = detect_version(data)?;
         
         match version {
-            1 => {
-                let (header_v1, offset) = HeaderV1::deserialize(data)?;
-                Ok((AnyHeader::V1(header_v1), offset))
-            }
             3 => {
                 let (header_v3, offset) = HeaderV3::deserialize(data)?;
                 Ok((AnyHeader::V3(header_v3), offset))
@@ -67,7 +42,6 @@ impl AnyHeader {
     /// Serialize the header to bytes
     pub fn serialize(&self) -> Vec<u8> {
         match self {
-            AnyHeader::V1(header) => header.serialize(),
             AnyHeader::V3(header) => header.serialize(),
         }
     }
@@ -75,7 +49,6 @@ impl AnyHeader {
     /// Validate the header
     pub fn validate(&self) -> Result<(), CryptoError> {
         match self {
-            AnyHeader::V1(header) => header.validate(),
             AnyHeader::V3(header) => header.validate(),
         }
     }
@@ -83,7 +56,6 @@ impl AnyHeader {
     /// Get the version number
     pub fn version(&self) -> u16 {
         match self {
-            AnyHeader::V1(_) => HeaderV1::VERSION,
             AnyHeader::V3(_) => HeaderV3::VERSION,
         }
     }
@@ -91,7 +63,6 @@ impl AnyHeader {
     /// Check if this header can migrate to a target version
     pub fn can_migrate_to(&self, target_version: u16) -> bool {
         match self {
-            AnyHeader::V1(_) => HeaderV1::can_migrate_to(target_version),
             AnyHeader::V3(_) => HeaderV3::can_migrate_to(target_version),
         }
     }
@@ -104,50 +75,34 @@ impl AnyHeader {
     /// Get algorithm ID
     pub fn algorithm_id(&self) -> crate::shared::algorithms::AlgorithmId {
         match self {
-            AnyHeader::V1(header) => header.algorithm_id,
             AnyHeader::V3(header) => header.algorithm_id,
         }
     }
     
-    /// Get salt (returns compatible format for V1)
-    pub fn salt(&self) -> [u8; 16] {
+    /// Get salt (returns full 32-byte salt)
+    pub fn salt(&self) -> [u8; 32] {
         match self {
-            AnyHeader::V1(header) => header.salt,
-            AnyHeader::V3(header) => {
-                // V3 has 32-byte salt, truncate to 16 for compatibility
-                let mut salt_16 = [0u8; 16];
-                salt_16.copy_from_slice(&header.salt[0..16]);
-                salt_16
-            }
+            AnyHeader::V3(header) => header.salt,
         }
     }
     
-    /// Get full salt (V3 version)
+    /// Get full salt as Vec
     pub fn salt_full(&self) -> Vec<u8> {
         match self {
-            AnyHeader::V1(header) => header.salt.to_vec(),
             AnyHeader::V3(header) => header.salt.to_vec(),
         }
     }
     
-    /// Get nonce (returns compatible format for V1)
-    pub fn nonce(&self) -> [u8; 12] {
+    /// Get nonce as Vec
+    pub fn nonce(&self) -> Vec<u8> {
         match self {
-            AnyHeader::V1(header) => header.nonce,
-            AnyHeader::V3(header) => {
-                // V3 has variable nonce, pad/truncate to 12 for compatibility
-                let mut nonce_12 = [0u8; 12];
-                let copy_len = std::cmp::min(header.nonce.len(), 12);
-                nonce_12[0..copy_len].copy_from_slice(&header.nonce[0..copy_len]);
-                nonce_12
-            }
+            AnyHeader::V3(header) => header.nonce.clone(),
         }
     }
     
-    /// Get full nonce (V3 version)
+    /// Get full nonce (alias for compatibility)
     pub fn nonce_full(&self) -> Vec<u8> {
         match self {
-            AnyHeader::V1(header) => header.nonce.to_vec(),
             AnyHeader::V3(header) => header.nonce.clone(),
         }
     }
@@ -155,7 +110,6 @@ impl AnyHeader {
     /// Get magic bytes for this version
     pub fn magic(&self) -> &'static [u8] {
         match self {
-            AnyHeader::V1(_) => HeaderV1::magic(),
             AnyHeader::V3(_) => HeaderV3::magic(),
         }
     }
@@ -178,8 +132,7 @@ impl VersionMigrator {
             ));
         }
         
-        // For now, only support direct migration from V1 to future versions
-        // More complex migration chains can be added later
+        // Support migration from V3 to future versions
         Ok(MigrationPlan {
             source_version,
             target_version,
@@ -195,14 +148,14 @@ impl VersionMigrator {
     pub fn migrate_header(source: AnyHeader, target_version: u16) -> Result<AnyHeader, CryptoError> {
         let source_version = source.version();
         match (source_version, target_version) {
-            (1, 1) => {
+            (3, 3) => {
                 // No migration needed - same version
                 Ok(source)
             }
-            (1, v) if v > 1 => {
+            (3, v) if v > 3 => {
                 // Future: implement actual migration logic here
                 Err(CryptoError::HeaderParsingError(
-                    format!("Migration from V1 to V{} not yet implemented", v)
+                    format!("Migration from V3 to V{} not yet implemented", v)
                 ))
             }
             _ => Err(CryptoError::HeaderParsingError(
@@ -244,54 +197,25 @@ mod tests {
     
     #[test]
     fn test_any_header_creation() {
+        let nonce = vec![1u8; 12];
+        let salt = [2u8; 32];
         let header = AnyHeader::new_current(
             AlgorithmId::AesGcm256,
-            [1u8; 16],
-            [2u8; 12],
-        );
-        
-        assert_eq!(header.version(), 1);
-        assert_eq!(header.algorithm_id(), AlgorithmId::AesGcm256);
-        assert_eq!(header.salt(), [1u8; 16]);
-        assert_eq!(header.nonce(), [2u8; 12]);
-    }
-    
-    #[test]
-    fn test_any_header_v3_creation() {
-        let nonce = vec![3u8; 24]; // XChaCha20 nonce
-        let salt = [4u8; 32];
-        let header = AnyHeader::new_current_v3(
-            AlgorithmId::ChaCha20Poly1305,
             nonce.clone(),
             salt,
         );
         
         assert_eq!(header.version(), 3);
-        assert_eq!(header.algorithm_id(), AlgorithmId::ChaCha20Poly1305);
-        assert_eq!(header.nonce_full(), nonce);
-        assert_eq!(header.salt_full().len(), 32);
+        assert_eq!(header.algorithm_id(), AlgorithmId::AesGcm256);
+        assert_eq!(header.salt(), salt);
+        assert_eq!(header.nonce(), nonce);
     }
     
     #[test]
     fn test_version_detection_and_dispatch() {
+        let nonce = vec![1u8; 12];
+        let salt = [2u8; 32];
         let header = AnyHeader::new_current(
-            AlgorithmId::AesGcm256,
-            [1u8; 16],
-            [2u8; 12],
-        );
-        
-        let serialized = header.serialize();
-        let (deserialized, _offset) = AnyHeader::deserialize(&serialized).unwrap();
-        
-        assert_eq!(deserialized.version(), 1);
-        assert_eq!(deserialized.algorithm_id(), AlgorithmId::AesGcm256);
-    }
-    
-    #[test]
-    fn test_v3_version_detection_and_dispatch() {
-        let nonce = vec![5u8; 12]; // AES-GCM nonce
-        let salt = [6u8; 32];
-        let header = AnyHeader::new_current_v3(
             AlgorithmId::AesGcm256,
             nonce,
             salt,
@@ -306,13 +230,15 @@ mod tests {
     
     #[test]
     fn test_migration_capabilities() {
+        let nonce = vec![1u8; 12];
+        let salt = [2u8; 32];
         let header = AnyHeader::new_current(
             AlgorithmId::AesGcm256,
-            [1u8; 16],
-            [2u8; 12],
+            nonce,
+            salt,
         );
         
-        assert!(header.can_migrate_to(2));
+        assert!(header.can_migrate_to(4));
         assert!(!header.can_migrate_to(100));
         
         let paths = header.migration_paths();
@@ -321,12 +247,12 @@ mod tests {
     
     #[test]
     fn test_migration_planner() {
-        assert!(VersionMigrator::can_migrate(1, 2));
-        assert!(!VersionMigrator::can_migrate(1, 100));
+        assert!(VersionMigrator::can_migrate(3, 4));
+        assert!(!VersionMigrator::can_migrate(3, 100));
         
-        let plan = VersionMigrator::create_migration_plan(1, 2).unwrap();
-        assert_eq!(plan.source_version, 1);
-        assert_eq!(plan.target_version, 2);
+        let plan = VersionMigrator::create_migration_plan(3, 4).unwrap();
+        assert_eq!(plan.source_version, 3);
+        assert_eq!(plan.target_version, 4);
         assert_eq!(plan.steps.len(), 1);
     }
 }

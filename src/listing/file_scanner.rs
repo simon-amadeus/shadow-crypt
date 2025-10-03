@@ -6,8 +6,8 @@
 use crate::shared::errors::CryptoError;
 use crate::shared::file_detection::{is_encrypted_file};
 use crate::shared::algorithms::{AesGcmConfig, CryptoConfig, DefaultConfigProvider, ConfigProvider};
-use crate::decryption::filename_restoration::restore_original_filename;
-use crate::shared::versions::v2::header::HeaderV2;
+use crate::shared::versions::v3::HeaderV3;
+use crate::shared::versioning::{detect_version, VersionedHeader};
 use std::fs::{self, File};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
@@ -64,8 +64,8 @@ pub fn list_encrypted_files_with_config<P: ConfigProvider>(
         let modified = metadata.modified().unwrap_or(SystemTime::UNIX_EPOCH);
         let encrypted_size = metadata.len();
         
-        // Detect which version of header this file uses
-        let file_info = match detect_and_read_header(&path, password, config) {
+        // Only handle V3 files now
+        let file_info = match detect_and_read_v3_header(&path, password, config) {
             Ok(info) => info,
             Err(_) => continue, // Skip files with unreadable headers or wrong password
         };
@@ -112,75 +112,39 @@ struct HeaderFileInfo {
     filename_decrypted: bool,
 }
 
-/// Detect file version and extract header information
-fn detect_and_read_header<C: CryptoConfig>(
+/// Detect file version and extract header information (V3 only)
+fn detect_and_read_v3_header<C: CryptoConfig>(
     path: &Path,
-    password: &str,
-    config: &C,
+    _password: &str,
+    _config: &C,
 ) -> Result<HeaderFileInfo, CryptoError> {
     let mut file = File::open(path)?;
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
     
-    // Check magic number to determine version
-    if buffer.len() >= 8 && &buffer[..8] == b"SHADOW2\0" {
-        // V2 header
-        extract_v2_file_info(&buffer, password, config)
-    } else if buffer.len() >= 6 && &buffer[..6] == b"SHADOW" {
-        // V1 header  
-        extract_v1_file_info(&buffer, password, config)
-    } else {
-        Err(CryptoError::InvalidFileFormat)
+    // Verify this is a V3 file
+    let version = detect_version(&buffer)?;
+    if version != 3 {
+        return Err(CryptoError::HeaderParsingError(
+            format!("Unsupported version: {}. Only V3 files are supported.", version)
+        ));
     }
+    
+    extract_v3_file_info(&buffer)
 }
 
-/// Extract file info from V2 header
-fn extract_v2_file_info<C: CryptoConfig>(
-    buffer: &[u8],
-    _password: &str,
-    _config: &C,
-) -> Result<HeaderFileInfo, CryptoError> {
-    use std::io::Cursor;
-    let mut cursor = Cursor::new(buffer);
-    let header = HeaderV2::deserialize(&mut cursor)?;
+/// Extract file info from V3 header
+fn extract_v3_file_info(buffer: &[u8]) -> Result<HeaderFileInfo, CryptoError> {
+    let (header, _) = HeaderV3::deserialize(buffer)?;
     
     // Calculate original content size
     let header_size = header.serialize().len();
     let encrypted_content_size = buffer.len().saturating_sub(header_size);
     let original_size = encrypted_content_size.saturating_sub(16) as u64; // Subtract auth tag
     
-    // For now, V2 filename restoration is not implemented
+    // V3 filename restoration not yet implemented - placeholder
     let original_name = "[ENCRYPTED]".to_string();
     let filename_decrypted = false;
-    
-    Ok(HeaderFileInfo {
-        original_name,
-        original_size,
-        filename_decrypted,
-    })
-}
-
-/// Extract file info from V1 header
-fn extract_v1_file_info<C: CryptoConfig>(
-    buffer: &[u8],
-    password: &str,
-    config: &C,
-) -> Result<HeaderFileInfo, CryptoError> {
-    use crate::shared::header::Header;
-    
-    let (header, _) = Header::deserialize(buffer)?;
-    
-    // Calculate original content size
-    let header_size = header.serialize().len();
-    let encrypted_content_size = buffer.len().saturating_sub(header_size);
-    let original_size = encrypted_content_size.saturating_sub(16) as u64; // Subtract auth tag
-    
-    // Try to extract original filename
-    let key_material = config.derive_key_material(password, &header.salt)?;
-    let (original_name, filename_decrypted) = match restore_original_filename(&header, &key_material) {
-        Ok(name) => (name, true),
-        Err(_) => ("[ENCRYPTED]".to_string(), false),
-    };
     
     Ok(HeaderFileInfo {
         original_name,

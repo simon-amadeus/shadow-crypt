@@ -80,7 +80,7 @@ pub use metadata::CompressionType;
 
 // === Version Management Types ===
 // Types for handling different file format versions
-pub use versioning::{VersionedHeader, HeaderV1, detect_version, CompatibilityMatrix};
+pub use versioning::{VersionedHeader, HeaderV3, detect_version, CompatibilityMatrix};
 pub use version_dispatch::{AnyHeader, VersionMigrator, MigrationPlan, MigrationStep, MigrationOperation};
 
 // === Module Re-exports ===
@@ -89,8 +89,3 @@ pub use core::errors;
 pub use core::file_detection;
 pub use core::secure_delete;
 pub use core::crypto;
-
-// === Compatibility Re-exports ===
-// Version-specific functionality for backward compatibility
-pub use versions::v1::filename_auth;
-pub use versions::v1::header as header_core;
