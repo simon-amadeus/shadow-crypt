@@ -31,25 +31,25 @@ mod tests {
         
         // Encrypt both files with obfuscation
         let password = "test_password_123";
-        let params = Argon2Params::test_params();
+        let config = AesGcmConfig::test_config();
         
         let encrypted1_path = temp_path.join("encrypted1.shadow");
         let encrypted2_path = temp_path.join("encrypted2.shadow");
         
-        encrypt_single_file_with_params(
+        encrypt_single_file_with_config(
             &file1_path,
             &encrypted1_path,
             password,
             true, // obfuscate filename
-            &params
+            &config
         ).unwrap();
         
-        encrypt_single_file_with_params(
+        encrypt_single_file_with_config(
             &file2_path,
             &encrypted2_path,
             password,
             true, // obfuscate filename
-            &params
+            &config
         ).unwrap();
         
         // Get the actual obfuscated filenames and determine which is which
@@ -75,11 +75,11 @@ mod tests {
         
         for obfuscated_path in &obfuscated_files {
             let test_decrypted_path = temp_path.join("test_decrypt.txt");
-            decrypt_single_file_with_params(
+            decrypt_single_file_with_config(
                 obfuscated_path,
                 &test_decrypted_path,
                 password,
-                &params
+                &config
             ).unwrap();
             
             let content = read(&test_decrypted_path).unwrap();
@@ -103,11 +103,11 @@ mod tests {
         // Normal decryption should work
         let decrypted1_path = temp_path.join("decrypted1.txt");
         println!("Decrypting file: {}", actual_encrypted1_path.display());
-        decrypt_single_file_with_params(
+        decrypt_single_file_with_config(
             actual_encrypted1_path,
             &decrypted1_path,
             password,
-            &params
+            &config
         ).unwrap();
         
         let decrypted1_content = read(&decrypted1_path).unwrap();
@@ -130,11 +130,11 @@ mod tests {
         // Try to decrypt the substituted file - this should fail due to filename auth
         let attacked_decrypted_path = temp_path.join("attacked_decrypted.txt");
         println!("Attempting to decrypt attack file: {}", attack_path.display());
-        let result = decrypt_single_file_with_params(
+        let result = decrypt_single_file_with_config(
             &attack_path,
             &attacked_decrypted_path,
             password,
-            &params
+            &config
         );
         
         // The decryption should fail with a file substitution error
@@ -163,15 +163,15 @@ mod tests {
         
         // Encrypt with obfuscation
         let password = "test_password_456";
-        let params = Argon2Params::test_params();
+        let config = AesGcmConfig::test_config();
         
         let encrypted_path = temp_path.join("encrypted.shadow");
-        encrypt_single_file_with_params(
+        encrypt_single_file_with_config(
             &file_path,
             &encrypted_path,
             password,
             true, // obfuscate filename
-            &params
+            &config
         ).unwrap();
         
         // Find the actual obfuscated file
@@ -195,11 +195,11 @@ mod tests {
         
         // Decryption should still work (filename is still legitimate)
         let decrypted_path = temp_path.join("decrypted.txt");
-        decrypt_single_file_with_params(
+        decrypt_single_file_with_config(
             &moved_path,
             &decrypted_path,
             password,
-            &params
+            &config
         ).unwrap();
         
         let decrypted_content = read(&decrypted_path).unwrap();
@@ -219,24 +219,24 @@ mod tests {
         
         // Encrypt WITHOUT obfuscation
         let password = "test_password_789";
-        let params = Argon2Params::test_params();
+        let config = AesGcmConfig::test_config();
         
         let encrypted_path = temp_path.join("normal.txt.shadow");
-        encrypt_single_file_with_params(
+        encrypt_single_file_with_config(
             &file_path,
             &encrypted_path,
             password,
             false, // NO obfuscation
-            &params
+            &config
         ).unwrap();
         
         // Decryption should work (no filename auth for non-obfuscated files)
         let decrypted_path = temp_path.join("decrypted_normal.txt");
-        decrypt_single_file_with_params(
+        decrypt_single_file_with_config(
             &encrypted_path,
             &decrypted_path,
             password,
-            &params
+            &config
         ).unwrap();
         
         let decrypted_content = read(&decrypted_path).unwrap();

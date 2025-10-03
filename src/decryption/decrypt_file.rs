@@ -570,10 +570,31 @@ fn decrypt_single_file_v1_with_config<C: CryptoConfig>(
         current_filename.to_string() // If no original filename, assume non-obfuscated
     };
     
-    if !original_filename.is_empty() && current_filename != expected_filename {
-        return Err(CryptoError::CryptographicError(
-            format!("Filename mismatch: expected '{}', found '{}'", expected_filename, current_filename)
-        ));
+    // Check if file was created with obfuscation by looking at the auth tag
+    // Non-obfuscated files will have all-zero auth tags
+    let obfuscation_auth_tag_used = header.obfuscated_filename_auth_tag != [0u8; 16];
+    let filename_appears_obfuscated = current_filename != expected_filename;
+    
+    // Only perform auth verification if both conditions are true:
+    // 1. The auth tag was actually set (indicating obfuscation was used)
+    // 2. The filename appears to be obfuscated
+    if obfuscation_auth_tag_used && filename_appears_obfuscated {
+        use crate::shared::filename_auth::{verify_filename_auth_tag, extract_filename_for_auth};
+        
+        let obfuscated_filename = extract_filename_for_auth(input_path)?;
+        let is_authentic = verify_filename_auth_tag(
+            &obfuscated_filename,
+            &header.obfuscated_filename_auth_tag,
+            &header.salt,
+            &header.nonce,
+            &key_material
+        )?;
+        
+        if !is_authentic {
+            return Err(CryptoError::CryptographicError(
+                "File substitution attack detected: obfuscated filename does not match file contents".to_string()
+            ));
+        }
     }
     
     // Decrypt file content

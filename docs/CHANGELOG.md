@@ -2,6 +2,33 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.3] - 2025-10-03
+
+### Fixed
+- **🎯 CRITICAL: Trait-Based System Architecture**: Resolved V1/V2 header version selection issues preventing integration test compatibility
+- **Filename Authentication Logic**: Fixed broken obfuscated file handling in `decrypt_single_file_v1_with_config` function
+- **Integration Test Legacy Function Migration**: Updated test files to use trait-based functions instead of removed legacy APIs
+
+### Architecture
+- **Version Dispatch Repair**: Corrected filename authentication logic that incorrectly rejected obfuscated files as invalid
+- **Trait System Consistency**: Ensured trait-based decryption functions use same secure logic as legacy implementation
+- **API Migration Path**: Completed migration of critical integration tests from legacy to trait-based functions
+
+### Tests Fixed
+- `tests/filename_auth_security.rs`: All filename authentication tests now pass with obfuscated files
+- `tests/double_encryption_prevention.rs`: Updated to use trait-based configuration
+- Multiple integration test files: Migrated function calls and imports to trait-based system
+
+### Technical Resolution
+- **Root Cause**: Trait-based system implementation copied incorrect logic from wrong function version
+- **Solution**: Applied correct filename authentication logic that properly handles obfuscated vs non-obfuscated files
+- **Impact**: Unblocks integration test modernization and validates trait system architecture
+
+### Development Process
+- **Systematic Investigation**: Identified specific architectural mismatch through focused testing
+- **Surgical Fix**: Targeted the exact logic error without disrupting working functionality
+- **Validation-Driven**: Confirmed fix through comprehensive integration test execution
+
 ## [0.32.2] - 2025-10-03
 
 ### Added

@@ -53,7 +53,8 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Actions**:
 - Reflect on the current implementation cycle in docs/CURRENT_CYCLE.md
 - If further work is needed:
-    - Add new requirements to docs/BACKLOG.md as new items
+    - Add new requirements to docs/BACKLOG.md as new items with clear descriptions for other developers
+    - Order backlog items strategically by priority and dependencies
     - Let next INTAKE phase process these through normal feedback pipeline
 
 ### 7. **FINALIZE**
