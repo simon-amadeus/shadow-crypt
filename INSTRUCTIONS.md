@@ -16,7 +16,6 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Purpose**: Ensure all documentation reflects current reality
 - Verify docs/BACKLOG.md matches actual priorities
 - Confirm no orphaned docs/CURRENT_CYCLE.md exists
-- Ensure README.md exists and is up-to-date
 
 ### 2. **INTAKE**
 **Purpose**: Process new information into the system
@@ -63,7 +62,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - **docs/CURRENT_CYCLE.md → docs/CHANGELOG.md**: Archive completed work with semantic versioning
 - **Update Cargo.toml version**: Sync package version with changelog version for releases
 - Delete docs/CURRENT_CYCLE.md (work is now in docs/CHANGELOG.md)
-- **Update README.md** Ensure it is in sync with latest changes
+- **Update README.md** Ensure it only contains essentials and is in sync with latest changes
 - **Decision Gate**: Only proceed if all quality gates pass
 
 ## Quality Gates
@@ -105,6 +104,6 @@ docs/CURRENT_CYCLE.md → docs/BACKLOG.md (new items) → next cycle's docs/CURR
 - **docs/CHANGELOG.md**: Only significant changes that impact users
 - **FEEDBACK.md**: Process "New Feedback" regularly, archive resolved items
 - **Cargo.toml**: Keep version field synchronized with changelog for proper release management
-- **README.md**: Aesthetic minimalism is key; Written for users, not developers
+- **README.md**: Aesthetic minimalism is key; Written for users; Only essentials, no fluff
 
 **Focus**: Sustainable progress through learning, adaptation, and user value delivery.

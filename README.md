@@ -1,66 +1,66 @@
-# Shadow - High-Security File Encryption Suite
+# Shadow
 
-**Professional-grade cryptographic file protection with multiple algorithm support and format versioning.**
+Modern file encryption with XChaCha20-Poly1305 and AES-256-GCM.
 
-## Overview
+## Install
 
-Shadow provides military-grade file encryption with modern cryptographic algorithms, featuring:
-
-- **🔒 Dual Algorithm Support**: XChaCha20-Poly1305 (default) and AES-256-GCM
-- **🛡️ Format Versioning**: Future-proof V2 format with migration support  
-- **⚡ High Performance**: Optimized for both security and speed
-- **🎯 Multiple Use Cases**: Single files, batch operations, secure viewing, and editing
-- **🔧 Developer Friendly**: Comprehensive API with trait-based configuration
-
-## Quick Start
-
-### Installation
 ```bash
 cargo install shadow-crypt
 ```
 
-### Basic Usage
+## Usage
+
 ```bash
-# Encrypt a file (uses XChaCha20-Poly1305 by default)
-shadow encrypt document.txt
+# Encrypt files
+shadow document.txt
+shadow *.pdf
 
-# Decrypt a file  
-shadow decrypt document.txt.shadow
+# Decrypt files  
+unshadow document.txt.shadow
+unshadow *.shadow
 
-# List encrypted files in directory
-shadows /path/to/encrypted/files
-
-# View encrypted file without permanent decryption
-shadowview document.txt.shadow
+# List encrypted files
+shadows
 ```
 
-### Advanced Options
-```bash
-# Use AES-256-GCM algorithm
-shadow encrypt --algorithm aes-gcm document.txt
+## Advanced Options
 
-# Batch encrypt with filename obfuscation
-shadow encrypt --obfuscate *.txt
+```bash
+# Obfuscate filenames for privacy
+shadow --obfuscate secret.txt
 
 # Remove source files after encryption
-shadow encrypt --remove-source *.txt
+shadow --remove-source *.log
+
+# Choose encryption algorithm
+shadow --algorithm aes-gcm file.txt    # for compatibility
+shadow --algorithm xchacha20 file.txt  # for maximum security (default)
 ```
+
+## Tools
+
+- `shadow` - Encrypt files and directories
+- `unshadow` - Decrypt files and restore original names
+- `shadows` - List and browse encrypted files
+- `shadowview` - View encrypted files without decryption *(in development)*
+- `shadowedit` - Edit encrypted files in-place *(in development)*
 
 ## Security Features
 
-- **Post-Quantum Resistant**: XChaCha20-Poly1305 with extended nonce space
-- **Authenticated Encryption**: Built-in tamper detection and data integrity
-- **Secure Key Derivation**: Argon2id with adaptive parameters
-- **Memory Protection**: Automatic zeroization of sensitive data
-- **Timing Attack Resistance**: Constant-time operations where applicable
+- **XChaCha20-Poly1305** and **AES-256-GCM** encryption algorithms
+- **Argon2id** password-based key derivation
+- **Authenticated encryption** with tamper detection
+- **Filename obfuscation** for metadata privacy
+- **Secure password prompting** (never displayed)
+- **Versioned file format** for future compatibility
 
-## Documentation
+## File Format
 
-For comprehensive usage, API reference, and security details:
-- [User Guide](docs/) - Complete usage documentation
-- [API Reference](https://docs.rs/shadow-crypt) - Developer documentation
-- [Security Model](docs/SECURITY.md) - Cryptographic specifications
+Encrypted files use the `.shadow` extension and contain:
+- Cryptographic headers with algorithm info and salt
+- Encrypted content with authentication
+- Optional obfuscated filename metadata
 
 ## License
 
-Licensed under either of Apache License 2.0 or MIT License at your option.
+MIT or Apache 2.0

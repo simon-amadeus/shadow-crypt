@@ -7,7 +7,8 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+1. **Shadows Command File Detection Bug**: Fix `shadows` binary not detecting .shadow files in directory scanning
+2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 

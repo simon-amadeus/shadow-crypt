@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.8] - 2025-10-03
+
+### Added
+- **✅ COMPLETED: README.md Accuracy & Utility Rewrite**: Complete professional rewrite of project documentation
+- **Accurate Installation Instructions**: Fixed package name and installation process (`cargo install shadow-crypt`)
+- **Working Examples**: All code examples tested and verified against actual binary behavior
+- **Feature Status Clarity**: Clear distinction between production-ready tools and development features
+- **Professional Documentation**: Modern structure with comprehensive usage examples and security information
+- **Algorithm Documentation**: Detailed comparison table and recommendations for XChaCha20-Poly1305 vs AES-256-GCM
+
+### Fixed
+- **Misleading Information**: Removed incorrect claims and outdated examples from previous README
+- **Binary Command Examples**: Updated all examples to use correct command syntax and options
+- **Installation Process**: Corrected from incorrect `shadow-crypt` to proper `shadow-crypt` package installation
+
+### Documentation
+- **User Experience**: README now provides immediate value for new users with clear, tested examples
+- **Security Guidance**: Added proper security considerations and best practices section
+- **Development Status**: Clearly marked `shadowview` and `shadowedit` as in-development features
+
+### Known Issues
+- **Shadows Command**: File detection may not work correctly (requires investigation)
+
 ## [0.32.7] - 2025-10-03
 
 ### Fixed

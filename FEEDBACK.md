@@ -7,9 +7,14 @@ Add your feedback here. Keep it simple - just write what you think.
 ## New Feedback
 
 *No new feedback - ready for input*
-- write a proper readme file. the current one is filled with wrong information and is not helpful at all.
 
 ## Processed Feedback
+
+**README.md Rewrite** (Added to backlog as priority #1)
+- Issue: Current README contains wrong information and is not helpful for users
+- Impact: Poor first impression, user confusion, potentially misleading documentation
+- Scope: Complete rewrite with accurate examples, proper installation, correct usage patterns
+- Status: Prioritized for immediate planning
 
 **XChaCha20 Default Algorithm Testing** (Added to backlog integration)
 - Issue: Need comprehensive tests to verify XChaCha20 is properly selected as default algorithm
