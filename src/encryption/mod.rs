@@ -53,6 +53,6 @@ pub mod multi_file;
 pub mod cli;
 
 // Re-export main functions for convenience
-pub use encrypt_file::encrypt_single_file_with_config;  // New trait-based function
+pub use encrypt_file::encrypt_single_file_v3;
 pub use filename_obfuscation::obfuscate_name_with_collision_resistance;
 pub use multi_file::{encrypt_multiple_files_with_algorithm, expand_glob_patterns, MultiFileResults};

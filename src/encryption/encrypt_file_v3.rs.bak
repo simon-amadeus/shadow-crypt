@@ -4,14 +4,14 @@
 //! with TLV field-based metadata storage.
 
 use crate::shared::errors::CryptoError;
-use crate::shared::header::{Header, AlgorithmId};
-use crate::shared::metadata::FileMetadata;
+use crate::shared::header::{Header, FileMetadata, AlgorithmId};
 use crate::shared::versions::v3::TlvFieldType;
 use crate::shared::versioning::VersionedHeader;
 use crate::shared::algorithms::xchacha20_poly1305::{
     generate_secure_nonce, encrypt_xchacha20_poly1305, derive_master_key, generate_salt, Argon2Params
 };
-use std::path::Path;
+use crate::encryption::filename_obfuscation::obfuscate_filename;
+use std::path::{Path, PathBuf};
 use std::fs::{File, metadata};
 use std::io::{Read, Write};
 use std::time::SystemTime;
@@ -144,25 +144,19 @@ fn extract_file_metadata(input_path: &Path, content: &[u8]) -> Result<FileMetada
     
     let mut hasher = Sha256::new();
     hasher.update(content);
-    let content_hash: [u8; 32] = hasher.finalize().into();
+    let content_hash = hasher.finalize().to_vec();
     
     let modified_time = file_metadata.modified()
-        .unwrap_or(SystemTime::UNIX_EPOCH);
-    
-    let created_time = file_metadata.created()
-        .unwrap_or(SystemTime::UNIX_EPOCH);
-    
-    let accessed_time = file_metadata.accessed()
-        .unwrap_or(SystemTime::UNIX_EPOCH);
+        .unwrap_or(SystemTime::UNIX_EPOCH)
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .map_err(|_| CryptoError::CryptographicError("Invalid timestamp".to_string()))?
+        .as_secs();
     
     Ok(FileMetadata {
-        permissions: 0o644, // Default permissions
-        created: created_time,
-        modified: modified_time,
-        accessed: accessed_time,
-        file_hash: content_hash,
-        compression: Some(crate::shared::header::CompressionType::None),
-        created_by: "shadow-crypt-v3".to_string(),
-        custom_attributes: std::collections::HashMap::new(),
+        original_size: content.len() as u64,
+        content_hash,
+        created_timestamp: modified_time, // Use modified as created for compatibility
+        modified_timestamp: modified_time,
+        compression_type: crate::shared::header::CompressionType::None,
     })
 }

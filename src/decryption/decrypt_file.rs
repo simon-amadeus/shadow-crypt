@@ -1,29 +1,24 @@
-//! File decryption implementation
+//! V3-only file decryption implementation
 //! 
-//! This module provides single file decryption functionality with automatic
-//! version detection supporting both V1 (AES-256-GCM) and V2 (algorithm dispatch)
-//! with header parsing, authentication verification, and metadata restoration.
+//! This module provides V3-only file decryption functionality using
+//! TLV field-based metadata retrieval and XChaCha20-Poly1305 decryption.
 
-use crate::shared::errors::CryptoError;
-use crate::shared::header::{Header, FileMetadata};
-use crate::shared::algorithms::aes_gcm::{
-    decrypt_aes_gcm, derive_master_key, Argon2Params
-};
+use crate::shared::core::errors::CryptoError;
+use crate::shared::header::Header;
+use crate::shared::metadata::FileMetadata;
+use crate::shared::versioning::VersionedHeader;
+use crate::shared::versions::v3::TlvFieldType;
 use crate::shared::algorithms::xchacha20_poly1305::{
-    decrypt_xchacha20_poly1305, derive_master_key as derive_xchacha20_master_key, 
-    Argon2Params as XChaCha20Argon2Params
+    decrypt_xchacha20_poly1305, derive_master_key, Argon2Params
 };
-use crate::shared::algorithms::config::CryptoConfig;
-use crate::shared::algorithms::{Algorithm, AlgorithmId};
-use crate::shared::versions::detection::detect_version;
-use crate::shared::versions::v2::header::HeaderV2;
+use crate::shared::algorithms::AlgorithmId;
 use std::path::Path;
 use std::fs::{File, set_permissions};
-use std::io::{Read, Write, Cursor};
+use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use sha2::{Sha256, Digest};
 
-/// Decrypt a single file with AES-256-GCM
+/// Decrypt a single file (V3-only)
 /// 
 /// # Arguments
 /// * `input_path` - Path to the encrypted file
@@ -33,828 +28,113 @@ use sha2::{Sha256, Digest};
 /// # Returns
 /// * `Ok(())` - File decrypted successfully
 /// * `Err(CryptoError)` - Decryption failed
-/// 
-/// # Security
-/// * Verifies GCM authentication tags before decryption
-/// * Validates file integrity using SHA-256 hash
-/// * Restores original file metadata (permissions, timestamps)
-/// * Handles decryption errors gracefully with clear error messages
-pub fn decrypt_single_file(
+pub fn decrypt_single_file_v3(
     input_path: &Path,
     output_path: &Path,
     password: &str
 ) -> Result<(), CryptoError> {
-    // Use default (production) parameters for public API
-    let params = Argon2Params::default();
-    decrypt_single_file_with_params(input_path, output_path, password, &params)
-}
-
-/// Internal function that accepts custom Argon2 parameters for testing
-pub fn decrypt_single_file_with_params(
-    input_path: &Path,
-    output_path: &Path,
-    password: &str,
-    params: &Argon2Params,
-) -> Result<(), CryptoError> {
     // Read encrypted file
-    let mut input_file = File::open(input_path)
+    let mut file = File::open(input_path)
         .map_err(CryptoError::FileSystemError)?;
     
     let mut encrypted_data = Vec::new();
-    input_file.read_to_end(&mut encrypted_data)
+    file.read_to_end(&mut encrypted_data)
         .map_err(CryptoError::FileSystemError)?;
-    
-    // Detect file format version automatically
-    let version = detect_version(&encrypted_data)?;
-    
-    match version {
-        1 => {
-            // V1 format - use existing AES-256-GCM decryption
-            decrypt_single_file_v1_with_params(&encrypted_data, input_path, output_path, password, params)
-        }
-        2 => {
-            // V2 format - use algorithm dispatch
-            decrypt_single_file_v2_with_params(&encrypted_data, output_path, password, params)
-        }
-        _ => {
-            Err(CryptoError::HeaderParsingError(
-                format!("Unsupported file format version: {}", version)
-            ))
-        }
-    }
-}
 
-/// Decrypt a single file with trait-based configuration
-/// 
-/// This is the modernized core decryption function that accepts configuration
-/// traits directly instead of algorithm-specific parameter structs.
-/// 
-/// # Arguments
-/// * `input_path` - Path to the encrypted file
-/// * `output_path` - Path where decrypted file will be saved
-/// * `password` - Password for key derivation
-/// * `config` - Configuration implementing CryptoConfig trait
-/// 
-/// # Returns
-/// * `Ok(())` - File decrypted successfully
-/// * `Err(CryptoError)` - Decryption failed
-pub fn decrypt_single_file_with_config<C: CryptoConfig>(
-    input_path: &Path,
-    output_path: &Path,
-    password: &str,
-    config: &C,
-) -> Result<(), CryptoError> {
-    // Read encrypted file
-    let mut input_file = File::open(input_path)
-        .map_err(CryptoError::FileSystemError)?;
+    // Deserialize V3 header
+    let (header, header_size) = Header::deserialize(&encrypted_data)?;
     
-    let mut encrypted_data = Vec::new();
-    input_file.read_to_end(&mut encrypted_data)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    // Detect file format version automatically
-    let version = detect_version(&encrypted_data)?;
-    
-    match version {
-        1 => {
-            // V1 format - use trait-based decryption
-            decrypt_single_file_v1_with_config(&encrypted_data, input_path, output_path, password, config)
-        }
-        2 => {
-            // V2 format - use trait-based algorithm dispatch
-            decrypt_single_file_v2_with_config(&encrypted_data, output_path, password, config)
-        }
-        _ => {
-            Err(CryptoError::HeaderParsingError(
-                format!("Unsupported file format version: {}", version)
-            ))
-        }
-    }
-}
-
-/// Decrypt a V1 format file (AES-256-GCM only)
-fn decrypt_single_file_v1_with_params(
-    encrypted_data: &[u8],
-    input_path: &Path,
-    output_path: &Path,
-    password: &str,
-    params: &Argon2Params,
-) -> Result<(), CryptoError> {
-    // Parse V1 header from encrypted file
-    let (header, header_size) = Header::deserialize(encrypted_data)?;
-    
-    // Derive master key from password and salt
-    let key_material = derive_master_key(password, &header.salt, params)?;
-    
-    // Decrypt and verify directory path
-    let _directory_path = if !header.encrypted_directory_path.is_empty() {
-        decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &header.nonce,
-            &header.encrypted_directory_path,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt directory path: {}", e)
-        ))?
-    } else {
-        Vec::new()
-    };
-    
-    // Decrypt and verify filename
-    let original_filename = if !header.encrypted_filename.is_empty() {
-        let filename_bytes = decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &header.nonce,
-            &header.encrypted_filename,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt filename: {}", e)
-        ))?;
-        
-        String::from_utf8(filename_bytes)
-            .map_err(|e| CryptoError::CryptographicError(
-                format!("Invalid UTF-8 in decrypted filename: {}", e)
-            ))?
-    } else {
-        String::new()
-    };
-    
-    // Check if this is an obfuscated file by comparing current vs expected filename
-    let current_filename = input_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("");
-    
-    let expected_filename = if !original_filename.is_empty() {
-        format!("{}.shadow", original_filename)
-    } else {
-        current_filename.to_string() // If no original filename, assume non-obfuscated
-    };
-    
-    // Check if file was created with obfuscation by looking at the auth tag
-    // Non-obfuscated files will have all-zero auth tags
-    let obfuscation_auth_tag_used = header.obfuscated_filename_auth_tag != [0u8; 16];
-    let filename_appears_obfuscated = current_filename != expected_filename;
-    
-    // Only perform auth verification if both conditions are true:
-    // 1. The auth tag was actually set (indicating obfuscation was used)
-    // 2. The filename appears to be obfuscated
-    if obfuscation_auth_tag_used && filename_appears_obfuscated {
-        use crate::shared::filename_auth::{verify_filename_auth_tag, extract_filename_for_auth};
-        
-        let obfuscated_filename = extract_filename_for_auth(input_path)?;
-        let is_authentic = verify_filename_auth_tag(
-            &obfuscated_filename,
-            &header.obfuscated_filename_auth_tag,
-            &header.salt,
-            &header.nonce,
-            &key_material
-        )?;
-        
-        if !is_authentic {
-            return Err(CryptoError::CryptographicError(
-                "File substitution attack detected: obfuscated filename does not match file contents".to_string()
-            ));
-        }
-    }
-    
-    // Decrypt and verify metadata
-    let metadata = if !header.encrypted_metadata.is_empty() {
-        let metadata_bytes = decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &header.nonce,
-            &header.encrypted_metadata,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt metadata: {}", e)
-        ))?;
-        
-        FileMetadata::deserialize(&metadata_bytes)?
-    } else {
-        return Err(CryptoError::CryptographicError(
-            "Missing file metadata in header".to_string()
-        ));
-    };
-    
-    // Extract encrypted content (everything after header)
-    if header_size >= encrypted_data.len() {
-        return Err(CryptoError::CryptographicError(
-            "Invalid file format: no content after header".to_string()
+    // Verify this is XChaCha20-Poly1305
+    if header.algorithm_id != AlgorithmId::ChaCha20Poly1305 {
+        return Err(CryptoError::UnsupportedAlgorithm(
+            header.algorithm_id as u16
         ));
     }
-    
+
+    // Extract encrypted content
     let encrypted_content = &encrypted_data[header_size..];
     
-    // Decrypt file content
-    let decrypted_content = decrypt_aes_gcm(
-        key_material.encryption_key.expose_secret(),
+    // Derive master key
+    let params = Argon2Params::default();
+    let master_key = derive_master_key(password, &header.salt, &params)?;
+
+    // Decrypt content
+    let decrypted_content = decrypt_xchacha20_poly1305(
+        master_key.expose_secret(),
         &header.nonce,
         encrypted_content,
         &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt file content: {}", e)
-    ))?;
-    
-    // Verify file integrity using SHA-256 hash
-    let mut hasher = Sha256::new();
-    hasher.update(&decrypted_content);
-    let computed_hash: [u8; 32] = hasher.finalize().into();
-    
-    if computed_hash != metadata.file_hash {
-        return Err(CryptoError::CryptographicError(
-            "File integrity check failed: SHA-256 hash mismatch".to_string()
-        ));
+    )?;
+
+    // Extract metadata from TLV fields
+    let metadata = extract_metadata_from_tlv(&header)?;
+
+    // Verify file hash if present
+    if metadata.file_hash != [0u8; 32] {
+        let mut hasher = Sha256::new();
+        hasher.update(&decrypted_content);
+        let actual_hash: [u8; 32] = hasher.finalize().into();
+        
+        if actual_hash != metadata.file_hash {
+            return Err(CryptoError::CryptographicError(
+                "File hash verification failed".to_string()
+            ));
+        }
     }
-    
-    // Write decrypted content to output file
+
+    // Write decrypted file
     let mut output_file = File::create(output_path)
         .map_err(CryptoError::FileSystemError)?;
     
     output_file.write_all(&decrypted_content)
         .map_err(CryptoError::FileSystemError)?;
-    
-    // Restore file metadata (permissions)
-    #[cfg(unix)]
-    {
-        let permissions = std::fs::Permissions::from_mode(metadata.permissions);
-        set_permissions(output_path, permissions)
-            .map_err(CryptoError::FileSystemError)?;
-    }
-    
-    // Note: Timestamp restoration would require additional platform-specific code
-    // and is not implemented in this phase for simplicity
-    
+
+    // Restore file metadata
+    restore_file_metadata(output_path, &metadata)?;
+
     Ok(())
 }
 
-/// Decrypt a V2 format file (algorithm dispatch)
-fn decrypt_single_file_v2_with_params(
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    params: &Argon2Params,
-) -> Result<(), CryptoError> {
-    // Parse V2 header
-    let mut cursor = Cursor::new(encrypted_data);
-    let header = HeaderV2::deserialize(&mut cursor)?;
-    
-    // Get algorithm from header
-    let algorithm = header.algorithm();
-    
-    match algorithm {
-        Algorithm::AES256GCM => {
-            // Convert AES params to XChaCha20 params for now (will refactor)
-            let xchacha20_params = XChaCha20Argon2Params {
-                memory_cost: params.memory_cost,
-                time_cost: params.time_cost,
-                parallelism: params.parallelism,
-            };
-            decrypt_v2_with_aes_gcm(&header, encrypted_data, output_path, password, &xchacha20_params)
-        }
-        Algorithm::XChaCha20Poly1305 => {
-            let xchacha20_params = XChaCha20Argon2Params {
-                memory_cost: params.memory_cost,
-                time_cost: params.time_cost,
-                parallelism: params.parallelism,
-            };
-            decrypt_v2_with_xchacha20(&header, encrypted_data, output_path, password, &xchacha20_params)
+/// Extract metadata from TLV fields
+fn extract_metadata_from_tlv(header: &Header) -> Result<FileMetadata, CryptoError> {
+    let now = std::time::SystemTime::now();
+    let mut metadata = FileMetadata {
+        permissions: 0o644,  // Default permissions
+        created: now,
+        modified: now,
+        accessed: now,
+        file_hash: [0u8; 32],  // Default empty hash
+        compression: None,
+        created_by: format!("shadow-v3"),
+        custom_attributes: std::collections::HashMap::new(),
+    };
+
+    // Extract content hash
+    if let Some(hash_data) = header.tlv_fields.get_field(TlvFieldType::ContentHash) {
+        if hash_data.len() == 32 {
+            let mut hash_array = [0u8; 32];
+            hash_array.copy_from_slice(hash_data);
+            metadata.file_hash = hash_array;
         }
     }
+
+    // TODO: Extract other metadata fields from TLV when the types are available
+    // For now, we'll use defaults
+
+    Ok(metadata)
 }
 
-/// Decrypt V2 file with AES-256-GCM
-fn decrypt_v2_with_aes_gcm(
-    header: &HeaderV2,
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    params: &XChaCha20Argon2Params,
-) -> Result<(), CryptoError> {
-    // Convert to AES params
-    let aes_params = Argon2Params {
-        memory_cost: params.memory_cost,
-        time_cost: params.time_cost,
-        parallelism: params.parallelism,
-    };
-    
-    // Derive master key using AES key derivation with V2's extended salt
-    let key_material = derive_master_key(password, &header.salt[0..16], &aes_params)?;
-    
-    // Convert variable-length nonce to fixed 12-byte AES-GCM nonce
-    if header.nonce.len() != 12 {
-        return Err(CryptoError::CryptographicError(
-            format!("AES-GCM in V2 format requires 12-byte nonce, got {}", header.nonce.len())
-        ));
-    }
-    let nonce: [u8; 12] = header.nonce[0..12].try_into()
-        .map_err(|_| CryptoError::CryptographicError("Failed to convert nonce".to_string()))?;
-    
-    // Decrypt metadata if present
-    let _metadata = if !header.encrypted_metadata.is_empty() {
-        let metadata_bytes = decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &nonce,
-            &header.encrypted_metadata,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt metadata: {}", e)
-        ))?;
-        
-        // TODO: Deserialize metadata properly
-        Some(metadata_bytes)
-    } else {
-        None
-    };
-    
-    // Decrypt filename if present
-    let _original_filename = if !header.encrypted_filename.is_empty() {
-        let filename_bytes = decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &nonce,
-            &header.encrypted_filename,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt filename: {}", e)
-        ))?;
-        
-        String::from_utf8(filename_bytes)
-            .map_err(|e| CryptoError::CryptographicError(
-                format!("Invalid UTF-8 in decrypted filename: {}", e)
-            ))?
-    } else {
-        String::new()
-    };
-    
-    // Calculate header size and decrypt content
-    let header_size = header.size();
-    if header_size >= encrypted_data.len() {
-        return Err(CryptoError::CryptographicError(
-            "Invalid file: header larger than file".to_string()
-        ));
-    }
-    
-    let ciphertext = &encrypted_data[header_size..];
-    if ciphertext.is_empty() {
-        return Err(CryptoError::CryptographicError(
-            "Invalid file: no encrypted content found".to_string()
-        ));
-    }
-    
-    // Decrypt main content
-    let plaintext = decrypt_aes_gcm(
-        key_material.encryption_key.expose_secret(),
-        &nonce,
-        ciphertext,
-        &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt content: {}", e)
-    ))?;
-    
-    // Write decrypted content to output file
-    let mut output_file = File::create(output_path)
+/// Restore file metadata (permissions, timestamps)
+fn restore_file_metadata(path: &Path, metadata: &FileMetadata) -> Result<(), CryptoError> {
+    use std::fs;
+
+    // Restore permissions
+    let std_permissions = fs::Permissions::from_mode(metadata.permissions);
+    set_permissions(path, std_permissions)
         .map_err(CryptoError::FileSystemError)?;
-    output_file.write_all(&plaintext)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    // TODO: Restore file metadata if available
-    
+
+    // TODO: Restore timestamps when SystemTime serialization is implemented
+    // For now, we'll skip timestamp restoration as it requires proper serialization
+
     Ok(())
-}
-
-/// Decrypt V2 file with XChaCha20-Poly1305
-fn decrypt_v2_with_xchacha20(
-    header: &HeaderV2,
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    params: &XChaCha20Argon2Params,
-) -> Result<(), CryptoError> {
-    // Derive master key using XChaCha20 key derivation
-    let key_material = derive_xchacha20_master_key(password, &header.salt, params)?;
-    
-    // Validate nonce length for XChaCha20-Poly1305
-    if header.nonce.len() != 24 {
-        return Err(CryptoError::CryptographicError(
-            format!("XChaCha20-Poly1305 requires 24-byte nonce, got {}", header.nonce.len())
-        ));
-    }
-    
-    // Decrypt metadata if present
-    let _metadata = if !header.encrypted_metadata.is_empty() {
-        let metadata_bytes = decrypt_xchacha20_poly1305(
-            key_material.expose_secret(),
-            &header.nonce,
-            &header.encrypted_metadata,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt metadata: {}", e)
-        ))?;
-        
-        // TODO: Deserialize metadata properly
-        Some(metadata_bytes)
-    } else {
-        None
-    };
-    
-    // Decrypt filename if present
-    let _original_filename = if !header.encrypted_filename.is_empty() {
-        let filename_bytes = decrypt_xchacha20_poly1305(
-            key_material.expose_secret(),
-            &header.nonce,
-            &header.encrypted_filename,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt filename: {}", e)
-        ))?;
-        
-        String::from_utf8(filename_bytes)
-            .map_err(|e| CryptoError::CryptographicError(
-                format!("Invalid UTF-8 in decrypted filename: {}", e)
-            ))?
-    } else {
-        String::new()
-    };
-    
-    // Calculate header size and decrypt content
-    let header_size = header.size();
-    if header_size >= encrypted_data.len() {
-        return Err(CryptoError::CryptographicError(
-            "Invalid file: header larger than file".to_string()
-        ));
-    }
-    
-    let ciphertext = &encrypted_data[header_size..];
-    if ciphertext.is_empty() {
-        return Err(CryptoError::CryptographicError(
-            "Invalid file: no encrypted content found".to_string()
-        ));
-    }
-    
-    // Decrypt main content
-    let plaintext = decrypt_xchacha20_poly1305(
-        key_material.expose_secret(),
-        &header.nonce,
-        ciphertext,
-        &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt content: {}", e)
-    ))?;
-    
-    // Write decrypted content to output file
-    let mut output_file = File::create(output_path)
-        .map_err(CryptoError::FileSystemError)?;
-    output_file.write_all(&plaintext)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    // TODO: Restore file metadata if available
-    
-    Ok(())
-}
-
-/// Decrypt a V1 format file using trait-based configuration
-fn decrypt_single_file_v1_with_config<C: CryptoConfig>(
-    encrypted_data: &[u8],
-    input_path: &Path,
-    output_path: &Path,
-    password: &str,
-    config: &C,
-) -> Result<(), CryptoError> {
-    // Parse V1 header from encrypted file
-    let (header, header_size) = Header::deserialize(encrypted_data)?;
-    
-    // Use trait-based key derivation
-    let key_material = config.derive_key_material(password, &header.salt)?;
-    
-    // Decrypt and verify directory path
-    let _directory_path = if !header.encrypted_directory_path.is_empty() {
-        decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &header.nonce,
-            &header.encrypted_directory_path,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt directory path: {}", e)
-        ))?
-    } else {
-        Vec::new()
-    };
-    
-    // Decrypt and verify filename
-    let original_filename = if !header.encrypted_filename.is_empty() {
-        let filename_bytes = decrypt_aes_gcm(
-            key_material.encryption_key.expose_secret(),
-            &header.nonce,
-            &header.encrypted_filename,
-            &[]
-        ).map_err(|e| CryptoError::CryptographicError(
-            format!("Failed to decrypt filename: {}", e)
-        ))?;
-        
-        String::from_utf8(filename_bytes)
-            .map_err(|e| CryptoError::CryptographicError(
-                format!("Invalid UTF-8 in decrypted filename: {}", e)
-            ))?
-    } else {
-        String::new()
-    };
-    
-    // Check if this is an obfuscated file by comparing current vs expected filename
-    let current_filename = input_path
-        .file_name()
-        .and_then(|name| name.to_str())
-        .unwrap_or("");
-    
-    let expected_filename = if !original_filename.is_empty() {
-        format!("{}.shadow", original_filename)
-    } else {
-        current_filename.to_string() // If no original filename, assume non-obfuscated
-    };
-    
-    // Check if file was created with obfuscation by looking at the auth tag
-    // Non-obfuscated files will have all-zero auth tags
-    let obfuscation_auth_tag_used = header.obfuscated_filename_auth_tag != [0u8; 16];
-    let filename_appears_obfuscated = current_filename != expected_filename;
-    
-    // Only perform auth verification if both conditions are true:
-    // 1. The auth tag was actually set (indicating obfuscation was used)
-    // 2. The filename appears to be obfuscated
-    if obfuscation_auth_tag_used && filename_appears_obfuscated {
-        use crate::shared::filename_auth::{verify_filename_auth_tag, extract_filename_for_auth};
-        
-        let obfuscated_filename = extract_filename_for_auth(input_path)?;
-        let is_authentic = verify_filename_auth_tag(
-            &obfuscated_filename,
-            &header.obfuscated_filename_auth_tag,
-            &header.salt,
-            &header.nonce,
-            &key_material
-        )?;
-        
-        if !is_authentic {
-            return Err(CryptoError::CryptographicError(
-                "File substitution attack detected: obfuscated filename does not match file contents".to_string()
-            ));
-        }
-    }
-    
-    // Decrypt file content
-    let encrypted_content = &encrypted_data[header_size..];
-    let plaintext = decrypt_aes_gcm(
-        key_material.encryption_key.expose_secret(),
-        &header.nonce,
-        encrypted_content,
-        &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt content: {}", e)
-    ))?;
-    
-    // Verify content integrity with SHA-256 hash if present in V1 metadata
-    // Note: V1 headers don't have a file_hash field - this was from an earlier draft
-    // Content integrity is verified through AES-GCM authentication tags
-    
-    // Write decrypted content to output file
-    let mut output_file = File::create(output_path)
-        .map_err(CryptoError::FileSystemError)?;
-    output_file.write_all(&plaintext)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    // Note: V1 headers don't have metadata field - this was from an earlier draft  
-    // File metadata handling was simplified in the V1 implementation
-    
-    Ok(())
-}
-
-/// Decrypt a V2 format file using trait-based configuration  
-fn decrypt_single_file_v2_with_config<C: CryptoConfig>(
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    config: &C,
-) -> Result<(), CryptoError> {
-    // Parse V2 header from encrypted file using cursor
-    let mut cursor = Cursor::new(encrypted_data);
-    let header = HeaderV2::deserialize(&mut cursor)?;
-    
-    // Get algorithm from header
-    let algorithm = header.algorithm();
-    
-    match algorithm {
-        Algorithm::AES256GCM => {
-            decrypt_v2_with_aes_gcm_config(&header, encrypted_data, output_path, password, config)
-        }
-        Algorithm::XChaCha20Poly1305 => {
-            decrypt_v2_with_xchacha20_config(&header, encrypted_data, output_path, password, config)
-        }
-    }
-}
-
-/// Decrypt V2 file with AES-256-GCM using trait-based configuration
-fn decrypt_v2_with_aes_gcm_config<C: CryptoConfig>(
-    header: &HeaderV2,
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    config: &C,
-) -> Result<(), CryptoError> {
-    // Use trait-based key derivation with V2's extended salt
-    let key_material = config.derive_key_material(password, &header.salt[0..16])?;
-    
-    // Convert variable-length nonce to fixed 12-byte AES-GCM nonce
-    if header.nonce.len() != 12 {
-        return Err(CryptoError::CryptographicError(
-            format!("AES-GCM in V2 format requires 12-byte nonce, got {}", header.nonce.len())
-        ));
-    }
-    let nonce: [u8; 12] = header.nonce[0..12].try_into()
-        .map_err(|_| CryptoError::CryptographicError("Failed to convert nonce".to_string()))?;
-    
-    // Calculate header size: fixed fields + variable fields
-    let header_size = 8 + 2 + 2 + 32 + 1 + header.nonce.len() + 2 + header.encrypted_metadata.len() + 2 + header.encrypted_filename.len();
-    let encrypted_content = &encrypted_data[header_size..];
-    
-    // Decrypt content
-    let plaintext = decrypt_aes_gcm(
-        key_material.encryption_key.expose_secret(),
-        &nonce,
-        encrypted_content,
-        &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt content: {}", e)
-    ))?;
-    
-    // Write decrypted content to output file
-    let mut output_file = File::create(output_path)
-        .map_err(CryptoError::FileSystemError)?;
-    output_file.write_all(&plaintext)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    Ok(())
-}
-
-/// Decrypt V2 file with XChaCha20-Poly1305 using trait-based configuration
-fn decrypt_v2_with_xchacha20_config<C: CryptoConfig>(
-    header: &HeaderV2,
-    encrypted_data: &[u8],
-    output_path: &Path,
-    password: &str,
-    config: &C,
-) -> Result<(), CryptoError> {
-    // Use trait-based key derivation with full V2 salt
-    let key_material = config.derive_key_material(password, &header.salt)?;
-    
-    // Convert variable-length nonce to fixed 24-byte XChaCha20 nonce
-    if header.nonce.len() != 24 {
-        return Err(CryptoError::CryptographicError(
-            format!("XChaCha20-Poly1305 in V2 format requires 24-byte nonce, got {}", header.nonce.len())
-        ));
-    }
-    let nonce: [u8; 24] = header.nonce[0..24].try_into()
-        .map_err(|_| CryptoError::CryptographicError("Failed to convert nonce".to_string()))?;
-    
-    // Calculate header size: fixed fields + variable fields
-    let header_size = 8 + 2 + 2 + 32 + 1 + header.nonce.len() + 2 + header.encrypted_metadata.len() + 2 + header.encrypted_filename.len();
-    let encrypted_content = &encrypted_data[header_size..];
-    
-    // Decrypt content
-    let plaintext = decrypt_xchacha20_poly1305(
-        key_material.encryption_key.expose_secret(),
-        &nonce,
-        encrypted_content,
-        &[]
-    ).map_err(|e| CryptoError::CryptographicError(
-        format!("Failed to decrypt content: {}", e)
-    ))?;
-    
-    // Write decrypted content to output file
-    let mut output_file = File::create(output_path)
-        .map_err(CryptoError::FileSystemError)?;
-    output_file.write_all(&plaintext)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    Ok(())
-}
-/// Detect the algorithm used in an encrypted file without decrypting it
-/// 
-/// This function reads just the header to determine which cryptographic
-/// algorithm was used during encryption.
-/// 
-/// # Arguments
-/// * `file_path` - Path to the encrypted file
-/// 
-/// # Returns
-/// * `Ok(String)` - Human-readable algorithm name
-/// * `Err(CryptoError)` - Header parsing failed
-pub fn detect_algorithm_from_file(file_path: &Path) -> Result<String, CryptoError> {
-    // Read just enough of the file to parse the header
-    let mut file = File::open(file_path)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    let mut buffer = vec![0u8; 1024]; // Read first 1KB which should contain header
-    let bytes_read = file.read(&mut buffer)
-        .map_err(CryptoError::FileSystemError)?;
-    
-    if bytes_read == 0 {
-        return Err(CryptoError::HeaderParsingError("Empty file".to_string()));
-    }
-    
-    // Detect version first
-    let version = detect_version(&buffer[..bytes_read])?;
-    
-    match version {
-        1 => {
-            // V1 format - parse header to get algorithm
-            let (header, _) = Header::deserialize(&buffer[..bytes_read])?;
-            Ok(header.algorithm_id.name().to_string())
-        }
-        2 => {
-            // V2 format - parse V2 header
-            let mut cursor = Cursor::new(&buffer[..bytes_read]);
-            let header = HeaderV2::deserialize(&mut cursor)?;
-            let algorithm_id = AlgorithmId::from(header.algorithm_id);
-            Ok(algorithm_id.name().to_string())
-        }
-        _ => {
-            Err(CryptoError::HeaderParsingError(
-                format!("Unsupported version: {}", version)
-            ))
-        }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
-    use crate::shared::algorithms::{AesGcmConfig, XChaCha20Config};
-    use crate::encryption::encrypt_single_file_with_config;
-
-    #[test]
-    fn test_detect_algorithm_aes_gcm() {
-        // Create a temporary file with test content
-        let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(temp_file, "Test content for AES detection").unwrap();
-        let input_path = temp_file.path();
-        
-        // Create temporary output file
-        let encrypted_file = NamedTempFile::new().unwrap();
-        let encrypted_path = encrypted_file.path();
-        
-        // Encrypt with AES-256-GCM
-        let config = AesGcmConfig::test_config();
-        encrypt_single_file_with_config(input_path, encrypted_path, "test123", false, &config)
-            .expect("Encryption should succeed");
-        
-        // Test algorithm detection
-        let detected = detect_algorithm_from_file(encrypted_path)
-            .expect("Algorithm detection should succeed");
-        
-        assert_eq!(detected, "AES-256-GCM");
-    }
-
-    #[test]
-    fn test_detect_algorithm_xchacha20() {
-        // Create a temporary file with test content
-        let mut temp_file = NamedTempFile::new().unwrap();
-        writeln!(temp_file, "Test content for XChaCha20 detection").unwrap();
-        let input_path = temp_file.path();
-        
-        // Create temporary output file
-        let encrypted_file = NamedTempFile::new().unwrap();
-        let encrypted_path = encrypted_file.path();
-        
-        // Encrypt with XChaCha20-Poly1305
-        let config = XChaCha20Config::test_config();
-        encrypt_single_file_with_config(input_path, encrypted_path, "test123", false, &config)
-            .expect("Encryption should succeed");
-        
-        // Test algorithm detection
-        let detected = detect_algorithm_from_file(encrypted_path)
-            .expect("Algorithm detection should succeed");
-        
-        assert_eq!(detected, "XChaCha20-Poly1305");
-    }
-
-    #[test]
-    fn test_detect_algorithm_empty_file() {
-        // Create an empty file
-        let temp_file = NamedTempFile::new().unwrap();
-        let file_path = temp_file.path();
-        
-        // Test algorithm detection on empty file
-        let result = detect_algorithm_from_file(file_path);
-        
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Empty file"));
-    }
-
-    #[test]
-    fn test_detect_algorithm_invalid_file() {
-        use std::path::Path;
-        
-        // Test with non-existent file
-        let result = detect_algorithm_from_file(Path::new("/nonexistent/file"));
-        
-        assert!(result.is_err());
-    }
 }

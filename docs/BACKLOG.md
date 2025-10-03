@@ -3,12 +3,11 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-*No active work - ready for next priority item*
+*V1/V2 Complete Removal - See `docs/CURRENT_CYCLE.md` for details*
 
 ## 📋 PRIORITY ROADMAP
 
-1. **V1/V2 Complete Removal**: Remove V1/V2 completely and convert all features to use V3 directly (no backward compatibility needed)
-2. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
+1. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
