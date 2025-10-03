@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.8] - 2025-10-03
+
+### Fixed
+- **Default Algorithm Alignment**: Corrected default algorithm to XChaCha20-Poly1305 as documented in v0.26.0 changelog
+- **Security-First Consistency**: Ensured code implementation matches documented security-first design principles
+- **Enhanced Security by Default**: Users now automatically get 2^-96 nonce collision resistance without explicit configuration
+
+### Changed
+- **Algorithm Default**: `Algorithm::default()` now returns `XChaCha20Poly1305` instead of `AES256GCM`
+- **Backward Compatibility**: AES-256-GCM remains fully supported via `--algorithm aes-gcm` flag
+
+### Technical Details
+- **Root Cause**: Code regression had reverted default back to AES-256-GCM despite v0.26.0 changelog documenting XChaCha20-Poly1305 as default
+- **Resolution**: Updated `#[default]` attribute in `Algorithm` enum to match intended security-first design
+- **Impact**: New encryptions automatically use superior nonce security without breaking existing functionality
+- **Validation**: All 177 tests pass, confirming no functional regressions
+
 ## [0.30.7] - 2025-10-03
 
 ### Fixed

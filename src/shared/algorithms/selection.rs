@@ -8,8 +8,8 @@ use crate::shared::core::errors::CryptoError;
 /// Supported cryptographic algorithms
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Algorithm {
-    #[default]
     AES256GCM,
+    #[default]
     XChaCha20Poly1305,
     // Future algorithms will be added here
     // Kyber1024AES256,
