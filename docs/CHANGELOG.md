@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.31.0] - 2025-10-03
+
+### Improved
+- **Module Structure Refactoring**: Comprehensive reorganization of module architecture for better maintainability
+- **Enhanced Documentation**: Standardized documentation format across all use case modules with comprehensive examples
+- **API Clarity**: Reorganized re-exports with logical grouping and clear categorization
+- **Shared Module Optimization**: Improved organization with architectural overview and better logical grouping
+
+### Documentation
+- **Standardized Module Docs**: All use case modules (encryption, decryption, listing, viewing, editing, migration) now follow consistent documentation pattern
+- **Comprehensive Examples**: Added usage examples and security information to all public modules  
+- **Architecture Overview**: Enhanced lib.rs and shared module with detailed architectural documentation
+- **Clear Categorization**: Organized re-exports with comments and logical grouping for better discoverability
+
+### Technical Details
+- **Quality Gates**: All 177 tests pass, clean compilation maintained throughout refactoring
+- **API Stability**: External API unchanged, only internal organization and documentation improved
+- **Maintainability**: Improved code organization following vertical slicing architecture principles
+- **Developer Experience**: Enhanced discoverability and understanding through better documentation structure
+
 ## [0.30.8] - 2025-10-03
 
 ### Fixed

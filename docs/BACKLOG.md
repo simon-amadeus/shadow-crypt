@@ -7,10 +7,10 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
-4. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
-5. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-6. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Legacy Function Cleanup**: Complete trait-based system adoption across all modules, remove legacy function exports that bypass the new architecture
+2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 

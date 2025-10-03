@@ -1,10 +1,48 @@
 //! File decryption functionality
 //! 
-//! This module contains everything needed for the `unshadow` binary:
-//! - Single file decryption with authentication verification
-//! - Multi-file decryption with progress reporting
-//! - Filename restoration from encrypted headers
-//! - CLI interface and argument parsing
+//! This module provides comprehensive file decryption capabilities for the Shadow
+//! cryptographic file manager. It implements the core decryption logic used by
+//! the `unshadow` binary for single and multi-file operations.
+//! 
+//! # Features
+//! 
+//! - **Single file decryption** with authenticated decryption verification
+//! - **Multi-file decryption** with parallel processing and progress reporting
+//! - **Filename restoration** from encrypted headers with collision handling
+//! - **Algorithm flexibility** supporting multiple decryption algorithms
+//! - **CLI integration** ready for command-line interface implementation
+//! 
+//! # Architecture
+//! 
+//! This module follows the standard Shadow use case pattern:
+//! - `decrypt_file.rs` - Core decryption implementation and primary API
+//! - `filename_restoration.rs` - Filename restoration utilities
+//! - `multi_file.rs` - Batch decryption operations
+//! - `cli.rs` - Command-line interface and argument parsing
+//! 
+//! # Example Usage
+//! 
+//! ```rust,no_run
+//! use shadow_crypt::decryption::decrypt_single_file;
+//! use std::path::Path;
+//! 
+//! # fn main() -> Result<(), Box<dyn std::error::Error>> {
+//! let input = Path::new("document.txt.shadow");
+//! let output = Path::new("document.txt");
+//! let password = "secure_password".to_string();
+//! 
+//! decrypt_single_file(input, output, password)?;
+//! # Ok(())
+//! # }
+//! ```
+//! 
+//! # Security
+//! 
+//! All decryption operations provide:
+//! - Authentication verification preventing tampered file acceptance
+//! - Secure password verification with constant-time operations
+//! - Memory-safe handling of decrypted data with automatic zeroization
+//! - Metadata preservation and restoration from encrypted headers
 
 // Core decryption functionality
 pub mod decrypt_file;
