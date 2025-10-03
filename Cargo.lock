@@ -699,7 +699,7 @@ dependencies = [
 
 [[package]]
 name = "shadow-crypt"
-version = "0.32.5"
+version = "0.32.6"
 dependencies = [
  "aes-gcm",
  "argon2",

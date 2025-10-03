@@ -7,11 +7,10 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Decryption Algorithm Detection Review**: Investigate why decryption reports "AES-256-GCM" for XChaCha20-encrypted files (encryption/decryption works, but UI feedback may be incorrect)
-2. **Library Test Suite Stabilization**: Fix remaining 2 failed library tests (salt length related, affects development confidence)
-3. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
-4. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
-5. **Production Readiness**: Comprehensive testing, documentation, and release preparation
+1. **Library Test Suite Stabilization**: Fix remaining 2 failed library tests (salt length related, affects development confidence)
+2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
+4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 
 ## 🔧 FUTURE CONSIDERATIONS
 

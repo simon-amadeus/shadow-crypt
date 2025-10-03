@@ -6,7 +6,7 @@
 //! - Progress reporting for batch operations
 //! - Automatic filename restoration and metadata preservation
 
-use shadow_crypt::decryption::{decrypt_single_file_with_config, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header};
+use shadow_crypt::decryption::{decrypt_single_file_with_config, decrypt_multiple_files_with_params_and_progress, expand_glob_patterns, try_restore_filename_from_header, detect_algorithm_from_file};
 use shadow_crypt::shared::algorithms::aes_gcm_config::AesGcmConfig;
 use shadow_crypt::shared::algorithms::config::CryptoConfig;
 use shadow_crypt::shared::errors::CryptoError;
@@ -106,10 +106,16 @@ fn handle_single_file(
         ));
     }
     
+    // Detect algorithm from file header for accurate reporting
+    let algorithm_name = match detect_algorithm_from_file(input_path) {
+        Ok(name) => name,
+        Err(_) => "Unknown".to_string(), // Fallback if detection fails
+    };
+    
     // Perform decryption with progress indicators  
     println!("🔓 Decrypting file: {}", input_path.display());
     println!("📄 Output file: {}", output_path.display());
-    println!("🔑 Using password-based decryption with AES-256-GCM");
+    println!("🔑 Using password-based decryption with {}", algorithm_name);
     
     // Show progress if enabled
     if show_progress {

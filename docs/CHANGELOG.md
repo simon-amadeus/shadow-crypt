@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.6] - 2025-10-03
+
+### Fixed
+- **✅ COMPLETED: Algorithm Detection UI Issue**: Fixed decryption CLI incorrectly reporting "AES-256-GCM" for all files regardless of actual encryption algorithm
+- **UI Accuracy**: Decryption now correctly detects and reports the actual algorithm used (XChaCha20-Poly1305 or AES-256-GCM) from encrypted file headers
+- **Algorithm Detection**: Added `detect_algorithm_from_file()` function that reads file headers to determine cryptographic algorithm without full decryption
+
+### Added
+- **Header Analysis**: New `AlgorithmId::name()` method provides human-readable algorithm names
+- **Comprehensive Testing**: Added 4 unit tests for algorithm detection covering both supported algorithms and error cases
+- **Utility Functions**: Algorithm detection works for both V1 and V2 Shadow file formats
+
+### Security
+- **Information Accuracy**: Users now receive correct information about encryption algorithms used in their files
+- **No Performance Impact**: Algorithm detection reads only file headers (1KB) without affecting decryption speed
+
+### Tests
+- Added `test_detect_algorithm_aes_gcm()` - Validates AES-256-GCM detection
+- Added `test_detect_algorithm_xchacha20()` - Validates XChaCha20-Poly1305 detection
+- Added `test_detect_algorithm_empty_file()` - Error handling for empty files
+- Added `test_detect_algorithm_invalid_file()` - Error handling for non-existent files
+- All 181 tests pass (4 new, 177 existing)
+
 ## [0.32.5] - 2025-10-03
 
 ### Fixed

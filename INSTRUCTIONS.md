@@ -16,6 +16,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Purpose**: Ensure all documentation reflects current reality
 - Verify docs/BACKLOG.md matches actual priorities
 - Confirm no orphaned docs/CURRENT_CYCLE.md exists
+- Ensure README.md exists and is up-to-date
 
 ### 2. **INTAKE**
 **Purpose**: Process new information into the system
@@ -101,7 +102,7 @@ docs/CURRENT_CYCLE.md → docs/BACKLOG.md (new items) → next cycle's docs/CURR
 
 **File Hygiene Rules**:
 - **docs/BACKLOG.md**: Only future work, remove completed items immediately
-- **docs/CHANGELOG.md**: Only significant changes that impact users or architecture
+- **docs/CHANGELOG.md**: Only significant changes that impact users
 - **FEEDBACK.md**: Process "New Feedback" regularly, archive resolved items
 - **Cargo.toml**: Keep version field synchronized with changelog for proper release management
 - **README.md**: Aesthetic minimalism is key; Written for users, not developers

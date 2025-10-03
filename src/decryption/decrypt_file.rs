@@ -14,7 +14,7 @@ use crate::shared::algorithms::xchacha20_poly1305::{
     Argon2Params as XChaCha20Argon2Params
 };
 use crate::shared::algorithms::config::CryptoConfig;
-use crate::shared::algorithms::Algorithm;
+use crate::shared::algorithms::{Algorithm, AlgorithmId};
 use crate::shared::versions::detection::detect_version;
 use crate::shared::versions::v2::header::HeaderV2;
 use std::path::Path;
@@ -732,4 +732,129 @@ fn decrypt_v2_with_xchacha20_config<C: CryptoConfig>(
         .map_err(CryptoError::FileSystemError)?;
     
     Ok(())
+}
+/// Detect the algorithm used in an encrypted file without decrypting it
+/// 
+/// This function reads just the header to determine which cryptographic
+/// algorithm was used during encryption.
+/// 
+/// # Arguments
+/// * `file_path` - Path to the encrypted file
+/// 
+/// # Returns
+/// * `Ok(String)` - Human-readable algorithm name
+/// * `Err(CryptoError)` - Header parsing failed
+pub fn detect_algorithm_from_file(file_path: &Path) -> Result<String, CryptoError> {
+    // Read just enough of the file to parse the header
+    let mut file = File::open(file_path)
+        .map_err(CryptoError::FileSystemError)?;
+    
+    let mut buffer = vec![0u8; 1024]; // Read first 1KB which should contain header
+    let bytes_read = file.read(&mut buffer)
+        .map_err(CryptoError::FileSystemError)?;
+    
+    if bytes_read == 0 {
+        return Err(CryptoError::HeaderParsingError("Empty file".to_string()));
+    }
+    
+    // Detect version first
+    let version = detect_version(&buffer[..bytes_read])?;
+    
+    match version {
+        1 => {
+            // V1 format - parse header to get algorithm
+            let (header, _) = Header::deserialize(&buffer[..bytes_read])?;
+            Ok(header.algorithm_id.name().to_string())
+        }
+        2 => {
+            // V2 format - parse V2 header
+            let mut cursor = Cursor::new(&buffer[..bytes_read]);
+            let header = HeaderV2::deserialize(&mut cursor)?;
+            let algorithm_id = AlgorithmId::from(header.algorithm_id);
+            Ok(algorithm_id.name().to_string())
+        }
+        _ => {
+            Err(CryptoError::HeaderParsingError(
+                format!("Unsupported version: {}", version)
+            ))
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+    use crate::shared::algorithms::{AesGcmConfig, XChaCha20Config};
+    use crate::encryption::encrypt_single_file_with_config;
+
+    #[test]
+    fn test_detect_algorithm_aes_gcm() {
+        // Create a temporary file with test content
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(temp_file, "Test content for AES detection").unwrap();
+        let input_path = temp_file.path();
+        
+        // Create temporary output file
+        let encrypted_file = NamedTempFile::new().unwrap();
+        let encrypted_path = encrypted_file.path();
+        
+        // Encrypt with AES-256-GCM
+        let config = AesGcmConfig::test_config();
+        encrypt_single_file_with_config(input_path, encrypted_path, "test123", false, &config)
+            .expect("Encryption should succeed");
+        
+        // Test algorithm detection
+        let detected = detect_algorithm_from_file(encrypted_path)
+            .expect("Algorithm detection should succeed");
+        
+        assert_eq!(detected, "AES-256-GCM");
+    }
+
+    #[test]
+    fn test_detect_algorithm_xchacha20() {
+        // Create a temporary file with test content
+        let mut temp_file = NamedTempFile::new().unwrap();
+        writeln!(temp_file, "Test content for XChaCha20 detection").unwrap();
+        let input_path = temp_file.path();
+        
+        // Create temporary output file
+        let encrypted_file = NamedTempFile::new().unwrap();
+        let encrypted_path = encrypted_file.path();
+        
+        // Encrypt with XChaCha20-Poly1305
+        let config = XChaCha20Config::test_config();
+        encrypt_single_file_with_config(input_path, encrypted_path, "test123", false, &config)
+            .expect("Encryption should succeed");
+        
+        // Test algorithm detection
+        let detected = detect_algorithm_from_file(encrypted_path)
+            .expect("Algorithm detection should succeed");
+        
+        assert_eq!(detected, "XChaCha20-Poly1305");
+    }
+
+    #[test]
+    fn test_detect_algorithm_empty_file() {
+        // Create an empty file
+        let temp_file = NamedTempFile::new().unwrap();
+        let file_path = temp_file.path();
+        
+        // Test algorithm detection on empty file
+        let result = detect_algorithm_from_file(file_path);
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Empty file"));
+    }
+
+    #[test]
+    fn test_detect_algorithm_invalid_file() {
+        use std::path::Path;
+        
+        // Test with non-existent file
+        let result = detect_algorithm_from_file(Path::new("/nonexistent/file"));
+        
+        assert!(result.is_err());
+    }
 }

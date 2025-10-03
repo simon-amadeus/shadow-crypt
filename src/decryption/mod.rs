@@ -54,6 +54,6 @@ pub mod multi_file;
 pub mod cli;
 
 // Re-export main functions for convenience
-pub use decrypt_file::decrypt_single_file_with_config;  // New trait-based function
+pub use decrypt_file::{decrypt_single_file_with_config, detect_algorithm_from_file};  // New trait-based function
 pub use filename_restoration::restore_original_filename;
 pub use multi_file::{decrypt_multiple_files_with_params_and_progress, decrypt_multiple_files_with_provider, expand_glob_patterns, MultiFileResults, try_restore_filename_from_header};

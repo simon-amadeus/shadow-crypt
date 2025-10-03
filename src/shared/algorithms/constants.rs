@@ -33,6 +33,25 @@ impl From<u16> for AlgorithmId {
     }
 }
 
+impl AlgorithmId {
+    /// Get human-readable name for the algorithm
+    pub fn name(self) -> &'static str {
+        match self {
+            AlgorithmId::AesGcm256 => "AES-256-GCM",
+            AlgorithmId::ChaCha20Poly1305 => "XChaCha20-Poly1305",
+            AlgorithmId::KyberAes256 => "CRYSTALS-Kyber + AES-256-GCM",
+            AlgorithmId::KyberChaCha20 => "CRYSTALS-Kyber + XChaCha20-Poly1305",
+            AlgorithmId::DilithiumAes256 => "CRYSTALS-Dilithium + AES-256-GCM",
+            AlgorithmId::AesGcmStreaming => "AES-256-GCM (Streaming)",
+        }
+    }
+    
+    /// Convert to u16 identifier
+    pub fn to_u16(self) -> u16 {
+        self as u16
+    }
+}
+
 /// Padding constants to prevent information leakage
 pub const MAX_FILENAME_LENGTH: usize = 512;     // Pad all filenames to this size
 pub const MAX_DIRECTORY_PATH_LENGTH: usize = 2048;  // Pad all paths to this size  
