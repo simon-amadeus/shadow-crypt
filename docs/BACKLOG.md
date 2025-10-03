@@ -7,7 +7,8 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
+1. **V1/V2 Complete Removal**: Remove V1/V2 completely and convert all features to use V3 directly (no backward compatibility needed)
+2. **Shadows Output Enhancement**: Fix shadows command to display original filename and more metadata (algorithm, version)
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 

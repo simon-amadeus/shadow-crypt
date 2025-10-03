@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.35.1] - 2025-10-03
+
+### Analysis
+- **INVESTIGATION**: V1/V2 deprecation complexity assessment and architecture analysis
+- Confirmed V2→V3 migration requires fundamental API changes (direct fields → TLV system)
+- Fixed corrupted `versions/dispatch.rs` with clean V3-only implementation
+- Documented architectural differences: V2 uses `header.encrypted_metadata` while V3 uses `header.tlv_fields.add_field()`
+- Identified 54+ compilation errors requiring systematic conversion approach
+
+### Development Process
+- **PARTIAL IMPLEMENTATION**: Started V1/V2 removal but confirmed multi-cycle requirement
+- Added comprehensive technical analysis to feedback pipeline for proper prioritization
+- Validated need for architectural migration strategy, not simple text replacement
+
+### Status
+- **CODEBASE STATE**: Requires systematic multi-phase completion for V3-only operation
+- **ARCHITECTURAL INSIGHT**: V1/V2 deprecation involves converting between fundamentally different header architectures
+
 ## [0.35.0] - 2025-10-03
 
 ### Changed
