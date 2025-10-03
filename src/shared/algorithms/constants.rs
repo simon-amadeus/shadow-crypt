@@ -57,14 +57,14 @@ pub const MAX_FILENAME_LENGTH: usize = 512;     // Pad all filenames to this siz
 pub const MAX_DIRECTORY_PATH_LENGTH: usize = 2048;  // Pad all paths to this size  
 pub const MAX_METADATA_LENGTH: usize = 256;     // Pad all metadata to this size
 
-/// Current Shadow format version
+/// Current Shadow format version (V1 remains default for compatibility)
 pub const CURRENT_VERSION: u16 = 1;
 
 /// Minimum supported version for backward compatibility
 pub const MIN_SUPPORTED_VERSION: u16 = 1;
 
 /// Maximum supported version for forward compatibility
-pub const MAX_SUPPORTED_VERSION: u16 = 2;
+pub const MAX_SUPPORTED_VERSION: u16 = 3;
 
 /// Version information for migration decisions
 #[derive(Debug, Clone, PartialEq, Eq)]

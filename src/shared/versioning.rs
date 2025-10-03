@@ -6,6 +6,9 @@
 use crate::shared::errors::CryptoError;
 use crate::shared::algorithms::AlgorithmId;
 
+// Re-export V3 header from versions module
+pub use crate::shared::versions::v3::HeaderV3;
+
 /// Trait for version-specific header implementations
 pub trait VersionedHeader: Sized {
     /// The version number this header represents
@@ -340,6 +343,7 @@ impl CompatibilityMatrix {
     pub fn can_migrate(source_version: u16, target_version: u16) -> bool {
         match source_version {
             1 => HeaderV1::can_migrate_to(target_version),
+            3 => HeaderV3::can_migrate_to(target_version),
             // Future versions will add their logic here
             _ => false,
         }
@@ -349,6 +353,7 @@ impl CompatibilityMatrix {
     pub fn migration_paths(source_version: u16) -> Vec<u16> {
         match source_version {
             1 => (2..=10).filter(|&v| HeaderV1::can_migrate_to(v)).collect(),
+            3 => (4..=10).filter(|&v| HeaderV3::can_migrate_to(v)).collect(),
             // Future versions will add their paths here
             _ => vec![],
         }
@@ -358,6 +363,7 @@ impl CompatibilityMatrix {
     pub fn can_read(version: u16) -> bool {
         match version {
             1 => true,
+            3 => true,
             // Future versions will add support here
             _ => false,
         }
@@ -367,6 +373,7 @@ impl CompatibilityMatrix {
     pub fn can_write(version: u16) -> bool {
         match version {
             1 => true,
+            3 => true,
             // Future versions will add support here
             _ => false,
         }

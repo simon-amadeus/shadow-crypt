@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.34.0] - 2025-01-03
+
+### Added
+- **Shadow File Format V3**: Complete redesign with TLV (Type-Length-Value) extensible architecture
+  - Algorithm-agnostic design supporting all current and future cryptographic algorithms
+  - Variable-length nonces (12-32 bytes) enabling XChaCha20-Poly1305 and post-quantum algorithms
+  - Future-proof 32-byte salt (upgraded from V1's 16-byte limitation)
+  - Single authenticated header eliminating V1's complex nested authentication tags
+  - Extensible TLV field system with 8 predefined types and unlimited future expansion capability
+- **V3 TLV Field Types**: 
+  - Original filename, directory path, file metadata (encrypted fields)
+  - Compression settings, key derivation parameters, custom attributes
+  - Content hash, creation software info, extension marker for future fields
+- **Enhanced Version Dispatch System**: Updated `AnyHeader` enum with V3 support and backward compatibility
+- **V3 Migration Support**: Complete migration matrix supporting V1→V3, V2→V3, and V3→future paths
+- **Comprehensive V3 Testing**: 14 new V3-specific tests validating all algorithms and extensibility features
+
+### Changed
+- **Enhanced**: Algorithm selection now fully algorithm-agnostic across all versions
+- **Improved**: Header validation with comprehensive bounds checking and error reporting
+- **Architecture**: MAX_SUPPORTED_VERSION updated to 3 (V3 available for explicit use)
+
+### Technical Details
+- **Architecture**: Clean separation between version-specific implementations using trait-based dispatch
+- **Security**: Maintained cryptographic security properties while simplifying authentication model
+- **Performance**: Single authentication operation reduces computational overhead vs V1's multiple auth tags  
+- **Extensibility**: TLV system enables rapid future feature development without format changes
+- **Quality**: 194 total tests passing, including 14 comprehensive V3-specific test cases
+
+### Migration Impact
+- **V1/V2 files**: Continue to be readable with full backward compatibility
+- **V3 format**: Available for explicit use via new APIs, ready for future default adoption
+- **Default behavior**: Remains V1 for compatibility until full V3 integration complete
+- **Future-proofing**: V3 design accommodates post-quantum cryptography and streaming algorithms
+
+---
+
 ## [0.33.0] - 2025-10-03
 
 ### Analysis
