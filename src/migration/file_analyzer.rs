@@ -35,12 +35,12 @@ pub fn analyze_shadow_file(file_path: &Path) -> Result<Option<FileAnalysis>, Cry
     
     // Get file size
     let metadata = fs::metadata(file_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     let file_size = metadata.len();
     
     // Try to read and parse header
     let file_data = fs::read(file_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // First detect version from raw data
     match detect_version(&file_data) {
@@ -93,10 +93,10 @@ pub fn analyze_directory(dir_path: &Path) -> Result<Vec<FileAnalysis>, CryptoErr
     
     // Scan for .shadow files
     let entries = fs::read_dir(dir_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     for entry in entries {
-        let entry = entry.map_err(|e| CryptoError::FileSystemError(e))?;
+        let entry = entry.map_err(CryptoError::FileSystemError)?;
         let path = entry.path();
         
         // Only analyze .shadow files

@@ -56,7 +56,7 @@ pub fn obfuscate_filename(obfuscation_key: &[u8], original_name: &str) -> Result
     
     // Create deterministic obfuscated name using derived key + filename
     let mut hasher = Sha256::new();
-    hasher.update(&derived_key);
+    hasher.update(derived_key);
     hasher.update(filename_bytes);
     hasher.update(b"obfuscated_filename_v1"); // Version tag
     
@@ -64,7 +64,7 @@ pub fn obfuscate_filename(obfuscation_key: &[u8], original_name: &str) -> Result
     
     // Encode as Base64url for filesystem safety (no padding, URL-safe)
     let engine = base64::engine::general_purpose::URL_SAFE_NO_PAD;
-    let obfuscated = engine.encode(&hash);
+    let obfuscated = engine.encode(hash);
     
     // Add file extension for recognition
     Ok(format!("{}.shadow", obfuscated))

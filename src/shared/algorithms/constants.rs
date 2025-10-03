@@ -81,7 +81,7 @@ impl VersionInfo {
     /// Create version info for a specific version
     pub fn for_version(version: u16) -> Self {
         let is_current = version == CURRENT_VERSION;
-        let is_supported = version >= MIN_SUPPORTED_VERSION && version <= MAX_SUPPORTED_VERSION;
+        let is_supported = (MIN_SUPPORTED_VERSION..=MAX_SUPPORTED_VERSION).contains(&version);
         let needs_migration = !is_current && is_supported;
         let can_migrate = is_supported;
         

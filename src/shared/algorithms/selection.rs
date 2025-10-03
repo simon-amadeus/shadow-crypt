@@ -6,8 +6,9 @@
 use crate::shared::core::errors::CryptoError;
 
 /// Supported cryptographic algorithms
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Algorithm {
+    #[default]
     AES256GCM,
     XChaCha20Poly1305,
     // Future algorithms will be added here
@@ -15,9 +16,9 @@ pub enum Algorithm {
 }
 
 impl Algorithm {
-    /// Get the current default algorithm
-    pub fn default() -> Self {
-        Algorithm::AES256GCM
+    /// Get the current default algorithm (for backward compatibility)
+    pub fn default_algorithm() -> Self {
+        Self::default()
     }
     
     /// Parse algorithm from CLI string

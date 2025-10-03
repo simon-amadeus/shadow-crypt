@@ -47,7 +47,7 @@ fn main() -> Result<(), CryptoError> {
         }
         
         // Check if file is readable
-        if let Err(e) = std::fs::File::open(&file_path) {
+        if let Err(e) = std::fs::File::open(file_path) {
             display_error_and_exit(
                 io_error_with_context(e, &format!("reading file '{}'", file_path.display())),
                 1
@@ -284,39 +284,39 @@ fn parse_args(args: &[String]) -> (bool, bool, bool, Vec<String>) {
 
 fn print_usage() {
     println!("unshadow - File decryption tool");
-    println!("");
+    println!();
     println!("USAGE:");
     println!("    unshadow [OPTIONS] <input-files>...");
-    println!("");
+    println!();
     println!("ARGUMENTS:");
     println!("    <input-files>...     Path(s) to encrypted files or glob patterns");
-    println!("");
+    println!();
     println!("OPTIONS:");
     println!("    -f, --force           Overwrite existing output files without prompting");
     println!("    -r, --remove-source   Remove source files after successful decryption");
     println!("        --inplace         Alias for --remove-source");
     println!("    -h, --help            Show this help message");
-    println!("");
+    println!();
     println!("Multi-file Support:");
     println!("    unshadow file1.shadow file2.shadow file3.shadow");
     println!("    unshadow *.shadow");
     println!("    unshadow docs/**/*.shadow");
-    println!("");
+    println!();
     println!("Behavior:");
     println!("    Automatically restores original filename from encrypted file header");
     println!("    'secret.txt.shadow' → 'secret.txt' (restored from header)");
     println!("    For multiple files, shows progress and success/failure summary");
-    println!("");
+    println!();
     println!("Security:");
     println!("    Password will be prompted securely and not shown on screen");
     println!("    Existing files are protected from accidental overwrite");
-    println!("");
+    println!();
     println!("EXAMPLES:");
     println!("    unshadow secret.txt.shadow");
     println!("    unshadow --force encrypted_file.shadow");
     println!("    unshadow --remove-source *.shadow");
     println!("    unshadow --inplace document1.shadow document2.shadow");
     println!("    unshadow 'backup/**/*.shadow'");
-    println!("");
+    println!();
     println!("The tool will prompt for the password interactively.");
 }

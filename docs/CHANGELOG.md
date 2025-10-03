@@ -2,6 +2,26 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.30.7] - 2025-10-03
+
+### Fixed
+- **Code Quality**: Eliminated all compilation warnings (unused imports and dead code)
+- **Clippy Compliance**: Resolved 83 clippy warnings for improved code maintainability
+- **Import Organization**: Reorganized test-only imports within `#[cfg(test)]` blocks
+- **Dead Code Removal**: Removed unused deprecated function `extract_original_filename`
+
+### Changed
+- **Error Handling**: Simplified redundant closures (46 instances) for better readability
+- **Control Flow**: Collapsed nested if statements (9 instances) using modern Rust patterns
+- **Type System**: Implemented `Default` trait for `Algorithm` enum using derive macros
+- **Type Complexity**: Introduced `OperationTest` type alias for improved code clarity
+
+### Technical Details
+- **Quality Metrics**: Reduced from 89 total issues to zero warnings/errors
+- **Test Coverage**: Maintained 177/177 tests passing (100% success rate)
+- **Code Style**: Applied automatic fixes for redundant closures and needless borrows
+- **Standards Compliance**: All code now passes `cargo clippy --all-targets --all-features -- -D warnings`
+
 ## [0.30.6] - 2025-10-03
 
 ### Fixed

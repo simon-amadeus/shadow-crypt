@@ -264,7 +264,7 @@ fn test_enhanced_display_shows_both_filenames() -> Result<(), CryptoError> {
     let file_info = &files[0];
     
     // Check that we have both obfuscated and original filenames
-    assert!(file_info.obfuscated_name.len() > 0);
+    assert!(!file_info.obfuscated_name.is_empty());
     assert_eq!(file_info.original_name, "original_name.txt");
     assert!(file_info.filename_decrypted);
     

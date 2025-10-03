@@ -34,13 +34,13 @@ pub fn secure_delete_file<P: AsRef<Path>>(file_path: P) -> Result<(), CryptoErro
     
     // Get file size to determine how much to overwrite
     let metadata = fs::metadata(path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     let file_size = metadata.len();
     
     if file_size == 0 {
         // Empty file, just remove it directly
         fs::remove_file(path)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         return Ok(());
     }
     
@@ -49,25 +49,25 @@ pub fn secure_delete_file<P: AsRef<Path>>(file_path: P) -> Result<(), CryptoErro
         .write(true)
         .truncate(false)
         .open(path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Seek to beginning
     file.seek(SeekFrom::Start(0))
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Overwrite with random data
     overwrite_with_random_data(&mut file, file_size)?;
     
     // Ensure data is written to disk
     file.sync_all()
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Drop the file handle to close it
     drop(file);
     
     // Finally, remove the file from filesystem
     fs::remove_file(path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     Ok(())
 }
@@ -91,7 +91,7 @@ fn overwrite_with_random_data(file: &mut File, size: u64) -> Result<(), CryptoEr
         
         // Write random data to file
         file.write_all(&buffer[..chunk_size])
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         remaining -= chunk_size as u64;
     }

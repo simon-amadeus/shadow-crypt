@@ -3,17 +3,15 @@
 //! This demonstrates the refactored approach using configuration traits
 //! instead of directly importing and using concrete Argon2Params.
 
-use std::fs::File;
-use std::io::Write;
-use tempfile::TempDir;
-use crate::shared::algorithms::{
-    AesGcmConfig, DefaultConfigProvider, 
-    encrypt_with_provider, decrypt_with_provider
-};
-
 #[cfg(test)]
 mod refactored_tests {
-    use super::*;
+    use std::fs::File;
+    use std::io::Write;
+    use tempfile::TempDir;
+    use crate::shared::algorithms::{
+        AesGcmConfig, DefaultConfigProvider, 
+        encrypt_with_provider, decrypt_with_provider
+    };
     
     #[test]
     fn test_encryption_with_config_provider() {

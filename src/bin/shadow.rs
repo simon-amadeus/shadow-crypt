@@ -146,7 +146,7 @@ fn handle_single_file(
         std::io::Write::flush(&mut std::io::stdout()).ok();
     }
     
-    match encrypt_single_file_with_algorithm_and_params(&input_path, &output_path, &password, obfuscate_filename, selected_algorithm, provider.config().argon2_params()) {
+    match encrypt_single_file_with_algorithm_and_params(input_path, &output_path, password, obfuscate_filename, selected_algorithm, provider.config().argon2_params()) {
         Ok(()) => {
             if show_progress {
                 let duration = start_time.elapsed();
@@ -165,8 +165,8 @@ fn handle_single_file(
             // Handle source file removal if requested
             if remove_source {
                 println!();
-                if confirm_destructive_operation("Source file removal", &input_path) {
-                    match secure_delete_file(&input_path) {
+                if confirm_destructive_operation("Source file removal", input_path) {
+                    match secure_delete_file(input_path) {
                         Ok(()) => {
                             println!("🗑️  Source file securely deleted: {}", input_path.display());
                         }

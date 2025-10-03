@@ -177,7 +177,7 @@ pub fn test_password_validation_timing() -> Result<TimingAnalysisResult, CryptoE
     for _ in 0..5 {
         for password in &test_passwords {
             analyzer.measure(|| {
-                derive_master_key(password, &salt, &params)
+                derive_master_key(password, &salt, params)
             })?;
         }
     }

@@ -19,7 +19,7 @@ use crate::shared::versions::v2::header::MAGIC_NUMBER_V2;
 /// * `Err(CryptoError)` - Failed to read file
 pub fn is_v2_file(file_path: &Path) -> Result<bool, CryptoError> {
     let mut file = File::open(file_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Read the magic number
     let mut magic = [0u8; 8];
@@ -38,7 +38,7 @@ pub fn is_v2_file(file_path: &Path) -> Result<bool, CryptoError> {
 /// * `true` - Data starts with V2 magic number
 /// * `false` - Data does not start with V2 magic number
 pub fn has_v2_magic(data: &[u8]) -> bool {
-    data.len() >= 8 && &data[0..8] == &MAGIC_NUMBER_V2
+    data.len() >= 8 && data[0..8] == MAGIC_NUMBER_V2
 }
 
 #[cfg(test)]

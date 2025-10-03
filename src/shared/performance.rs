@@ -14,6 +14,12 @@ pub struct PerformanceTimer {
     current_phase: Option<(String, Instant)>,
 }
 
+impl Default for PerformanceTimer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl PerformanceTimer {
     /// Create a new performance timer
     pub fn new() -> Self {
@@ -102,9 +108,9 @@ impl PerformanceReport {
     pub fn format_detailed(&self) -> String {
         let mut report = String::new();
         
-        report.push_str(&format!("📊 Performance Analysis\n"));
+        report.push_str("📊 Performance Analysis\n");
         report.push_str(&format!("Total time: {}\n", format_duration(self.total_time)));
-        report.push_str(&format!("\nPhase breakdown:\n"));
+        report.push_str("\nPhase breakdown:\n");
         
         // Sort phases by duration (longest first)
         let mut sorted_phases = self.phases.clone();
@@ -120,12 +126,11 @@ impl PerformanceReport {
         }
         
         // Add security context for key derivation
-        if let Some(kdf_phase) = sorted_phases.iter().find(|p| p.name.contains("key_derivation") || p.name.contains("Key Derivation")) {
-            if kdf_phase.percentage > 50.0 {
-                report.push_str(&format!("\n💡 Most time spent on key derivation - this is normal for security!\n"));
-                report.push_str(&format!("   Strong password hashing protects against brute force attacks.\n"));
+        if let Some(kdf_phase) = sorted_phases.iter().find(|p| p.name.contains("key_derivation") || p.name.contains("Key Derivation"))
+            && kdf_phase.percentage > 50.0 {
+                report.push_str("\n💡 Most time spent on key derivation - this is normal for security!\n");
+                report.push_str("   Strong password hashing protects against brute force attacks.\n");
             }
-        }
         
         report
     }
@@ -168,9 +173,18 @@ pub fn format_duration(duration: Duration) -> String {
     }
 }
 
+/// Operation test function type
+type OperationTest = Box<dyn Fn() -> Result<(), Box<dyn std::error::Error>>>;
+
 /// Benchmark utility for measuring typical operation performance
 pub struct PerformanceBenchmark {
-    operations: Vec<(&'static str, Box<dyn Fn() -> Result<(), Box<dyn std::error::Error>>>)>,
+    operations: Vec<(&'static str, OperationTest)>,
+}
+
+impl Default for PerformanceBenchmark {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl PerformanceBenchmark {
@@ -257,7 +271,7 @@ impl BenchmarkReport {
             let total_time: Duration = successful_results.iter().map(|r| r.duration).sum();
             let avg_time = total_time / successful_results.len() as u32;
             
-            report.push_str(&format!("\n📊 Summary:\n"));
+            report.push_str("\n📊 Summary:\n");
             report.push_str(&format!("   Successful operations: {}/{}\n", successful_results.len(), self.results.len()));
             report.push_str(&format!("   Average time: {}\n", format_duration(avg_time)));
             report.push_str(&format!("   Total time: {}\n", format_duration(total_time)));

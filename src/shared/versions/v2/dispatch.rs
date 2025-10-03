@@ -9,6 +9,12 @@ use std::path::Path;
 /// Dispatch operations for Shadow V2 files
 pub struct DispatchV2;
 
+impl Default for DispatchV2 {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DispatchV2 {
     /// Create a new V2 operation dispatcher
     pub fn new() -> Self {

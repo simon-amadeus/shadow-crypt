@@ -58,11 +58,11 @@ pub fn decrypt_single_file_with_params(
 ) -> Result<(), CryptoError> {
     // Read encrypted file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut encrypted_data = Vec::new();
     input_file.read_to_end(&mut encrypted_data)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Detect file format version automatically
     let version = detect_version(&encrypted_data)?;
@@ -106,11 +106,11 @@ pub fn decrypt_single_file_with_config<C: CryptoConfig>(
 ) -> Result<(), CryptoError> {
     // Read encrypted file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut encrypted_data = Vec::new();
     input_file.read_to_end(&mut encrypted_data)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Detect file format version automatically
     let version = detect_version(&encrypted_data)?;
@@ -268,17 +268,17 @@ fn decrypt_single_file_v1_with_params(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     output_file.write_all(&decrypted_content)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Restore file metadata (permissions)
     #[cfg(unix)]
     {
         let permissions = std::fs::Permissions::from_mode(metadata.permissions);
         set_permissions(output_path, permissions)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
     }
     
     // Note: Timestamp restoration would require additional platform-specific code
@@ -412,9 +412,9 @@ fn decrypt_v2_with_aes_gcm(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     output_file.write_all(&plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // TODO: Restore file metadata if available
     
@@ -502,9 +502,9 @@ fn decrypt_v2_with_xchacha20(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     output_file.write_all(&plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // TODO: Restore file metadata if available
     
@@ -593,9 +593,9 @@ fn decrypt_single_file_v1_with_config<C: CryptoConfig>(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     output_file.write_all(&plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Note: V1 headers don't have metadata field - this was from an earlier draft  
     // File metadata handling was simplified in the V1 implementation
@@ -663,9 +663,9 @@ fn decrypt_v2_with_aes_gcm_config<C: CryptoConfig>(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     output_file.write_all(&plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     Ok(())
 }
@@ -706,9 +706,9 @@ fn decrypt_v2_with_xchacha20_config<C: CryptoConfig>(
     
     // Write decrypted content to output file
     let mut output_file = File::create(output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     output_file.write_all(&plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     Ok(())
 }

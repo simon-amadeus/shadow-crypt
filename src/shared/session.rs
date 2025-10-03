@@ -6,7 +6,6 @@
 
 use crate::shared::errors::CryptoError;
 use crate::shared::algorithms::aes_gcm::key_derivation::{derive_master_key, generate_salt, Argon2Params};
-use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
 use crate::shared::core::crypto::secure_memory::KeyMaterial;
 use std::sync::Arc;
 
@@ -97,6 +96,7 @@ impl Clone for SessionManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
 
     #[test]
     fn test_crypto_session_creation() {

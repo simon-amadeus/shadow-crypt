@@ -7,8 +7,7 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Code Quality Cleanup**: Remove unused imports and dead code to achieve clean compilation.
-3. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
+1. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
 4. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 5. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 6. **Production Readiness**: Comprehensive testing, documentation, and release preparation

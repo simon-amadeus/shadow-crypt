@@ -241,7 +241,7 @@ mod tests {
         assert_eq!(formatter.use_colors, UIFormatter::should_use_colors());
         
         let formatter_no_color = UIFormatter::without_colors();
-        assert_eq!(formatter_no_color.use_colors, false);
+        assert!(!formatter_no_color.use_colors);
     }
     
     #[test]

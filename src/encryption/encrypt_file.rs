@@ -104,11 +104,11 @@ pub fn encrypt_single_file_with_params(
 ) -> Result<(), CryptoError> {
     // Read input file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut plaintext = Vec::new();
     input_file.read_to_end(&mut plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Get file metadata
     let file_metadata = extract_file_metadata(input_path, &plaintext)?;
@@ -146,8 +146,8 @@ pub fn encrypt_single_file_with_params(
     header.metadata_length = encrypted_metadata.len() as u16;
     
     // Encrypt filename
-    if let Some(filename) = input_path.file_name() {
-        if let Some(filename_str) = filename.to_str() {
+    if let Some(filename) = input_path.file_name()
+        && let Some(filename_str) = filename.to_str() {
             let filename_bytes = filename_str.as_bytes();
             let encrypted_filename = encrypt_aes_gcm(
                 key_material.encryption_key.expose_secret(),
@@ -158,11 +158,10 @@ pub fn encrypt_single_file_with_params(
             header.encrypted_filename = encrypted_filename.clone();
             header.filename_length = encrypted_filename.len() as u16;
         }
-    }
     
     // Encrypt directory path
-    if let Some(parent) = input_path.parent() {
-        if let Some(parent_str) = parent.to_str() {
+    if let Some(parent) = input_path.parent()
+        && let Some(parent_str) = parent.to_str() {
             let path_bytes = parent_str.as_bytes();
             let encrypted_path = encrypt_aes_gcm(
                 key_material.encryption_key.expose_secret(),
@@ -173,7 +172,6 @@ pub fn encrypt_single_file_with_params(
             header.encrypted_directory_path = encrypted_path.clone();
             header.directory_path_length = encrypted_path.len() as u16;
         }
-    }
     
     // Encrypt file content
     let ciphertext = encrypt_aes_gcm(
@@ -230,11 +228,11 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
 ) -> Result<(), CryptoError> {
     // Read input file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut plaintext = Vec::new();
     input_file.read_to_end(&mut plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Get file metadata
     let file_metadata = extract_file_metadata(input_path, &plaintext)?;
@@ -273,8 +271,8 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
     header.metadata_length = encrypted_metadata.len() as u16;
     
     // Encrypt filename
-    if let Some(filename) = input_path.file_name() {
-        if let Some(filename_str) = filename.to_str() {
+    if let Some(filename) = input_path.file_name()
+        && let Some(filename_str) = filename.to_str() {
             let filename_bytes = filename_str.as_bytes();
             let encrypted_filename = encrypt_with_algorithm(
                 &key_material,
@@ -285,11 +283,10 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
             header.encrypted_filename = encrypted_filename.clone();
             header.filename_length = encrypted_filename.len() as u16;
         }
-    }
     
     // Encrypt directory path
-    if let Some(parent) = input_path.parent() {
-        if let Some(parent_str) = parent.to_str() {
+    if let Some(parent) = input_path.parent()
+        && let Some(parent_str) = parent.to_str() {
             let path_bytes = parent_str.as_bytes();
             let encrypted_path = encrypt_with_algorithm(
                 &key_material,
@@ -300,7 +297,6 @@ pub fn encrypt_single_file_with_config<C: CryptoConfig>(
             header.encrypted_directory_path = encrypted_path.clone();
             header.directory_path_length = encrypted_path.len() as u16;
         }
-    }
     
     // Encrypt file content
     let ciphertext = encrypt_with_algorithm(
@@ -406,8 +402,8 @@ pub fn encrypt_single_file_with_params_and_progress(
     header.metadata_length = encrypted_metadata.len() as u16;
     
     // Encrypt filename
-    if let Some(filename) = input_path.file_name() {
-        if let Some(filename_str) = filename.to_str() {
+    if let Some(filename) = input_path.file_name()
+        && let Some(filename_str) = filename.to_str() {
             let filename_bytes = filename_str.as_bytes();
             let encrypted_filename = encrypt_aes_gcm(
                 key_material.encryption_key.expose_secret(),
@@ -418,11 +414,10 @@ pub fn encrypt_single_file_with_params_and_progress(
             header.encrypted_filename = encrypted_filename.clone();
             header.filename_length = encrypted_filename.len() as u16;
         }
-    }
     
     // Encrypt directory path
-    if let Some(parent) = input_path.parent() {
-        if let Some(parent_str) = parent.to_str() {
+    if let Some(parent) = input_path.parent()
+        && let Some(parent_str) = parent.to_str() {
             let path_bytes = parent_str.as_bytes();
             let encrypted_path = encrypt_aes_gcm(
                 key_material.encryption_key.expose_secret(),
@@ -433,7 +428,6 @@ pub fn encrypt_single_file_with_params_and_progress(
             header.encrypted_directory_path = encrypted_path.clone();
             header.directory_path_length = encrypted_path.len() as u16;
         }
-    }
     
     // Main content encryption
     let ciphertext = encrypt_aes_gcm(
@@ -523,7 +517,7 @@ fn generate_obfuscated_output_path(
 /// Extract metadata from a file for secure storage
 fn extract_file_metadata(file_path: &Path, content: &[u8]) -> Result<FileMetadata, CryptoError> {
     let file_meta = metadata(file_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Calculate SHA-256 hash of original content
     let mut hasher = Sha256::new();
@@ -588,25 +582,25 @@ fn write_encrypted_file(
     
     {
         let mut output_file = File::create(&temp_path)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Write header
         let header_bytes = header.serialize();
         output_file.write_all(&header_bytes)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Write encrypted content
         output_file.write_all(ciphertext)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Ensure data is written to disk
         output_file.flush()
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
     }
     
     // Atomically move temporary file to final location
     std::fs::rename(&temp_path, output_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     Ok(())
 }
@@ -621,11 +615,11 @@ fn encrypt_single_file_with_xchacha20_params(
 ) -> Result<(), CryptoError> {
     // Read input file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut plaintext = Vec::new();
     input_file.read_to_end(&mut plaintext)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Get file metadata
     let file_metadata = extract_file_metadata(input_path, &plaintext)?;
@@ -670,8 +664,8 @@ fn encrypt_single_file_with_xchacha20_params(
     header.metadata_length = encrypted_metadata.len() as u16;
     
     // Encrypt filename
-    if let Some(filename) = input_path.file_name() {
-        if let Some(filename_str) = filename.to_str() {
+    if let Some(filename) = input_path.file_name()
+        && let Some(filename_str) = filename.to_str() {
             let filename_bytes = filename_str.as_bytes();
             let encrypted_filename = encrypt_xchacha20_poly1305(
                 key_material.expose_secret(),
@@ -682,7 +676,6 @@ fn encrypt_single_file_with_xchacha20_params(
             header.encrypted_filename = encrypted_filename.clone();
             header.filename_length = encrypted_filename.len() as u16;
         }
-    }
     
     // Encrypt main file content
     let ciphertext = encrypt_xchacha20_poly1305(
@@ -709,20 +702,20 @@ fn write_encrypted_file_v2(
     
     {
         let mut temp_file = File::create(&temp_path)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Write V2 header
         let header_bytes = header.serialize();
         temp_file.write_all(&header_bytes)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Write ciphertext
         temp_file.write_all(ciphertext)
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
         
         // Ensure all data is written to disk
         temp_file.sync_all()
-            .map_err(|e| CryptoError::FileSystemError(e))?;
+            .map_err(CryptoError::FileSystemError)?;
     }
     
     // Atomic rename from temp to final destination

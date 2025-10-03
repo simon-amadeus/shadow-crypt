@@ -201,12 +201,11 @@ fn analyze_file_operation_performance(report: &shadow_crypt::shared::performance
     ];
     
     for (name, size) in &file_sizes {
-        if let Some(result) = report.results.iter().find(|r| r.name.contains(name)) {
-            if result.success {
+        if let Some(result) = report.results.iter().find(|r| r.name.contains(name))
+            && result.success {
                 let mb_per_sec = (*size as f64) / (1024.0 * 1024.0) / result.duration.as_secs_f64();
                 println!("   {}: {:.1} MB/s", name, mb_per_sec);
             }
-        }
     }
     
     println!();

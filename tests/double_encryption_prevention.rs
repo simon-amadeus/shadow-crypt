@@ -19,7 +19,7 @@ fn test_is_encrypted_file_detection() {
     writeln!(file, "This is plain text").unwrap();
     
     // Should not be detected as encrypted
-    assert_eq!(is_encrypted_file(&plain_file).unwrap(), false);
+    assert!(!is_encrypted_file(&plain_file).unwrap());
     
     // Encrypt the file
     let encrypted_file = dir.path().join("plain.txt.shadow");
@@ -27,10 +27,10 @@ fn test_is_encrypted_file_detection() {
     encrypt_single_file_with_params(&plain_file, &encrypted_file, "password123", false, &fast_params).unwrap();
     
     // Should now be detected as encrypted
-    assert_eq!(is_encrypted_file(&encrypted_file).unwrap(), true);
+    assert!(is_encrypted_file(&encrypted_file).unwrap());
     
     // Plain file should still not be encrypted
-    assert_eq!(is_encrypted_file(&plain_file).unwrap(), false);
+    assert!(!is_encrypted_file(&plain_file).unwrap());
 }
 
 #[test]
@@ -40,7 +40,7 @@ fn test_is_encrypted_file_empty_file() {
     File::create(&empty_file).unwrap();
     
     // Empty file should not be detected as encrypted
-    assert_eq!(is_encrypted_file(&empty_file).unwrap(), false);
+    assert!(!is_encrypted_file(&empty_file).unwrap());
 }
 
 #[test]
@@ -51,7 +51,7 @@ fn test_is_encrypted_file_short_file() {
     write!(file, "Hi").unwrap(); // Only 2 bytes, less than magic header
     
     // Short file should not be detected as encrypted
-    assert_eq!(is_encrypted_file(&short_file).unwrap(), false);
+    assert!(!is_encrypted_file(&short_file).unwrap());
 }
 
 #[test]
@@ -63,7 +63,7 @@ fn test_is_encrypted_file_fake_header() {
     
     // File starting with "SHADOW" should be detected as encrypted
     // (This is expected behavior - we err on the side of caution)
-    assert_eq!(is_encrypted_file(&fake_file).unwrap(), true);
+    assert!(is_encrypted_file(&fake_file).unwrap());
 }
 
 #[test]

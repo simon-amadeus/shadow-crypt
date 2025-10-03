@@ -140,16 +140,3 @@ fn extract_original_filename_with_config<C: CryptoConfig>(
     // Restore original filename
     restore_original_filename(header, &key_material)
 }
-
-/// Extract original filename from encrypted file header (legacy)
-/// 
-/// **DEPRECATED**: Use `extract_original_filename_with_config` instead.
-/// This function derives keys from password and attempts to decrypt the filename.
-fn extract_original_filename(header: &crate::shared::header::Header, password: &str, params: &crate::shared::algorithms::aes_gcm::Argon2Params) -> Result<String, CryptoError> {
-    use crate::shared::algorithms::aes_gcm::derive_master_key;
-    // Derive key material from password using header salt
-    let key_material = derive_master_key(password, &header.salt, params)?;
-    
-    // Use existing filename restoration logic
-    restore_original_filename(header, &key_material)
-}

@@ -60,7 +60,6 @@ fn test_analyze_nonexistent_directory() {
 fn test_version_constants() {
     // Test that version constants are properly defined
     assert_eq!(CURRENT_VERSION, 1);
-    assert!(CURRENT_VERSION >= 1);
 }
 
 #[test]

@@ -99,12 +99,11 @@ pub fn decrypt_multiple_files_with_provider<P: crate::shared::algorithms::Config
                     decrypt_single_file_with_config(input_path, &output_path, password, config)?;
 
                     // Remove source file if requested
-                    if remove_source {
-                        if let Err(e) = secure_delete_file(input_path) {
+                    if remove_source
+                        && let Err(e) = secure_delete_file(input_path) {
                             // Don't fail the entire operation if we can't delete the source
                             eprintln!("Warning: Failed to securely delete source file {}: {}", input_path.display(), e);
                         }
-                    }
 
                     Ok(output_path)
                 })
@@ -357,11 +356,11 @@ fn try_restore_filename_from_header_with_params(
 
     // Read encrypted file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut encrypted_data = Vec::new();
     input_file.read_to_end(&mut encrypted_data)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Parse header from encrypted file
     let (header, _) = Header::deserialize(&encrypted_data)?;
@@ -420,8 +419,7 @@ pub fn expand_glob_patterns(patterns: &[String]) -> Result<Vec<PathBuf>, CryptoE
                             }
                             Err(e) => {
                                 return Err(CryptoError::FileSystemError(
-                                    std::io::Error::new(std::io::ErrorKind::Other, 
-                                        format!("Glob error: {}", e))
+                                    std::io::Error::other(format!("Glob error: {}", e))
                                 ));
                             }
                         }
@@ -436,8 +434,7 @@ pub fn expand_glob_patterns(patterns: &[String]) -> Result<Vec<PathBuf>, CryptoE
                 }
                 Err(e) => {
                     return Err(CryptoError::FileSystemError(
-                        std::io::Error::new(std::io::ErrorKind::Other, 
-                            format!("Invalid glob pattern '{}': {}", pattern, e))
+                        std::io::Error::other(format!("Invalid glob pattern '{}': {}", pattern, e))
                     ));
                 }
             }
@@ -496,11 +493,11 @@ fn try_restore_filename_from_header_with_config<C: crate::shared::algorithms::Cr
 
     // Read encrypted file
     let mut input_file = File::open(input_path)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     let mut encrypted_data = Vec::new();
     input_file.read_to_end(&mut encrypted_data)
-        .map_err(|e| CryptoError::FileSystemError(e))?;
+        .map_err(CryptoError::FileSystemError)?;
     
     // Parse header from encrypted file
     let (header, _) = Header::deserialize(&encrypted_data)?;
