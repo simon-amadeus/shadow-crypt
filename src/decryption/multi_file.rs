@@ -40,16 +40,96 @@ pub fn decrypt_multiple_files(
     force_overwrite: bool,
     remove_source: bool,
 ) -> Result<MultiFileResults, CryptoError> {
-    use crate::shared::algorithms::{AesGcmConfig, CryptoConfig};
-    let config = AesGcmConfig::test_config(); // Use test config for compatibility
-    decrypt_multiple_files_with_params_and_progress(
+    use crate::shared::algorithms::{AesGcmConfig, DefaultConfigProvider};
+    let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+    decrypt_multiple_files_with_provider(
         file_paths,
         password,
         force_overwrite,
         remove_source,
-        config.argon2_params(),
+        &provider,
         true // show_progress = true for backward compatibility
     )
+}
+
+/// Decrypt multiple files using a configuration provider (trait-based approach)
+pub fn decrypt_multiple_files_with_provider<P: crate::shared::algorithms::ConfigProvider + Sync>(
+    file_paths: &[PathBuf],
+    password: &str,
+    force_overwrite: bool,
+    remove_source: bool,
+    provider: &P,
+    show_progress: bool,
+) -> Result<MultiFileResults, CryptoError> {
+    use crate::decryption::decrypt_file::decrypt_single_file_with_config;
+    
+    let start_time = Instant::now();
+    let total_files = file_paths.len();
+    
+    if total_files == 0 {
+        return Err(CryptoError::InvalidFileFormat); // No files to process
+    }
+
+    let results: Vec<Result<PathBuf, CryptoError>> = show_minimal_multifile_progress(
+        "Decrypting",
+        total_files,
+        show_progress,
+        || {
+            // Use parallel processing for multiple files to improve performance
+            file_paths
+                .par_iter()
+                .map(|input_path| {
+                    let config = provider.config();
+                    
+                    // Generate output path with automatic filename restoration
+                    let output_path = match generate_output_path_with_config(input_path, password, config) {
+                        Ok(path) => path,
+                        Err(e) => return Err(e),
+                    };
+
+                    // Check for overwrite permission
+                    if output_path.exists() && !force_overwrite {
+                        return Err(CryptoError::FileSystemError(std::io::Error::new(
+                            std::io::ErrorKind::AlreadyExists,
+                            format!("Output file already exists: {}", output_path.display())
+                        )));
+                    }
+
+                    // Decrypt the file
+                    decrypt_single_file_with_config(input_path, &output_path, password, config)?;
+
+                    // Remove source file if requested
+                    if remove_source {
+                        if let Err(e) = secure_delete_file(input_path) {
+                            // Don't fail the entire operation if we can't delete the source
+                            eprintln!("Warning: Failed to securely delete source file {}: {}", input_path.display(), e);
+                        }
+                    }
+
+                    Ok(output_path)
+                })
+                .collect()
+        },
+    );
+
+    let mut successful = Vec::new();
+    let mut failed = Vec::new();
+    
+    for (i, result) in results.into_iter().enumerate() {
+        match result {
+            Ok(output_path) => successful.push(output_path),
+            Err(e) => failed.push((file_paths[i].clone(), e.to_string())),
+        }
+    }
+
+    let total_time = start_time.elapsed();
+
+    Ok(MultiFileResults {
+        successful,
+        failed,
+        total_files,
+        total_time,
+    })
 }
 
 /// Decrypt multiple files with custom Argon2 parameters (for testing)
@@ -373,6 +453,63 @@ pub fn expand_glob_patterns(patterns: &[String]) -> Result<Vec<PathBuf>, CryptoE
     }
     
     Ok(unique_paths)
+}
+
+/// Generate output path using trait-based configuration
+pub fn generate_output_path_with_config<C: crate::shared::algorithms::CryptoConfig>(
+    input_path: &Path, 
+    password: &str,
+    config: &C
+) -> Result<PathBuf, CryptoError> {
+    // Try to restore original filename from header
+    match try_restore_filename_from_header_with_config(input_path, password, config) {
+        Ok(original_name) => {
+            // Use the directory of input file + restored filename
+            let input_dir = input_path.parent().unwrap_or_else(|| Path::new("."));
+            Ok(input_dir.join(original_name))
+        }
+        Err(_) => {
+            // Fall back to extension-based naming
+            if let Some(stem) = input_path.file_stem() {
+                if input_path.to_string_lossy().ends_with(".shadow") {
+                    Ok(input_path.with_file_name(stem))
+                } else {
+                    Ok(input_path.with_extension("dec"))
+                }
+            } else {
+                Ok(input_path.with_extension("dec"))
+            }
+        }
+    }
+}
+
+/// Try to restore filename from header using trait-based configuration
+fn try_restore_filename_from_header_with_config<C: crate::shared::algorithms::CryptoConfig>(
+    input_path: &Path,
+    password: &str,
+    config: &C
+) -> Result<String, CryptoError> {
+    use crate::decryption::filename_restoration::restore_original_filename;
+    use crate::shared::header::Header;
+    use std::fs::File;
+    use std::io::Read;
+
+    // Read encrypted file
+    let mut input_file = File::open(input_path)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    let mut encrypted_data = Vec::new();
+    input_file.read_to_end(&mut encrypted_data)
+        .map_err(|e| CryptoError::FileSystemError(e))?;
+    
+    // Parse header from encrypted file
+    let (header, _) = Header::deserialize(&encrypted_data)?;
+    
+    // Use trait-based key derivation
+    let key_material = config.derive_key_material(password, &header.salt)?;
+    
+    // Restore original filename
+    restore_original_filename(&header, &key_material)
 }
 
 #[cfg(test)]

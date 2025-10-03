@@ -7,7 +7,7 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Core Function Modernization - Phase 2**: Complete trait-based decryption implementation and remove remaining Argon2Params shims
+1. **File Scanner Module Cleanup**: Fix compilation issues in `src/listing/file_scanner.rs` from trait migration merge conflicts
 2. **Multi-File Configuration Integration**: Add configuration provider support to multi-file encryption/decryption operations
 3. **Module Structure Refactoring**: Improve module organization for better clarity and maintainability
 4. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility

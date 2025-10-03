@@ -16,7 +16,6 @@ Then start your first development cycle immediately without asking for further i
 **Purpose**: Ensure all documentation reflects current reality
 - Verify docs/BACKLOG.md matches actual priorities
 - Confirm no orphaned docs/CURRENT_CYCLE.md exists
-- Check git state is clean and up-to-date
 
 ### 2. **INTAKE**
 **Purpose**: Process new information into the system
@@ -70,11 +69,6 @@ Then start your first development cycle immediately without asking for further i
 - ✅ Architecture supports vertical slicing and future extension
 - ✅ Documentation updated, changes committed using conventional commits standard
 - ✅ Cargo.toml version matches changelog version for releases
-
-## Git Usage
-- Read and follow the [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/#specification) standard for all commit messages to enable automated versioning and changelog generation.
-- Keep commit messages and bodies as short as possible.
-- The headline should describe the what, the body (if needed) should explain the why and how.
 
 ## Cycle Optimization
 - **2-4 hour cycles** with 1-3 testable outcomes

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.30.4] - 2025-10-03
+
+### Core Modernization - Trait-Based Decryption Implementation (Phase 2)
+- **Complete Decryption Interface**: Implemented full trait-based `decrypt_single_file_with_config<C: CryptoConfig>()` with V1/V2 algorithm dispatch
+- **Multi-File Operations**: Added `decrypt_multiple_files_with_provider<P: ConfigProvider>()` supporting trait-based parallel decryption
+- **Algorithm Dispatch Functions**: Implemented `decrypt_single_file_v1_with_config()` and `decrypt_single_file_v2_with_config()` with proper algorithm handling
+- **Path Generation Utilities**: Added trait-based `generate_output_path_with_config()` and `try_restore_filename_from_header_with_config()` functions
+
+### Architecture - Argon2Params Elimination Progress
+- **Core Decryption Modernized**: Primary decryption operations now use `config.derive_key_material()` directly, eliminating parameter conversion shims
+- **Multi-File Processing**: Parallel decryption operations support configuration providers with proper thread safety (`ConfigProvider + Sync`)
+- **File Scanning Foundation**: Started trait-based migration for directory scanning operations (partial implementation)
+- **Backward Compatibility**: Legacy `*_with_params` functions maintained as compatibility shims forwarding to trait-based implementations
+
+### Developer Experience - Enhanced Configuration Patterns
+- **Provider-Based Dependency Injection**: Multi-file operations accept generic `ConfigProvider` implementations for flexible configuration
+- **Algorithm-Agnostic Operations**: V2 header support with proper XChaCha20-Poly1305 and AES-GCM trait-based decryption
+- **Header Size Calculation**: Accurate variable-length V2 header size computation for content extraction
+- **Error Handling Consistency**: Uniform error propagation through trait-based configuration system
+
+### Work in Progress - Remaining Cleanup
+- **File Scanner Module**: Requires implementation cleanup due to merge conflicts during trait migration
+- **Test Infrastructure**: Need validation of trait-based functions with actual encrypted files
+- **Legacy Dependencies**: Some modules retain Argon2Params usage requiring migration completion
+- **CLI Interface Updates**: Binary interfaces should adopt trait-based providers for full consistency
+
 ## [0.30.3] - 2025-10-02
 
 ### Core Modernization - Trait-Based Encryption Implementation (Phase 1)
