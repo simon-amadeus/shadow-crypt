@@ -28,10 +28,12 @@
 //! 
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let directory = Path::new("./encrypted_files");
-//! let files = list_encrypted_files(directory, true)?;
+//! let password = "secure_password";
+//! let files = list_encrypted_files(directory, password)?;
 //! 
-//! let formatter = UIFormatter::new(true, true);
-//! formatter.display_files(&files)?;
+//! let formatter = UIFormatter::new();
+//! let output = formatter.format_file_listing(&files);
+//! println!("{}", output);
 //! # Ok(())
 //! # }
 //! ```

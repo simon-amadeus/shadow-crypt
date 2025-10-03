@@ -27,7 +27,7 @@
 //! 
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let encrypted_file = Path::new("document.txt.shadow");
-//! let password = "secure_password".to_string();
+//! let password = "secure_password";
 //! 
 //! edit_encrypted_file(encrypted_file, password, None)?;
 //! # Ok(())

@@ -58,13 +58,14 @@
 //! **Before (manual parameter injection)**:
 //! ```rust,no_run
 //! # use shadow_crypt::shared::algorithms::aes_gcm::Argon2Params;
-//! # use shadow_crypt::encryption::encrypt_single_file_with_params;
+//! # use shadow_crypt::encryption::encrypt_single_file_with_config;
+//! # use shadow_crypt::shared::algorithms::{AesGcmConfig, DefaultConfigProvider, ConfigProvider};
 //! # use std::path::Path;
 //! # let input = Path::new("input.txt");
 //! # let output = Path::new("output.shadow");
 //! # let password = "password";
-//! let params = Argon2Params::test_params();
-//! encrypt_single_file_with_params(&input, &output, password, false, &params)?;
+//! let provider = DefaultConfigProvider::<AesGcmConfig>::test();
+//! encrypt_single_file_with_config(&input, &output, password, false, provider.config())?;
 //! # Ok::<(), Box<dyn std::error::Error>>(())
 //! ```
 //!

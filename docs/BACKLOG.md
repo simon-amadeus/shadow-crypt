@@ -7,8 +7,7 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **Library Test Suite Stabilization**: Fix remaining 2 failed library tests (salt length related, affects development confidence)
-2. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
+1. **Versioning & Algorithm Review**: Evaluate current versioning scheme and algorithm usage for future extensibility
 3. **Code Quality Polish**: Apply clippy fixes, formatting, and documentation improvements  
 4. **Production Readiness**: Comprehensive testing, documentation, and release preparation
 

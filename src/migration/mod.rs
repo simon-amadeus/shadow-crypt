@@ -28,11 +28,13 @@
 //! 
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
 //! let file = Path::new("old_format.shadow");
-//! let analysis = analyze_shadow_file(file)?;
+//! let analysis_result = analyze_shadow_file(file)?;
 //! 
-//! if analysis.needs_migration() {
-//!     let plan = create_migration_plan(&analysis)?;
-//!     // Execute migration with plan...
+//! if let Some(analysis) = analysis_result {
+//!     if analysis.version_info.needs_migration {
+//!         let plan = create_migration_plan(&analysis)?;
+//!         // Execute migration with plan...
+//!     }
 //! }
 //! # Ok(())
 //! # }

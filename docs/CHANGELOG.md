@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.32.7] - 2025-10-03
+
+### Fixed
+- **✅ COMPLETED: Library Test Suite Stabilization**: Fixed 6 failed doctests (API documentation examples out of sync with current function signatures)
+- **Documentation Accuracy**: All module documentation examples now compile and demonstrate correct API usage
+- **Function Signature Mismatches**: Updated doctests to use current function signatures instead of deprecated ones
+- **Import Statements**: Fixed obsolete imports (`encrypt_single_file_with_params` → `encrypt_single_file_with_config`)
+- **Parameter Types**: Corrected String vs &str parameter mismatches in editing and viewing module examples
+- **API Consistency**: Fixed listing module examples to use correct UIFormatter methods and parameters
+
+### Added
+- **Trait Imports**: Added necessary `ConfigProvider` trait imports to doctests for proper method resolution
+- **Accurate Examples**: All 18 doctests now provide practical, working examples for users
+
+### Tests
+- **Documentation Tests**: 18/18 doctests now pass (was 12/18)
+- **Regression Protection**: All 181 unit/integration tests continue to pass
+- **Complete Coverage**: No test failures across the entire test suite
+
+### Notes
+- Original backlog item mentioned "salt length related" issues, but investigation revealed the actual issue was outdated documentation examples
+- This fix improves developer experience by ensuring all code examples in documentation are accurate and executable
+
 ## [0.32.6] - 2025-10-03
 
 ### Fixed

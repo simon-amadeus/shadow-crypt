@@ -7,6 +7,7 @@ Add your feedback here. Keep it simple - just write what you think.
 ## New Feedback
 
 *No new feedback - ready for input*
+- write a proper readme file. the current one is filled with wrong information and is not helpful at all.
 
 ## Processed Feedback
 
