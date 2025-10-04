@@ -25,9 +25,6 @@
 
 ## 📋 PRIORITY ROADMAP
 
-### **P0 - Core Infrastructure (Foundation)**
-2. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
-
 ### **P0 - Cryptographic Foundation (Security)**
 4. **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization for cryptographic hygiene
 6. **Algorithm Abstraction Layer**: XChaCha20-Poly1305 (default) + AES-256-GCM implementations with pluggable interface

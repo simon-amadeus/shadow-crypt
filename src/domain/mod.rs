@@ -7,3 +7,6 @@
 pub mod entities;
 pub mod services;
 pub mod repositories;
+pub mod errors;
+
+pub use errors::{DomainError, DomainResult};

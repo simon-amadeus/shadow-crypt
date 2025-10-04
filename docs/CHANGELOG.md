@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-10-04
+
+### Added
+- **Comprehensive Error Handling Framework**: Security-conscious, user-friendly error system with actionable guidance across all layers
+- **Domain Error Types**: Complete taxonomy covering cryptographic, file system, security, input validation, resource, and configuration errors
+- **Infrastructure Error Integration**: Layer-specific errors for file system, terminal, crypto providers, serialization with proper error conversion chains
+- **Application Error Coordination**: Workflow orchestration, service coordination, and validation errors with severity levels and recovery indicators
+- **CLI Error Presentation**: Professional user-facing error messages with consistent formatting, exit codes, and actionable suggestions
+- **Security-Conscious Design**: No sensitive information leakage, proper context preservation, and security-related error identification
+- **Comprehensive Testing**: 65 unit tests covering all error scenarios, propagation patterns, user-friendly messages, and security validation
+
+### Changed
+- **Error Architecture**: Established layered error handling with clean propagation from domain through infrastructure, application, to CLI layers
+- **User Experience**: All error messages now provide clear, actionable guidance with specific suggestions for resolution
+- **Security Standards**: Error handling follows security-first principles with no cryptographic material or sensitive details exposed
+
+### Technical Details
+- **Exit Code Standards**: Proper CLI exit codes (authentication=2, file=3, input=4, security=5, resource=6, config=7, cancelled=130)
+- **Error Severity Levels**: Warning, Error, Critical classification for appropriate user interface presentation
+- **Recovery Indicators**: Automatic detection of recoverable vs non-recoverable errors for user guidance
+- **Conversion Patterns**: Seamless error conversion between layers with context preservation and type safety
+
 ## [0.3.0] - 2025-10-04
 
 ### Added

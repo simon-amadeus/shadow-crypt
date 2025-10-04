@@ -1,27 +1,30 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.3.0**
+# Shadow
 
-**Rewrite Status**: 🚀 **Core Infrastructure Complete** - Version compatibility matrix and migration system implemented  
-**Current Version**: v0.3.0 - Foundation architecture with version management  
-**Next Priority**: Error handling framework and cryptographic foundation
+**⚠️ REWRITE IN PROGRESS - v0.4.0**
+
+**Rewrite Status**: 🚀 **Error Framework Complete** - Comprehensive error handling with user-friendly messages  
+**Current Version**: v0.4.0 - Foundation architecture with error handling framework  
+**Next Priority**: Secure memory management and cryptographic implementation
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.3.0)**
+### ✅ **Completed (v0.4.0)**
 - **Clean Architecture**: Domain/Application/Infrastructure/CLI layers established
 - **TLV Header System V1**: Extensible Type-Length-Value format preserving proven V3 patterns
 - **Configuration Providers**: Algorithm abstraction with XChaCha20-Poly1305 and AES-256-GCM support
 - **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path
 - **Migration Service**: Complete migration orchestration with safety checks and backup/restore
+- **Error Handling Framework**: Security-conscious, user-friendly error system with actionable guidance
 
 ### 🚧 **Next Priorities**
-- **Error Handling Framework**: User-friendly, security-conscious error messages
 - **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization
-- **Algorithm Abstraction Layer**: Pluggable interface for cryptographic implementations
+- **Algorithm Implementation**: Complete XChaCha20-Poly1305 and AES-256-GCM implementations
 - **File Detection Logic**: Double-encryption prevention using magic number validation
+- **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
