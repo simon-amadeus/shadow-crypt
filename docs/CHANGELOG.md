@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Test Coverage**: 16 comprehensive tests covering secure memory patterns, key derivation consistency, and debug safety
 - **Future-Ready**: Infrastructure prepared for proper PBKDF2/Argon2 implementation in crypto layer
 
+## [0.6.1] - 2025-10-04
+
+### Fixed
+- **Backlog Synchronization**: Corrected outdated P0 priority item that was already completed in v0.6.0
+- **Development Process**: Identified and resolved documentation lag between implementation and backlog tracking
+
+### Process Improvements
+- **Cycle Validation**: Enhanced development cycle with discovery phase to catch completed work items
+- **Documentation Accuracy**: Improved synchronization between implementation status and planning documents
+
 ## [0.6.0] - 2025-10-04
 
 ### Added
