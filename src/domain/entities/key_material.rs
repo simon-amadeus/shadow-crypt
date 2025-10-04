@@ -124,4 +124,13 @@ impl KeyMaterial {
         // 32 bytes each for master_key, encryption_key, obfuscation_key
         96
     }
+
+    /// Get encryption key bytes for cipher initialization
+    /// 
+    /// Returns a reference to the encryption key bytes. This method provides
+    /// minimal necessary access to key material for cryptographic operations
+    /// while maintaining security through SecureBox protection.
+    pub fn as_bytes(&self) -> &[u8; 32] {
+        self.encryption_key.expose_secret()
+    }
 }

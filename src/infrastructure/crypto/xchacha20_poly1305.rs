@@ -10,6 +10,7 @@ use super::{
     AlgorithmId, CryptographicAlgorithm, EncryptionConfig, EncryptionResult,
     KeyDerivationConfig, KeyMaterial,
 };
+use crate::domain::errors::DomainError;
 use crate::infrastructure::crypto::{CryptoError, CryptoResult};
 use argon2::{Argon2, Params};
 use chacha20poly1305::{
@@ -77,7 +78,7 @@ impl XChaCha20Poly1305Config {
 }
 
 impl KeyDerivationConfig for XChaCha20Poly1305Config {
-    fn derive_key_material(&self, password: &str, salt: &[u8]) -> CryptoResult<KeyMaterial> {
+    fn derive_key_material(&self, password: &str, salt: &[u8]) -> Result<KeyMaterial, DomainError> {
         let params = self.argon2_params.to_argon2_params()?;
         let argon2 = Argon2::new(
             argon2::Algorithm::Argon2id,
@@ -85,12 +86,12 @@ impl KeyDerivationConfig for XChaCha20Poly1305Config {
             params,
         );
 
-        let mut key = vec![0u8; self.argon2_params.output_length];
+        let mut master_key = [0u8; 32]; // Fixed size for master key
         argon2
-            .hash_password_into(password.as_bytes(), salt, &mut key)
-            .map_err(|e| CryptoError::KeyDerivationError(format!("Argon2 derivation failed: {}", e)))?;
+            .hash_password_into(password.as_bytes(), salt, &mut master_key)
+            .map_err(|e| DomainError::from(CryptoError::KeyDerivationError(format!("Argon2 derivation failed: {}", e))))?;
 
-        Ok(KeyMaterial::new(key))
+        Ok(KeyMaterial::from_master_key(master_key))
     }
 
     fn salt_length(&self) -> usize {
@@ -116,32 +117,43 @@ impl EncryptionConfig for XChaCha20Poly1305Config {
     }
 }
 
+impl XChaCha20Poly1305Config {
+    /// Generate a random nonce for encryption
+    pub fn generate_nonce(&self) -> CryptoResult<Vec<u8>> {
+        use rand::RngCore;
+        let mut nonce = vec![0u8; self.nonce_size()];
+        rand::rng().fill_bytes(&mut nonce);
+        Ok(nonce)
+    }
+}
+
 impl CryptographicAlgorithm for XChaCha20Poly1305Config {
     fn encrypt(
         &self,
         plaintext: &[u8],
         key_material: &KeyMaterial,
-    ) -> CryptoResult<EncryptionResult> {
+    ) -> Result<EncryptionResult, DomainError> {
         if key_material.len() != self.key_size() {
-            return Err(CryptoError::InvalidParameters(format!(
+            return Err(DomainError::from(CryptoError::InvalidParameters(format!(
                 "Expected key size {}, got {}",
                 self.key_size(),
                 key_material.len()
-            )));
+            ))));
         }
 
         // Create cipher instance
         let cipher = XChaCha20Poly1305::new_from_slice(key_material.as_bytes())
-            .map_err(|e| CryptoError::CryptographicError(format!("Cipher creation failed: {}", e)))?;
+            .map_err(|e| DomainError::from(CryptoError::CryptographicError(format!("Cipher creation failed: {}", e))))?;
 
         // Generate random nonce
-        let nonce = self.generate_nonce()?;
+        let nonce = self.generate_nonce()
+            .map_err(|e| DomainError::from(e))?;
         let xnonce = XNonce::from_slice(&nonce);
 
         // Encrypt the plaintext
         let ciphertext = cipher
             .encrypt(xnonce, plaintext)
-            .map_err(|e| CryptoError::CryptographicError(format!("Encryption failed: {}", e)))?;
+            .map_err(|e| DomainError::from(CryptoError::CryptographicError(format!("Encryption failed: {}", e))))?;
 
         Ok(EncryptionResult { ciphertext, nonce })
     }
@@ -151,33 +163,33 @@ impl CryptographicAlgorithm for XChaCha20Poly1305Config {
         ciphertext: &[u8],
         nonce: &[u8],
         key_material: &KeyMaterial,
-    ) -> CryptoResult<Vec<u8>> {
+    ) -> Result<Vec<u8>, DomainError> {
         if key_material.len() != self.key_size() {
-            return Err(CryptoError::InvalidParameters(format!(
+            return Err(DomainError::from(CryptoError::InvalidParameters(format!(
                 "Expected key size {}, got {}",
                 self.key_size(),
                 key_material.len()
-            )));
+            ))));
         }
 
         if nonce.len() != self.nonce_size() {
-            return Err(CryptoError::InvalidParameters(format!(
+            return Err(DomainError::from(CryptoError::InvalidParameters(format!(
                 "Expected nonce size {}, got {}",
                 self.nonce_size(),
                 nonce.len()
-            )));
+            ))));
         }
 
         // Create cipher instance
         let cipher = XChaCha20Poly1305::new_from_slice(key_material.as_bytes())
-            .map_err(|e| CryptoError::CryptographicError(format!("Cipher creation failed: {}", e)))?;
+            .map_err(|e| DomainError::from(CryptoError::CryptographicError(format!("Cipher creation failed: {}", e))))?;
 
         let xnonce = XNonce::from_slice(nonce);
 
         // Decrypt the ciphertext
         let plaintext = cipher
             .decrypt(xnonce, ciphertext)
-            .map_err(|_| CryptoError::AuthenticationFailed)?;
+            .map_err(|_| DomainError::from(CryptoError::AuthenticationFailed))?;
 
         Ok(plaintext)
     }

@@ -32,7 +32,7 @@ impl Algorithm {
             AlgorithmId::XChaCha20Poly1305 => {
                 Self::XChaCha20Poly1305(XChaCha20Poly1305Config::production_config())
             }
-            AlgorithmId::Aes256Gcm => {
+            AlgorithmId::AesGcm256 => {
                 Self::Aes256Gcm(Aes256GcmConfig::production_config())
             }
         }
@@ -44,7 +44,7 @@ impl Algorithm {
             AlgorithmId::XChaCha20Poly1305 => {
                 Self::XChaCha20Poly1305(XChaCha20Poly1305Config::test_config())
             }
-            AlgorithmId::Aes256Gcm => {
+            AlgorithmId::AesGcm256 => {
                 Self::Aes256Gcm(Aes256GcmConfig::test_config())
             }
         }
@@ -72,7 +72,7 @@ impl Algorithm {
 
     /// Get list of all supported algorithm IDs
     pub fn supported_algorithms() -> Vec<AlgorithmId> {
-        vec![AlgorithmId::XChaCha20Poly1305, AlgorithmId::Aes256Gcm]
+        vec![AlgorithmId::XChaCha20Poly1305, AlgorithmId::AesGcm256]
     }
 
     /// Check if an algorithm ID is supported

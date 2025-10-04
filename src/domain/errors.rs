@@ -535,6 +535,79 @@ impl ConfigurationError {
     }
 }
 
+// Conversion from infrastructure CryptoError to domain DomainError
+impl From<crate::infrastructure::crypto::CryptoError> for DomainError {
+    fn from(error: crate::infrastructure::crypto::CryptoError) -> Self {
+        use crate::infrastructure::crypto::CryptoError;
+        
+        match error {
+            CryptoError::CryptographicError(msg) => {
+                DomainError::CryptographicError(CryptographicError::EncryptionFailed { reason: msg })
+            }
+            CryptoError::AuthenticationFailed => {
+                DomainError::AuthenticationFailed { context: "Password verification failed".to_string() }
+            }
+            CryptoError::KeyDerivationError(msg) => {
+                DomainError::CryptographicError(CryptographicError::KeyDerivationFailed { algorithm: msg })
+            }
+            CryptoError::UnsupportedAlgorithm(id) => {
+                DomainError::CryptographicError(CryptographicError::UnsupportedAlgorithm { algorithm_id: id })
+            }
+            CryptoError::RandomGenerationFailed(_) => {
+                DomainError::CryptographicError(CryptographicError::RandomGenerationFailed)
+            }
+            CryptoError::FileSystemError(io_err) => {
+                // Convert standard IO errors to appropriate FileSystemError variants
+                match io_err.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        DomainError::FileSystemError(FileSystemError::FileNotFound { 
+                            path: "unknown".to_string() 
+                        })
+                    }
+                    std::io::ErrorKind::PermissionDenied => {
+                        DomainError::FileSystemError(FileSystemError::PermissionDenied { 
+                            path: "unknown".to_string() 
+                        })
+                    }
+                    _ => {
+                        DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
+                            operation: "unknown".to_string(),
+                            reason: io_err.to_string()
+                        })
+                    }
+                }
+            }
+            CryptoError::HeaderParsingError(msg) => {
+                DomainError::FormatError(FormatError::InvalidHeader { reason: msg })
+            }
+            CryptoError::InvalidFileFormat => {
+                DomainError::FormatError(FormatError::InvalidHeader { 
+                    reason: "Unrecognized file format".to_string() 
+                })
+            }
+            CryptoError::InvalidParameters(msg) => {
+                DomainError::InputValidationError(InputValidationError::InvalidArgument { 
+                    argument: "crypto_parameters".to_string(), 
+                    reason: msg 
+                })
+            }
+            CryptoError::ConfigurationError(msg) => {
+                DomainError::ConfigurationError(ConfigurationError::InvalidConfigValue { 
+                    key: "crypto".to_string(), 
+                    value: "unknown".to_string(), 
+                    reason: msg 
+                })
+            }
+            _ => {
+                // Fallback for any other CryptoError variants
+                DomainError::CryptographicError(CryptographicError::EncryptionFailed { 
+                    reason: format!("Cryptographic operation failed: {}", error)
+                })
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

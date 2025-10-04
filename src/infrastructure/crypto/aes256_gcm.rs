@@ -1,6 +1,28 @@
 //! # AES-256-GCM Algorithm Implementation
 //!
-//! This module provides a complete AES-256-GCM cryptographic algorithm implementation
+//! This module provides a complete AES-256-GCM cryptograpimpl EncryptionConfig for Aes256GcmConfig {
+    fn key_size(&self) -> usize {
+        32 // 256-bit key for AES-256
+    }
+
+    fn nonce_size(&self) -> usize {
+        12 // 96-bit nonce for GCM (required for security)
+    }
+
+    fn algorithm_id(&self) -> AlgorithmId {
+        AlgorithmId::AesGcm256
+    }
+}
+
+impl Aes256GcmConfig {
+    /// Generate a random nonce for encryption
+    pub fn generate_nonce(&self) -> CryptoResult<Vec<u8>> {
+        use rand::RngCore;
+        let mut nonce = vec![0u8; self.nonce_size()];
+        rand::rng().fill_bytes(&mut nonce);
+        Ok(nonce)
+    }
+} implementation
 //! including encryption, decryption, and key derivation using Argon2id.
 //!
 //! AES-256-GCM provides strong authenticated encryption but requires careful nonce
@@ -10,6 +32,7 @@ use super::{
     AlgorithmId, CryptographicAlgorithm, EncryptionConfig, EncryptionResult,
     KeyDerivationConfig, KeyMaterial,
 };
+use crate::domain::errors::DomainError;
 use crate::infrastructure::crypto::{CryptoError, CryptoResult};
 use aes_gcm::{
     aead::{Aead, KeyInit},
@@ -77,7 +100,7 @@ impl Aes256GcmConfig {
 }
 
 impl KeyDerivationConfig for Aes256GcmConfig {
-    fn derive_key_material(&self, password: &str, salt: &[u8]) -> CryptoResult<KeyMaterial> {
+    fn derive_key_material(&self, password: &str, salt: &[u8]) -> Result<KeyMaterial, DomainError> {
         let params = self.argon2_params.to_argon2_params()?;
         let argon2 = Argon2::new(
             argon2::Algorithm::Argon2id,
@@ -85,12 +108,12 @@ impl KeyDerivationConfig for Aes256GcmConfig {
             params,
         );
 
-        let mut key = vec![0u8; self.argon2_params.output_length];
+        let mut master_key = [0u8; 32]; // Fixed size for master key
         argon2
-            .hash_password_into(password.as_bytes(), salt, &mut key)
-            .map_err(|e| CryptoError::KeyDerivationError(format!("Argon2 derivation failed: {}", e)))?;
+            .hash_password_into(password.as_bytes(), salt, &mut master_key)
+            .map_err(|e| DomainError::from(CryptoError::KeyDerivationError(format!("Argon2 derivation failed: {}", e))))?;
 
-        Ok(KeyMaterial::new(key))
+        Ok(KeyMaterial::from_master_key(master_key))
     }
 
     fn salt_length(&self) -> usize {
@@ -112,7 +135,7 @@ impl EncryptionConfig for Aes256GcmConfig {
     }
 
     fn algorithm_id(&self) -> AlgorithmId {
-        AlgorithmId::Aes256Gcm
+        AlgorithmId::AesGcm256
     }
 }
 
