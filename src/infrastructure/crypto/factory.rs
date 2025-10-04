@@ -4,10 +4,10 @@
 //! cryptographic algorithm configurations, solving trait object limitations.
 
 use super::{AlgorithmId, CryptographicAlgorithm, EncryptionResult, KeyMaterial};
+use crate::domain::errors::DomainError;
 use crate::infrastructure::crypto::{
     aes256_gcm::Aes256GcmConfig,
     xchacha20_poly1305::XChaCha20Poly1305Config,
-    CryptoResult,
 };
 
 /// Enumeration of all supported cryptographic algorithms
@@ -86,7 +86,7 @@ impl CryptographicAlgorithm for Algorithm {
         &self,
         plaintext: &[u8],
         key_material: &KeyMaterial,
-    ) -> CryptoResult<EncryptionResult> {
+    ) -> Result<EncryptionResult, DomainError> {
         match self {
             Algorithm::XChaCha20Poly1305(config) => config.encrypt(plaintext, key_material),
             Algorithm::Aes256Gcm(config) => config.encrypt(plaintext, key_material),
@@ -98,7 +98,7 @@ impl CryptographicAlgorithm for Algorithm {
         ciphertext: &[u8],
         nonce: &[u8],
         key_material: &KeyMaterial,
-    ) -> CryptoResult<Vec<u8>> {
+    ) -> Result<Vec<u8>, DomainError> {
         match self {
             Algorithm::XChaCha20Poly1305(config) => config.decrypt(ciphertext, nonce, key_material),
             Algorithm::Aes256Gcm(config) => config.decrypt(ciphertext, nonce, key_material),
@@ -115,7 +115,7 @@ impl CryptographicAlgorithm for Algorithm {
 }
 
 impl super::KeyDerivationConfig for Algorithm {
-    fn derive_key_material(&self, password: &str, salt: &[u8]) -> CryptoResult<KeyMaterial> {
+    fn derive_key_material(&self, password: &str, salt: &[u8]) -> Result<KeyMaterial, DomainError> {
         match self {
             Algorithm::XChaCha20Poly1305(config) => config.derive_key_material(password, salt),
             Algorithm::Aes256Gcm(config) => config.derive_key_material(password, salt),
@@ -176,8 +176,8 @@ mod tests {
         let xchacha = Algorithm::from_id(AlgorithmId::XChaCha20Poly1305);
         assert_eq!(xchacha.algorithm_id(), AlgorithmId::XChaCha20Poly1305);
 
-        let aes = Algorithm::from_id(AlgorithmId::Aes256Gcm);
-        assert_eq!(aes.algorithm_id(), AlgorithmId::Aes256Gcm);
+        let aes = Algorithm::from_id(AlgorithmId::AesGcm256);
+        assert_eq!(aes.algorithm_id(), AlgorithmId::AesGcm256);
     }
 
     #[test]
@@ -185,8 +185,8 @@ mod tests {
         let xchacha = Algorithm::test_from_id(AlgorithmId::XChaCha20Poly1305);
         assert_eq!(xchacha.algorithm_id(), AlgorithmId::XChaCha20Poly1305);
 
-        let aes = Algorithm::test_from_id(AlgorithmId::Aes256Gcm);
-        assert_eq!(aes.algorithm_id(), AlgorithmId::Aes256Gcm);
+        let aes = Algorithm::test_from_id(AlgorithmId::AesGcm256);
+        assert_eq!(aes.algorithm_id(), AlgorithmId::AesGcm256);
     }
 
     #[test]
@@ -194,13 +194,13 @@ mod tests {
         let supported = Algorithm::supported_algorithms();
         assert_eq!(supported.len(), 2);
         assert!(supported.contains(&AlgorithmId::XChaCha20Poly1305));
-        assert!(supported.contains(&AlgorithmId::Aes256Gcm));
+        assert!(supported.contains(&AlgorithmId::AesGcm256));
     }
 
     #[test]
     fn test_is_supported() {
         assert!(Algorithm::is_supported(AlgorithmId::XChaCha20Poly1305));
-        assert!(Algorithm::is_supported(AlgorithmId::Aes256Gcm));
+        assert!(Algorithm::is_supported(AlgorithmId::AesGcm256));
     }
 
     #[test]
@@ -209,13 +209,13 @@ mod tests {
         assert_eq!(xchacha.algorithm_id(), AlgorithmId::XChaCha20Poly1305);
 
         let aes = Algorithm::aes256_gcm();
-        assert_eq!(aes.algorithm_id(), AlgorithmId::Aes256Gcm);
+        assert_eq!(aes.algorithm_id(), AlgorithmId::AesGcm256);
 
         let xchacha_test = Algorithm::xchacha20_poly1305_test();
         assert_eq!(xchacha_test.algorithm_id(), AlgorithmId::XChaCha20Poly1305);
 
         let aes_test = Algorithm::aes256_gcm_test();
-        assert_eq!(aes_test.algorithm_id(), AlgorithmId::Aes256Gcm);
+        assert_eq!(aes_test.algorithm_id(), AlgorithmId::AesGcm256);
     }
 
     #[test]

@@ -1,22 +1,22 @@
 # Shadow
 
-# Shadow
+**⚠️ REWRITE IN PROGRESS - v0.8.0**
 
-**⚠️ REWRITE IN PROGRESS - v0.7.0**
-
-**Rewrite Status**: 🎯 **Clean Architecture Achieved** - Domain-driven design with complete layer separation  
-**Current Version**: v0.7.0 - Clean architecture foundation with domain-driven cryptographic abstractions  
+**Rewrite Status**: 🎯 **Dual Algorithm Support** - AES-256-GCM and XChaCha20-Poly1305 implementations complete  
+**Current Version**: v0.8.0 - Complete cryptographic foundation with algorithm choice  
 **Next Priority**: Error handling framework and file detection logic
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.7.0)**
+### ✅ **Completed (v0.8.0)**
+- **AES-256-GCM Algorithm**: Complete implementation with secure 12-byte nonce generation alongside XChaCha20-Poly1305
+- **Unified Error Handling**: All cryptographic operations consistently return `DomainError` for improved user experience
+- **Algorithm Factory**: Enum-based pattern supporting both algorithms with unified interfaces
 - **Clean Architecture Compliance**: Complete domain/infrastructure separation following dependency inversion
 - **Domain-Driven Cryptography**: Core abstractions (`AlgorithmId`, `KeyMaterial`, `CryptographicAlgorithm`) in domain layer
 - **Secure Memory Management**: Enhanced `KeyMaterial` with automatic zeroization and constant-time operations
-- **Algorithm Abstraction Layer**: Production-ready trait system for XChaCha20-Poly1305 and AES-256-GCM
 - **TLV Header System V1**: Extensible Type-Length-Value format preserving proven V3 patterns
 - **Configuration Providers**: Clean separation with domain interfaces and infrastructure implementations
 - **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path

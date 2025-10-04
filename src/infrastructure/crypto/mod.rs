@@ -4,7 +4,6 @@
 //! Implements domain cryptographic interfaces with concrete algorithms.
 
 pub mod errors;
-pub mod providers;
 pub mod algorithms;
 pub mod xchacha20_poly1305;
 pub mod aes256_gcm;

@@ -4,8 +4,6 @@
 
 ## 🎯 IMPLEMENTATION GUIDANCE
 
-**Architecture Foundation (v0.2.0)**: Complete clean architecture rewrite completed - all code now in domain/application/infrastructure/cli layers with placeholder implementations.
-
 **Implementation Strategy**:
 - **Primary Guide**: Follow the specs in `docs/specs/DOMAIN_ARCHITECTURE.md`, `docs/specs/ARCHITECTURE_REQUIREMENTS.md` and the other spec files precisely. If conflicts arise, make plans to adapt towards the best possible outcome while taking all context into account.
 - **Legacy Reference**: Proven implementations available in `legacy/src/` - extract patterns but rewrite cleanly
@@ -22,7 +20,6 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P0 - Cryptographic Foundation (Security)**
-1. **AES Implementation Completion**: Complete method signatures, nonce generation, and factory error conversion for full algorithm support
 2. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
 3. **File Detection Logic**: Robust double-encryption prevention using magic number validation
 4. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field

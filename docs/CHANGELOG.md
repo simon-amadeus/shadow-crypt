@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-10-04
+
+### Added
+- **AES-256-GCM Algorithm Support**: Complete implementation of AES-256-GCM cryptographic algorithm alongside XChaCha20-Poly1305
+- **Secure Nonce Generation**: 12-byte cryptographically secure nonce generation for AES-GCM operations
+- **Unified Error Handling**: All cryptographic operations now consistently return `DomainError` for improved error handling
+
+### Changed
+- **Algorithm Factory**: Updated factory pattern to support both XChaCha20-Poly1305 and AES-256-GCM with unified interfaces
+- **Method Signatures**: Standardized all cryptographic algorithm methods to return `DomainError` instead of `CryptoError`
+
+### Technical
+- **Clean Architecture**: AES implementation follows established domain-driven patterns
+- **Security**: AES-256-GCM provides authenticated encryption with 256-bit keys and 96-bit nonces
+- **Performance**: Test parameters optimized for development, production parameters for security
+
 ## [0.7.2] - 2025-10-04
 
 ### Infrastructure
