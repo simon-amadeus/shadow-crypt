@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.1] - 2025-10-04
+
+### Fixed
+- **CLI Keep Flag Integration**: Fixed test failures in unshadow binary status messaging
+  - **Status Message Logic**: Corrected print_status() to always display file behavior messages regardless of --quiet flag
+  - **Test Compatibility**: All keep_flag_integration tests now pass (8/8)
+  - **Cross-Binary Consistency**: Ensured consistent behavior between shadow and unshadow binaries
+  - **Comment Accuracy**: Updated documentation comments to reflect actual behavior
+  - **User Experience**: Critical file operation status messages now always visible for security tool trust
+
 ## [0.20.0] - 2025-10-04
 
 ### Added

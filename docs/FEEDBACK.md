@@ -6,7 +6,7 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## New Feedback
 
-*No new feedback - ready for next intake cycle*
+- please read the docs/specs/FEATURE_REQUIREMENTS.md file. there you will find detailed requirements for the current binary implementations needed. please review the requirements and the current impmementation status and identify gaps. then make a plan to populate the backlog with the missing items.
 
 ---
 

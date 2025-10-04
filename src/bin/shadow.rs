@@ -61,7 +61,7 @@ impl ShadowArgs {
         }
     }
     
-    /// Print status information about flag settings (unless quiet)
+    /// Print status information about flag settings
     fn print_status(&self) {
         println!("✅ CLI parsing complete");
         println!("✅ Source files will be {}", 

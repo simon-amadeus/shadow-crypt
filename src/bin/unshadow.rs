@@ -41,13 +41,11 @@ impl UnshadowArgs {
         Ok(())
     }
     
-    /// Print status information about flag settings (unless quiet)
+    /// Print status information about flag settings
     fn print_status(&self) {
-        if !self.quiet {
-            println!("✅ CLI parsing complete");
-            println!("✅ Encrypted files will be {}", 
-                if self.keep { "preserved" } else { "removed after decryption" });
-        }
+        println!("✅ CLI parsing complete");
+        println!("✅ Encrypted files will be {}", 
+            if self.keep { "preserved" } else { "removed after decryption" });
     }
 }
 
