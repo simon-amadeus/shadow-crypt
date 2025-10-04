@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-10-04
+
+### Added
+- **Secure Memory Management**: Production-ready cryptographic memory management with automatic zeroization
+- **SecureBox Container**: Generic secure container for any type implementing `Zeroize` with automatic cleanup on drop
+- **KeyMaterial Abstraction**: Clean wrapper for cryptographic key data with guaranteed zeroization and debug safety
+- **Memory Safety Architecture**: Foundation for secure handling of all sensitive cryptographic data throughout the system
+- **Comprehensive Testing**: 7 unit tests validating zeroization behavior, API compliance, debug safety, and various key sizes
+
+### Changed
+- **Cryptographic Foundation**: All sensitive data handling now uses secure memory containers with automatic cleanup
+- **API Specification Compliance**: Implementation exactly matches the interface defined in `docs/specs/PRESERVED_ARCHITECTURE.md`
+- **Domain Layer Enhancement**: SecureBox and KeyMaterial properly exported for use by cryptographic services and algorithms
+
+### Technical Details
+- **Zeroize Integration**: Leverages `zeroize` crate for compiler-resistant memory clearing with proper memory barriers
+- **Generic Design**: `SecureBox<T: Zeroize>` supports any zeroizable type for flexible secure memory management
+- **Debug Safety**: All debug output redacts sensitive information preventing accidental secret leakage in logs
+- **Legacy Improvement**: Modern implementation using `zeroize` crate replaces custom legacy memory management
+- **Export Structure**: Clean module organization with public re-exports for ergonomic API access
+
 ## [0.4.0] - 2025-10-04
 
 ### Added
