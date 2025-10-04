@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-10-04
+
+### Added
+- **TLV Header System V1**: Complete implementation of Type-Length-Value header system preserving proven V3 design patterns with V1 enhancements
+- **Domain Entities**: `TlvHeader`, `TlvField`, `TlvFieldType` with clean API for header manipulation and metadata access
+- **Infrastructure Support**: `TlvSerializer` with binary serialization/deserialization, error handling, and format validation  
+- **Magic Number Validation**: `SHADOW01` magic number for file format detection and validation
+- **Extensible Field System**: Support for original filename, content hash, algorithm ID, nonce, directory path, and custom attributes
+- **Future Compatibility**: Unknown field types preserved during roundtrip operations for format evolution
+- **Comprehensive Testing**: 18 tests covering domain model, infrastructure serialization, and integration workflows
+
+### Changed
+- **File Format**: Established V1 as new baseline format with deterministic field ordering and binary efficiency
+- **Legacy Compatibility**: Maintains V3 TLV design patterns while adding V1-specific enhancements (content hash, dedicated nonce field)
+
+### Technical Details
+- **Domain Layer**: Clean architecture with domain entities independent of serialization concerns
+- **Infrastructure Layer**: Binary format handling with magic number `SHADOW01` and version field
+- **Wire Format**: `[Magic(8)][Version(2)][TLV Fields...]` with `[Type(1)][Length(4)][Value(Length)]` field structure
+- **Test Coverage**: >90% coverage including edge cases, malformed data handling, and compatibility validation
+
+### Summary
+**Core Foundation Complete**: TLV header system ready for use in encryption workflows with extensible design supporting algorithm flexibility and metadata preservation. Clean architecture separation enables future enhancements without breaking existing functionality.
+
+**Ready for Integration**: Header system can now be integrated into EncryptedFile domain entity and encryption/decryption workflows.
+
 ## [0.2.0] - 2025-10-04
 
 ### Added

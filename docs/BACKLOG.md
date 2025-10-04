@@ -22,8 +22,7 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P0 - Core Infrastructure (Foundation)**
-1. **Implement TLV Header System V1**: Preserve current V3 TLV design as new baseline format with extensible Type-Length-Value fields
-2. **Build Configuration Provider Pattern**: Trait-based dependency injection for clean algorithm abstraction (KeyDerivationConfig + EncryptionConfig + CryptoConfig)
+1. **Build Configuration Provider Pattern**: Trait-based dependency injection for clean algorithm abstraction (KeyDerivationConfig + EncryptionConfig + CryptoConfig)
 3. **Create Version Compatibility Matrix**: Future-proof migration system with V1 as baseline and explicit compatibility checking
 4. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
 
