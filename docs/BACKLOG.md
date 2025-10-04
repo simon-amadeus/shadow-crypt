@@ -23,7 +23,6 @@
 *No items - critical safety issues resolved*
 
 ### **P2 - Domain Architecture (Business Logic)**
-2. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
 4. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
 
 ### **P3 - CLI Integration (User Interface)**

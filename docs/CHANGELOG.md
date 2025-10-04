@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.0] - 2025-10-04
+
+### Added
+- **Complete Repository Interfaces Implementation**: Comprehensive abstraction layer for infrastructure concerns
+  - **FileRepository**: Full abstraction for file system operations with atomic writes, secure deletion, and metadata extraction
+  - **PasswordRepository**: Complete password input and validation handling with strength assessment and confirmation
+  - **Standard Implementations**: Production-ready StandardFileRepository and StandardPasswordRepository implementations
+  - **Mock Implementations**: Full-featured MockFileRepository and MockPasswordRepository for testing with operation tracking
+- **Enhanced Security Features**: 
+  - **Atomic File Operations**: Temporary file + rename pattern prevents corruption during write operations
+  - **Secure File Deletion**: Cryptographic overwriting with random data before filesystem removal
+  - **Password Strength Validation**: Comprehensive assessment with character variety, length, and pattern checks
+  - **Memory Safety**: Thread-safe mock implementations with proper Arc<Mutex<>> patterns
+- **Comprehensive Testing Suite**: 12 integration tests covering all repository operations and error scenarios
+- **Improved Error Handling**: Context-aware error messages distinguishing permission denied, file not found, and other I/O errors
+
+### Technical
+- **Clean Architecture Compliance**: Repository interfaces properly abstract infrastructure with dependency inversion
+- **Stateless Design**: No ConfigRepository implementation as Shadow follows stateless architecture principles
+- **Thread Safety**: All implementations support concurrent access with appropriate synchronization
+- **Test Infrastructure**: Complete mock implementations enable isolated unit testing of higher-level components
+
+### Fixed
+- **Import Cleanup**: Removed unused imports and resolved compiler warnings
+- **Password Validation**: Shared validation logic between mock and standard implementations
+
 ## [0.14.0] - 2025-10-04
 
 ### Added

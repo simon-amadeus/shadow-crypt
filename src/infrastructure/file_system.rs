@@ -4,10 +4,14 @@
 
 use crate::domain::entities::encrypted_file::EncryptedFileError;
 use crate::domain::entities::tlv_header::TlvHeader;
+use crate::domain::repositories::file_repository::{
+    FileRepository, FileMetadata, FileType, CryptoResult
+};
 use crate::infrastructure::tlv_serialization::{TlvSerializer, TlvSerializationError};
-use std::fs::File;
-use std::io::Read;
+use std::fs::{File, OpenOptions};
+use std::io::{Read, Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 /// File system operations for encrypted files
 pub struct FileSystemService;
@@ -298,5 +302,231 @@ impl FileSystemService {
         }
         
         Ok(shadow_files)
+    }
+}
+
+/// Standard file repository implementation using real filesystem
+pub struct StandardFileRepository;
+
+impl StandardFileRepository {
+    /// Create new standard file repository
+    pub fn new() -> Self {
+        Self
+    }
+    
+    /// Secure file deletion with content overwriting
+    /// 
+    /// This function attempts to prevent data recovery by:
+    /// 1. Overwriting the file with cryptographically secure random data
+    /// 2. Synchronizing to ensure data is written to disk
+    /// 3. Removing the file from the filesystem
+    /// 
+    /// Note: Effectiveness depends on the underlying filesystem and storage medium.
+    /// SSDs and modern filesystems may not guarantee secure deletion due to
+    /// wear leveling and copy-on-write mechanisms.
+    fn secure_delete_internal(path: &Path) -> CryptoResult<()> {
+        use getrandom;
+        
+        // Ensure file exists before attempting deletion
+        if !path.exists() {
+            return Err(format!("File does not exist: {}", path.display()).into());
+        }
+        
+        // Get file size to determine how much to overwrite
+        let metadata = std::fs::metadata(path)
+            .map_err(|e| format!("Failed to get metadata for '{}': {}", path.display(), e))?;
+        let file_size = metadata.len();
+        
+        if file_size == 0 {
+            // Empty file, just remove it directly
+            std::fs::remove_file(path)
+                .map_err(|e| format!("Failed to remove empty file '{}': {}", path.display(), e))?;
+            return Ok(());
+        }
+        
+        // Open file for writing (preserving original size)
+        let mut file = OpenOptions::new()
+            .write(true)
+            .truncate(false)
+            .open(path)
+            .map_err(|e| format!("Failed to open file '{}' for secure deletion: {}", path.display(), e))?;
+        
+        // Seek to beginning
+        file.seek(SeekFrom::Start(0))
+            .map_err(|e| format!("Failed to seek in file '{}': {}", path.display(), e))?;
+        
+        // Overwrite with random data in chunks
+        const BUFFER_SIZE: usize = 8192; // 8KB buffer for efficiency
+        let mut buffer = [0u8; BUFFER_SIZE];
+        let mut remaining = file_size;
+        
+        while remaining > 0 {
+            let chunk_size = std::cmp::min(remaining, BUFFER_SIZE as u64) as usize;
+            
+            // Fill buffer with random data
+            getrandom::fill(&mut buffer[..chunk_size])
+                .map_err(|e| format!("Failed to generate random data for secure deletion: {}", e))?;
+            
+            // Write random data to file
+            file.write_all(&buffer[..chunk_size])
+                .map_err(|e| format!("Failed to overwrite file '{}': {}", path.display(), e))?;
+            
+            remaining -= chunk_size as u64;
+        }
+        
+        // Ensure data is written to disk
+        file.sync_all()
+            .map_err(|e| format!("Failed to sync file '{}': {}", path.display(), e))?;
+        
+        // Drop the file handle to close it
+        drop(file);
+        
+        // Finally, remove the file from filesystem
+        std::fs::remove_file(path)
+            .map_err(|e| format!("Failed to remove file '{}': {}", path.display(), e))?;
+        
+        Ok(())
+    }
+}
+
+impl Default for StandardFileRepository {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl FileRepository for StandardFileRepository {
+    fn read_file(&self, path: &Path) -> CryptoResult<Vec<u8>> {
+        std::fs::read(path)
+            .map_err(|e| {
+                match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        format!("File not found: '{}'", path.display())
+                    }
+                    std::io::ErrorKind::PermissionDenied => {
+                        format!("Permission denied reading file: '{}'", path.display())
+                    }
+                    _ => {
+                        format!("Failed to read file '{}': {}", path.display(), e)
+                    }
+                }
+            }.into())
+    }
+    
+    fn write_file(&self, path: &Path, content: &[u8]) -> CryptoResult<()> {
+        // Create parent directories if they don't exist
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| {
+                    match e.kind() {
+                        std::io::ErrorKind::PermissionDenied => {
+                            format!("Permission denied creating directory: '{}'", parent.display())
+                        }
+                        _ => {
+                            format!("Failed to create parent directories for '{}': {}", path.display(), e)
+                        }
+                    }
+                })?;
+        }
+        
+        std::fs::write(path, content)
+            .map_err(|e| {
+                match e.kind() {
+                    std::io::ErrorKind::PermissionDenied => {
+                        format!("Permission denied writing file: '{}'", path.display())
+                    }
+                    std::io::ErrorKind::NotFound => {
+                        format!("Parent directory does not exist for: '{}'", path.display())
+                    }
+                    _ => {
+                        format!("Failed to write file '{}': {}", path.display(), e)
+                    }
+                }
+            }.into())
+    }
+    
+    fn write_file_atomic(&self, path: &Path, content: &[u8]) -> CryptoResult<()> {
+        // Create parent directories if they don't exist
+        if let Some(parent) = path.parent() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Failed to create parent directories for '{}': {}", path.display(), e))?;
+        }
+        
+        // Create temporary file path
+        let temp_path = path.with_extension("tmp");
+        
+        // Write to temporary file first
+        {
+            let mut temp_file = File::create(&temp_path)
+                .map_err(|e| format!("Failed to create temp file '{}': {}", temp_path.display(), e))?;
+            
+            temp_file.write_all(content)
+                .map_err(|e| format!("Failed to write to temp file '{}': {}", temp_path.display(), e))?;
+            
+            // Ensure data is written to disk before rename
+            temp_file.sync_all()
+                .map_err(|e| format!("Failed to sync temp file '{}': {}", temp_path.display(), e))?;
+        }
+        
+        // Atomic rename
+        std::fs::rename(&temp_path, path)
+            .map_err(|e| {
+                // Clean up temp file on failure
+                let _ = std::fs::remove_file(&temp_path);
+                format!("Failed to atomically move '{}' to '{}': {}", temp_path.display(), path.display(), e)
+            })?;
+        
+        Ok(())
+    }
+    
+    fn delete_file_secure(&self, path: &Path) -> CryptoResult<()> {
+        Self::secure_delete_internal(path)
+    }
+    
+    fn file_exists(&self, path: &Path) -> bool {
+        path.exists()
+    }
+    
+    fn file_metadata(&self, path: &Path) -> CryptoResult<FileMetadata> {
+        let metadata = std::fs::metadata(path)
+            .map_err(|e| format!("Failed to get metadata for '{}': {}", path.display(), e))?;
+        
+        let file_type = if metadata.is_dir() {
+            FileType::Directory
+        } else if metadata.is_file() {
+            FileType::Regular
+        } else {
+            // Check for symlinks on Unix systems
+            #[cfg(unix)]
+            {
+                if metadata.file_type().is_symlink() {
+                    FileType::Symlink
+                } else {
+                    FileType::Other
+                }
+            }
+            #[cfg(not(unix))]
+            {
+                FileType::Other
+            }
+        };
+        
+        let original_filename = path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+        
+        let modified_time = metadata.modified()
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        
+        let created_time = metadata.created().ok();
+        
+        Ok(FileMetadata {
+            original_filename,
+            file_size: metadata.len(),
+            modified_time,
+            created_time,
+            file_type,
+        })
     }
 }

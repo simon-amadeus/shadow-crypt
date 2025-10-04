@@ -2,50 +2,41 @@
 
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.13.0**
+**⚠️ REWRITE IN PROGRESS - v0.15.0**
 
-**Rewrite Status**: 🎯 **Domain Entities Foundation** - Complete domain layer implementation ready for services  
-**Current Version**: v0.13.0 - All five core domain entities fully implemented per architectural specifications  
-**Next Priority**: Domain Services layer (EncryptionService, DecryptionService, ListingService, MigrationService)
+**Rewrite Status**: 🎯 **Repository Interfaces Foundation** - Complete infrastructure abstraction layer ready for application workflows  
+**Current Version**: v0.15.0 - Repository interfaces with both standard and mock implementations fully operational  
+**Next Priority**: Application Workflows (EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow)
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.13.0)**
-- **Complete Domain Entities**: All five core entities fully implemented according to specifications
-  - **FileMetadata**: Cross-platform metadata extraction with file type detection
-  - **PlaintextFile**: Content loading, SHA-256 hashing, and metadata integration
-  - **EncryptedFile**: Algorithm ID handling and TLV header integration
-  - **CryptoSession**: Secure key material management with automatic zeroization
-  - **DuplicateDetector**: Production-ready content hash database with multi-path scanning
-- **Comprehensive Testing**: 7 new unit tests plus existing test suite - all 128+ tests passing
-- **Architectural Foundation**: Clean entity interfaces ready for domain services layer
-- **Memory Safety**: SecureBox integration and automatic key material zeroization
+### ✅ **Completed (v0.15.0)**
+- **Complete Repository Interfaces**: Full infrastructure abstraction layer with production and testing implementations
+  - **FileRepository**: Atomic file operations, secure deletion, and comprehensive metadata handling
+  - **PasswordRepository**: Secure password input, confirmation, and strength validation
+  - **Standard Implementations**: Production-ready StandardFileRepository and StandardPasswordRepository
+  - **Mock Implementations**: Full-featured test infrastructure with operation tracking and failure simulation
+- **Enhanced Security**: Cryptographic secure deletion, atomic write operations, and memory-safe password handling
+- **Comprehensive Testing**: 12 integration tests covering all repository operations and error scenarios
+- **Clean Architecture**: Proper dependency inversion with infrastructure → domain direction
 
-### ✅ **Previous Foundation (v0.9.0-0.12.0)**
-- **Content Fingerprinting Infrastructure**: Complete SHA-256 content hashing system for duplicate detection
-- **TLV ContentHash Integration**: Seamless storage/retrieval of content hashes in encrypted file headers
-- **File Detection Service**: Complete FileDetector with magic number validation and double-encryption prevention
-- **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch and algorithm integration
-- **Error Handling Framework**: Security-conscious, user-friendly error system with CLI exit codes
-
-### ✅ **Core Foundation (v0.8.1-0.8.2)**
-- **Clean Architecture Compliance**: Complete domain/infrastructure separation following dependency inversion
-- **Dual Algorithm Support**: AES-256-GCM and XChaCha20-Poly1305 with unified interfaces
-- **TLV Header System V1**: Extensible Type-Length-Value format with version compatibility matrix
-- **Migration Service**: Complete migration orchestration with safety checks and backup/restore
+### ✅ **Foundation (v0.13.0-0.14.0)**
+- **Complete Domain Layer**: All entities and services fully implemented per architectural specifications
+- **Content Fingerprinting**: SHA-256 content hashing integrated throughout domain layer
+- **TLV Header System**: Extensible format with algorithm detection and version compatibility
+- **Memory Safety**: Automatic key material zeroization and secure data handling
 
 ### 🚧 **Next Priorities (P1)**
-- **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
-- **Repository Interfaces**: FileRepository and PasswordRepository implementations  
-- **Application Workflows**: Complete user-facing workflow orchestration
-- **CLI Integration**: Connect domain services to CLI binaries
+- **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+- **CLI Integration**: Connect domain workflows to CLI binaries
+- **End-to-End Testing**: Complete user workflow validation
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
 **Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
-**Testing**: 128+ tests covering domain entities, content fingerprinting, and cryptographic operations
+**Testing**: 140+ tests covering full domain layer and infrastructure abstractions
 
 ---
 
