@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-10-04
+
+### Added
+- **Configuration Provider Pattern**: Trait-based dependency injection for clean algorithm abstraction with `KeyDerivationConfig`, `EncryptionConfig`, and `CryptoConfig` interfaces
+- **XChaCha20-Poly1305 Provider**: Production-grade implementation with Argon2id key derivation, secure parameter validation, and factory pattern support
+- **Cryptographic Infrastructure**: `CryptoError` enum with security-conscious error messaging and comprehensive error handling framework
+- **Algorithm Abstraction**: Type-safe configuration composition enabling zero-cost runtime algorithm selection and polymorphic usage
+- **Security Parameter Validation**: Industry-standard parameter enforcement with separate test/production configurations
+- **Comprehensive Testing**: 10 tests covering trait implementation, provider patterns, dependency injection workflows, and security validation
+
+### Changed
+- **Domain Services**: Added crypto configuration module with clean interfaces for future cryptographic implementations
+- **Infrastructure Layer**: Established crypto module structure with providers, errors, and extensible algorithm support
+
 ## [0.2.1] - 2025-10-04
 
 ### Added
