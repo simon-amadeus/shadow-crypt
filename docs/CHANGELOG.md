@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-10-04
+
+### Added
+- **Version Compatibility Matrix**: Complete future-proof migration system with V1 baseline and explicit compatibility checking
+- **Migration Service**: Full migration orchestration with version transitions, safety checks, backup/restore functionality, and integrity verification
+- **Version Management**: `VersionMatrix` with V3→V1 migration path, compatibility checking, and extensible design for future versions
+- **Domain Integration**: `EncryptedFile` entity with version compatibility checking in file operations and migration status validation
+- **Error Handling**: User-friendly migration error messages with actionable guidance and context-preserving error chain
+- **Comprehensive Testing**: 20 tests covering version compatibility matrix, migration service functionality, domain integration, and future extensibility scenarios
+
+### Changed
+- **Domain Entities**: `EncryptedFile` now validates version compatibility during `from_file()` and `write_to_file()` operations
+- **Architecture Foundation**: Established version compatibility as core infrastructure enabling safe format evolution
+- **Migration Strategy**: Legacy V3 format can be read and migrated to V1 baseline, with no reverse migration for security
+
+### Technical Details
+- **V1 Baseline**: New format baseline derived from proven legacy V3 TLV structure
+- **Migration Path**: V3→V1 header migration preserving TLV structure, requires password for decrypt/re-encrypt cycle
+- **Safety Mechanisms**: Backup creation, integrity verification, atomic operations, and rollback on failure
+- **Future Compatibility**: Unknown versions properly rejected, extensible matrix design for V2, V3+ additions
+
 ## [0.2.2] - 2025-10-04
 
 ### Added

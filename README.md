@@ -1,16 +1,36 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS**
+**⚠️ REWRITE IN PROGRESS - v0.3.0**
 
-The version is now back to 0.1.0 - a preparation release for a complete architectural rewrite. The current implementation provides foundational patterns and security insights that inform the upcoming modern architecture rebuild.
-
-**Rewrite Status**: 🔄 Specifications complete (`docs/specs/`), implementation in progress  
-**Current Version**: Functional but legacy architecture  
-**Next Version**: Complete rewrite with modern patterns and enhanced features
+**Rewrite Status**: 🚀 **Core Infrastructure Complete** - Version compatibility matrix and migration system implemented  
+**Current Version**: v0.3.0 - Foundation architecture with version management  
+**Next Priority**: Error handling framework and cryptographic foundation
 
 ---
 
-## Current Implementation
+## Rewrite Progress
+
+### ✅ **Completed (v0.3.0)**
+- **Clean Architecture**: Domain/Application/Infrastructure/CLI layers established
+- **TLV Header System V1**: Extensible Type-Length-Value format preserving proven V3 patterns
+- **Configuration Providers**: Algorithm abstraction with XChaCha20-Poly1305 and AES-256-GCM support
+- **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path
+- **Migration Service**: Complete migration orchestration with safety checks and backup/restore
+
+### 🚧 **Next Priorities**
+- **Error Handling Framework**: User-friendly, security-conscious error messages
+- **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization
+- **Algorithm Abstraction Layer**: Pluggable interface for cryptographic implementations
+- **File Detection Logic**: Double-encryption prevention using magic number validation
+
+### 📋 **Implementation Strategy**
+**Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
+**Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
+**Testing**: 20+ tests covering version compatibility, migration, and domain integration
+
+---
+
+## Legacy Implementation (Still Functional)
 
 Simple, secure file encryption with modern cryptography.
 

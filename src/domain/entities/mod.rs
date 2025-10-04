@@ -9,3 +9,4 @@ pub mod crypto_session;
 pub mod duplicate_detector;
 pub mod file_metadata;
 pub mod tlv_header;
+pub mod version_matrix;
