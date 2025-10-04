@@ -59,29 +59,70 @@ impl<T: Zeroize> std::fmt::Debug for SecureBox<T> {
 /// 
 /// KeyMaterial provides a secure container for cryptographic key data
 /// that automatically zeroizes the key bytes when dropped. This follows
-/// the interface specified in PRESERVED_ARCHITECTURE.md.
+/// the patterns proven in the legacy implementation.
 #[derive(Debug)]
 pub struct KeyMaterial {
-    data: SecureBox<Vec<u8>>,
+    /// Master key derived from password and salt
+    pub master_key: SecureBox<[u8; 32]>,
+    /// Key used for file encryption/decryption  
+    pub encryption_key: SecureBox<[u8; 32]>,
+    /// Key used for filename obfuscation
+    pub obfuscation_key: SecureBox<[u8; 32]>,
 }
 
 impl KeyMaterial {
-    /// Create new key material from raw bytes
+    /// Create new key material from derived keys
     /// 
-    /// The provided bytes will be moved into a SecureBox and automatically
+    /// All provided keys will be moved into SecureBoxes and automatically
     /// zeroized when the KeyMaterial is dropped.
-    pub fn new(data: Vec<u8>) -> Self {
+    pub fn new(
+        master_key: [u8; 32],
+        encryption_key: [u8; 32], 
+        obfuscation_key: [u8; 32],
+    ) -> Self {
         Self {
-            data: SecureBox::new(data),
+            master_key: SecureBox::new(master_key),
+            encryption_key: SecureBox::new(encryption_key),
+            obfuscation_key: SecureBox::new(obfuscation_key),
         }
     }
     
-    /// Get a reference to the key bytes
+    /// Create key material from a master key by deriving sub-keys
     /// 
-    /// Returns the raw key material as a byte slice. Handle with care
-    /// as this exposes sensitive cryptographic data.
-    pub fn as_bytes(&self) -> &[u8] {
-        &self.data
+    /// Uses domain separation to derive encryption and obfuscation keys from the master key.
+    /// This provides cryptographic separation between different key uses while maintaining
+    /// deterministic derivation for consistency.
+    /// 
+    /// TODO: Replace with proper HKDF when crypto infrastructure is available
+    pub fn from_master_key(master_key: [u8; 32]) -> Self {
+        // This is a placeholder implementation using simple domain separation.
+        // Production code MUST use HKDF with proper info strings for domain separation.
+        
+        let encryption_key = Self::derive_subkey(&master_key, b"ENCRYPTION");
+        let obfuscation_key = Self::derive_subkey(&master_key, b"OBFUSCATION");
+        
+        Self::new(master_key, encryption_key, obfuscation_key)
+    }
+    
+    /// Derive a subkey from master key with domain separation
+    /// 
+    /// This provides basic domain separation using XOR with domain-specific constants.
+    /// This will be replaced with proper HKDF when crypto infrastructure is available.
+    fn derive_subkey(master_key: &[u8; 32], domain: &[u8]) -> [u8; 32] {
+        let mut subkey = [0u8; 32];
+        
+        // Simple domain separation: XOR master key with hashed domain string
+        let mut domain_hash = 0u64;
+        for &byte in domain {
+            domain_hash = domain_hash.wrapping_mul(31).wrapping_add(byte as u64);
+        }
+        
+        for i in 0..32 {
+            let domain_byte = ((domain_hash >> (i % 8)) & 0xFF) as u8;
+            subkey[i] = master_key[i] ^ domain_byte;
+        }
+        
+        subkey
     }
 }
 
@@ -104,17 +145,45 @@ mod tests {
     
     #[test] 
     fn key_material_basic_functionality() {
-        let key_bytes = vec![0xaa; 32];
-        let key_material = KeyMaterial::new(key_bytes.clone());
+        // Test creating KeyMaterial with explicit keys
+        let master_key = [0xaa; 32];
+        let encryption_key = [0xbb; 32];
+        let obfuscation_key = [0xcc; 32];
         
-        // Test as_bytes method
-        assert_eq!(key_material.as_bytes(), &key_bytes);
-        assert_eq!(key_material.as_bytes().len(), 32);
+        let key_material = KeyMaterial::new(master_key, encryption_key, obfuscation_key);
         
-        // Verify all bytes are correct
-        for byte in key_material.as_bytes() {
-            assert_eq!(*byte, 0xaa);
-        }
+        // Test access to individual keys
+        assert_eq!(key_material.master_key.expose_secret(), &master_key);
+        assert_eq!(key_material.encryption_key.expose_secret(), &encryption_key);
+        assert_eq!(key_material.obfuscation_key.expose_secret(), &obfuscation_key);
+    }
+    
+    #[test]
+    fn key_material_from_master_key() {
+        let master_key = [0x42; 32];
+        let key_material = KeyMaterial::from_master_key(master_key);
+        
+        // Verify master key is stored correctly
+        assert_eq!(key_material.master_key.expose_secret(), &master_key);
+        
+        // Verify derived keys are different from master key and each other
+        assert_ne!(key_material.encryption_key.expose_secret(), &master_key);
+        assert_ne!(key_material.obfuscation_key.expose_secret(), &master_key);
+        assert_ne!(
+            key_material.encryption_key.expose_secret(), 
+            key_material.obfuscation_key.expose_secret()
+        );
+        
+        // Verify derived keys are deterministic (same master key -> same derived keys)
+        let key_material2 = KeyMaterial::from_master_key(master_key);
+        assert_eq!(
+            key_material.encryption_key.expose_secret(),
+            key_material2.encryption_key.expose_secret()
+        );
+        assert_eq!(
+            key_material.obfuscation_key.expose_secret(),
+            key_material2.obfuscation_key.expose_secret()
+        );
     }
     
     #[test]
@@ -128,13 +197,18 @@ mod tests {
         assert!(!debug_output.contains("2"));
         assert!(!debug_output.contains("3"));
         
-        // Test KeyMaterial debug too
-        let key_material = KeyMaterial::new(vec![0xde, 0xad, 0xbe, 0xef]);
+        // Test KeyMaterial debug too  
+        let master_key = [0xde; 32];
+        let encryption_key = [0xad; 32]; 
+        let obfuscation_key = [0xbe; 32];
+        let key_material = KeyMaterial::new(master_key, encryption_key, obfuscation_key);
+        
         let key_debug = format!("{:?}", key_material);
         assert!(key_debug.contains("KeyMaterial"));
         assert!(key_debug.contains("[REDACTED]"));
         assert!(!key_debug.contains("0xde"));
         assert!(!key_debug.contains("0xad"));
+        assert!(!key_debug.contains("0xbe"));
     }
     
     #[test]
@@ -174,44 +248,50 @@ mod tests {
     }
     
     #[test]
-    fn key_material_handles_various_key_sizes() {
-        // Test common key sizes
+    fn key_material_handles_standard_key_sizes() {
+        // Test with 32-byte master keys (common size)
+        let master_key = [0x42; 32];
+        let encryption_key = [0x43; 32];
+        let obfuscation_key = [0x44; 32];
         
-        // 16 bytes (AES-128)
-        let key_16 = KeyMaterial::new(vec![0x42; 16]);
-        assert_eq!(key_16.as_bytes().len(), 16);
+        let key_material = KeyMaterial::new(master_key, encryption_key, obfuscation_key);
         
-        // 32 bytes (AES-256, ChaCha20)
-        let key_32 = KeyMaterial::new(vec![0x42; 32]);
-        assert_eq!(key_32.as_bytes().len(), 32);
+        // All keys should be 32 bytes
+        assert_eq!(key_material.master_key.expose_secret().len(), 32);
+        assert_eq!(key_material.encryption_key.expose_secret().len(), 32);
+        assert_eq!(key_material.obfuscation_key.expose_secret().len(), 32);
         
-        // 64 bytes (common derived key size)
-        let key_64 = KeyMaterial::new(vec![0x42; 64]);
-        assert_eq!(key_64.as_bytes().len(), 64);
-        
-        // Variable size
-        let key_var = KeyMaterial::new(vec![0x42; 100]);
-        assert_eq!(key_var.as_bytes().len(), 100);
+        // Verify content is correct
+        assert_eq!(key_material.master_key.expose_secret(), &master_key);
+        assert_eq!(key_material.encryption_key.expose_secret(), &encryption_key);
+        assert_eq!(key_material.obfuscation_key.expose_secret(), &obfuscation_key);
     }
     
     #[test]
-    fn api_matches_spec_requirements() {
-        // Test that our API matches the PRESERVED_ARCHITECTURE.md spec
+    fn api_matches_domain_architecture_spec() {
+        // Test that our API matches the domain architecture spec requirements
         
-        // Spec requirement: KeyMaterial { data: SecureBox<[u8]> }
-        // Our implementation: KeyMaterial { data: SecureBox<Vec<u8>> }
-        // Vec<u8> is functionally equivalent and more ergonomic
+        // The spec calls for KeyMaterial with three distinct keys
+        let master_key = [0x01; 32];
+        let encryption_key = [0x02; 32];
+        let obfuscation_key = [0x03; 32];
         
-        let key_data = vec![0x01, 0x02, 0x03, 0x04];
-        let key_material = KeyMaterial::new(key_data.clone());
+        let key_material = KeyMaterial::new(master_key, encryption_key, obfuscation_key);
         
-        // Spec requirement: as_bytes() -> &[u8]
-        assert_eq!(key_material.as_bytes(), &key_data);
+        // Spec requirement: Access to individual keys
+        assert_eq!(key_material.master_key.expose_secret(), &master_key);
+        assert_eq!(key_material.encryption_key.expose_secret(), &encryption_key);
+        assert_eq!(key_material.obfuscation_key.expose_secret(), &obfuscation_key);
         
-        // Spec requirement: new(data: Vec<u8>) -> Self
-        let _new_key = KeyMaterial::new(vec![0xff; 32]);
+        // Spec requirement: Automatic zeroization on drop (tested in other tests)
+        // Spec requirement: Debug safety (tested in other tests)
         
-        // Automatic zeroization on drop (tested in other test)
-        // Debug safety (tested in other test)
+        // Test derived key generation
+        let derived_material = KeyMaterial::from_master_key(master_key);
+        assert_eq!(derived_material.master_key.expose_secret(), &master_key);
+        
+        // Derived keys should be different from master
+        assert_ne!(derived_material.encryption_key.expose_secret(), &master_key);
+        assert_ne!(derived_material.obfuscation_key.expose_secret(), &master_key);
     }
 }

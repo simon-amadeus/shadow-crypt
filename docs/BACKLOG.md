@@ -1,17 +1,13 @@
 # Feature Backlog
 
-> **H2. **4. **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization for cryptographic hygiene
-5. **Algorithm Abstraction Layer**: XChaCha20-Poly1305 (default) + AES-256-GCM implementations with pluggable interface
-6. **File Detection Logic**: Robust double-encryption prevention using magic number validation
-7. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash fieldte Version Compatibility Matrix**: Future-proof migration system with V1 as baseline and explicit compatibility checking
-3. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidanceh-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
+> **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 IMPLEMENTATION GUIDANCE
 
 **Architecture Foundation (v0.2.0)**: Complete clean architecture rewrite completed - all code now in domain/application/infrastructure/cli layers with placeholder implementations.
 
 **Implementation Strategy**:
-- **Primary Guide**: Follow the space in `docs/specs/DOMAIN_ARCHITECTURE.md`, `docs/specs/ARCHITECTURE_REQUIREMENTS.md` and the other spec files precisely. If conflicts arise, make plans to adapt towards the best possible outcome while taking all context into account.
+- **Primary Guide**: Follow the specs in `docs/specs/DOMAIN_ARCHITECTURE.md`, `docs/specs/ARCHITECTURE_REQUIREMENTS.md` and the other spec files precisely. If conflicts arise, make plans to adapt towards the best possible outcome while taking all context into account.
 - **Legacy Reference**: Proven implementations available in `legacy/src/` - extract patterns but rewrite cleanly
 - **Key Legacy Assets**: 
   - TLV header system: `legacy/src/shared/header.rs` and `legacy/src/shared/versions/v3_tlv_poc.rs`
@@ -26,8 +22,10 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P0 - Cryptographic Foundation (Security)**
-7. **File Detection Logic**: Robust double-encryption prevention using magic number validation
-8. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
+1. **Algorithm Abstraction Layer**: XChaCha20-Poly1305 (default) + AES-256-GCM implementations with pluggable interface
+2. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
+3. **File Detection Logic**: Robust double-encryption prevention using magic number validation
+4. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
 
 ### **P1 - Critical Missing Features (User Safety)**
 8. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos

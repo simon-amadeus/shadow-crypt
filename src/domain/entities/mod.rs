@@ -14,3 +14,4 @@ pub mod secure_memory;
 
 // Re-export key types for easier access
 pub use secure_memory::{SecureBox, KeyMaterial};
+pub use crypto_session::{CryptoSession, AlgorithmId};

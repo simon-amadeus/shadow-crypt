@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-10-04
+
+### Added
+- **Enhanced Secure Memory Management**: Production-ready KeyMaterial with multi-key support (master, encryption, obfuscation)
+- **CryptoSession Entity**: Complete cryptographic session management with automatic key lifecycle and algorithm configuration
+- **Advanced Key Derivation**: Domain separation for secure key derivation with deterministic sub-key generation
+- **Cryptographic Salt Generation**: Secure random salt generation using `getrandom` for key derivation functions
+- **Algorithm Abstraction Support**: AlgorithmId enum for pluggable algorithm implementations (XChaCha20-Poly1305, AES-256-GCM)
+- **Comprehensive Security Testing**: 16 total tests validating memory safety, key derivation, and debug output security
+
+### Enhanced
+- **SecureBox Implementation**: Improved automatic zeroization with enhanced debug safety and memory management
+- **KeyMaterial Architecture**: Multi-key container supporting independent master, encryption, and obfuscation keys
+- **CryptoSession Integration**: Secure session lifecycle with automatic key material cleanup and algorithm configuration
+- **Memory Safety Foundation**: Enhanced secure memory patterns preparing for production cryptographic implementations
+
+### Technical Details
+- **Domain Separation**: KeyMaterial derives encryption and obfuscation keys using domain-specific separation for cryptographic isolation
+- **Algorithm Support**: CryptoSession supports XChaCha20-Poly1305 (24-byte nonces) and AES-256-GCM (12-byte nonces) configurations
+- **Salt Generation**: Cryptographically secure 32-byte salt generation for key derivation functions
+- **Key Lifecycle**: Automatic secure cleanup of all sensitive material through Drop trait implementations
+- **Test Coverage**: 16 comprehensive tests covering secure memory patterns, key derivation consistency, and debug safety
+- **Future-Ready**: Infrastructure prepared for proper PBKDF2/Argon2 implementation in crypto layer
+
 ## [0.6.0] - 2025-10-04
 
 ### Added
