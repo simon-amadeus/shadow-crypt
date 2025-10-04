@@ -2,6 +2,33 @@
 //! 
 //! Comprehensive error handling for the Shadow encryption system.
 //! Provides security-conscious, user-friendly error messages with actionable guidance.
+//! 
+//! ## Design Principles
+//! 
+//! - **User-Friendly**: All error messages are written in plain language with clear next steps
+//! - **Security-Conscious**: No sensitive implementation details exposed to end users
+//! - **Actionable**: Every error provides specific guidance on how to resolve the issue
+//! - **Structured**: Errors support both user display and programmatic handling
+//! - **Hierarchical**: Complex error scenarios are broken down into clear categories
+//! 
+//! ## Usage
+//! 
+//! ```rust
+//! use crate::domain::errors::{DomainError, ErrorData};
+//! 
+//! // Create user-friendly error messages
+//! let error = DomainError::AuthenticationFailed { context: "decryption".to_string() };
+//! println!("{}", error.user_friendly_message());
+//! 
+//! // Get CLI exit codes
+//! let exit_code = error.exit_code();
+//! 
+//! // Access structured error data for programmatic handling
+//! let data = error.error_data();
+//! if data.retry_recommended {
+//!     // Handle retryable errors
+//! }
+//! ```
 
 use std::fmt;
 
@@ -161,6 +188,48 @@ pub enum ConfigurationError {
     
     /// Configuration file parsing failed
     ConfigParsingFailed { reason: String },
+}
+
+/// Structured error data for programmatic handling
+#[derive(Debug, Clone)]
+pub struct ErrorData {
+    pub category: ErrorCategory,
+    pub severity: DomainErrorSeverity,
+    pub retry_recommended: bool,
+}
+
+/// Error categorization for programmatic handling
+#[derive(Debug, Clone, PartialEq)]
+pub enum ErrorCategory {
+    /// Authentication and credential-related errors
+    Authentication,
+    /// File system access and I/O errors
+    FileSystem,
+    /// Cryptographic operation failures
+    Cryptographic,
+    /// Input validation and business rule violations
+    Validation,
+    /// Security policy violations and threats
+    Security,
+    /// Configuration and setup errors
+    Configuration,
+    /// System resource constraints
+    Resource,
+    /// Uncategorized or mixed error types
+    Other,
+}
+
+/// Error severity levels for domain operations
+#[derive(Debug, Clone, PartialEq)]
+pub enum DomainErrorSeverity {
+    /// Low impact - informational or minor issues
+    Low,
+    /// Medium impact - operation failed but system stable
+    Medium,
+    /// High impact - significant failure requiring attention
+    High,
+    /// Critical impact - security breach or system integrity compromised
+    Critical,
 }
 
 impl fmt::Display for DomainError {
@@ -357,6 +426,95 @@ impl DomainError {
     /// Create a crypto error with message (for infrastructure implementations)
     pub fn crypto_error(message: String) -> Self {
         DomainError::CryptographicError(CryptographicError::EncryptionFailed { reason: message })
+    }
+    
+    /// Create an authentication error with context
+    pub fn authentication_failed(context: &str) -> Self {
+        DomainError::AuthenticationFailed { context: context.to_string() }
+    }
+    
+    /// Create a file access error with path context
+    pub fn file_access_denied(path: String, reason: &str) -> Self {
+        DomainError::FileSystemError(FileSystemError::PermissionDenied { 
+            path: format!("{} ({})", path, reason)
+        })
+    }
+    
+    /// Get appropriate exit code for CLI usage
+    pub fn exit_code(&self) -> i32 {
+        match self {
+            DomainError::AuthenticationFailed { .. } => 2,
+            DomainError::CryptographicError(CryptographicError::DecryptionFailed { .. }) => 2,
+            DomainError::FileSystemError(FileSystemError::PermissionDenied { .. }) => 3,
+            DomainError::FileSystemError(FileSystemError::FileAlreadyExists { .. }) => 4,
+            DomainError::FormatError(_) => 5,
+            DomainError::CryptographicError(CryptographicError::UnsupportedAlgorithm { .. }) => 6,
+            DomainError::SecurityViolation(_) => 7,
+            DomainError::ResourceError(_) => 8,
+            DomainError::ConfigurationError(_) => 9,
+            _ => 1, // Generic error
+        }
+    }
+    
+    /// Get user-friendly help text for common error scenarios
+    pub fn help_text(&self) -> Option<&'static str> {
+        match self {
+            DomainError::AuthenticationFailed { .. } => Some(
+                "Password tips:\n\
+                • Passwords are case-sensitive\n\
+                • Special characters may need escaping in your shell\n\
+                • Try typing the password instead of copy/paste"
+            ),
+            DomainError::FormatError(_) => Some(
+                "File format validation:\n\
+                • Check if file has .shadow extension\n\
+                • Verify file wasn't corrupted during transfer\n\
+                • Use 'file' command to check file type"
+            ),
+            DomainError::FileSystemError(FileSystemError::PermissionDenied { .. }) => Some(
+                "Permission troubleshooting:\n\
+                • Use 'ls -la' to check file permissions\n\
+                • Ensure parent directory is accessible\n\
+                • Consider running with different user privileges"
+            ),
+            _ => None,
+        }
+    }
+    
+    /// Get structured error data for programmatic handling
+    pub fn error_data(&self) -> ErrorData {
+        match self {
+            DomainError::AuthenticationFailed { .. } => ErrorData {
+                category: ErrorCategory::Authentication,
+                severity: DomainErrorSeverity::High,
+                retry_recommended: true,
+            },
+            DomainError::FileSystemError(_) => ErrorData {
+                category: ErrorCategory::FileSystem,
+                severity: DomainErrorSeverity::Medium,
+                retry_recommended: false,
+            },
+            DomainError::CryptographicError(_) => ErrorData {
+                category: ErrorCategory::Cryptographic,
+                severity: DomainErrorSeverity::High,
+                retry_recommended: true,
+            },
+            DomainError::SecurityViolation(_) => ErrorData {
+                category: ErrorCategory::Security,
+                severity: DomainErrorSeverity::High,
+                retry_recommended: false,
+            },
+            DomainError::FormatError(_) => ErrorData {
+                category: ErrorCategory::Validation,
+                severity: DomainErrorSeverity::Medium,
+                retry_recommended: false,
+            },
+            _ => ErrorData {
+                category: ErrorCategory::Other,
+                severity: DomainErrorSeverity::Medium,
+                retry_recommended: false,
+            },
+        }
     }
 }
 
@@ -774,5 +932,74 @@ mod tests {
         assert!(message.contains("'algorithm' = 'invalid_algo'"));
         assert!(message.contains("unknown algorithm"));
         assert!(message.contains("configuration documentation"));
+    }
+
+    #[test]
+    fn test_exit_codes_are_meaningful() {
+        assert_eq!(DomainError::AuthenticationFailed { context: "test".to_string() }.exit_code(), 2);
+        
+        let crypto_error = DomainError::CryptographicError(CryptographicError::DecryptionFailed { 
+            reason: "test".to_string() 
+        });
+        assert_eq!(crypto_error.exit_code(), 2);
+        
+        let file_exists_error = DomainError::FileSystemError(FileSystemError::FileAlreadyExists { 
+            path: "test.txt".to_string() 
+        });
+        assert_eq!(file_exists_error.exit_code(), 4);
+        
+        let format_error = DomainError::FormatError(FormatError::InvalidHeader { 
+            reason: "test".to_string() 
+        });
+        assert_eq!(format_error.exit_code(), 5);
+    }
+    
+    #[test]
+    fn test_help_text_availability() {
+        let auth_error = DomainError::AuthenticationFailed { context: "test".to_string() };
+        assert!(auth_error.help_text().is_some());
+        assert!(auth_error.help_text().unwrap().contains("case-sensitive"));
+        
+        let format_error = DomainError::FormatError(FormatError::InvalidHeader { 
+            reason: "test".to_string() 
+        });
+        assert!(format_error.help_text().is_some());
+        let help_text = format_error.help_text().unwrap();
+        assert!(help_text.contains("format") || help_text.contains("shadow"));
+        
+        let memory_error = DomainError::ResourceError(ResourceError::OutOfMemory { requested: 1000 });
+        assert!(memory_error.help_text().is_none());
+    }
+    
+    #[test]
+    fn test_error_categorization() {
+        let auth_error = DomainError::AuthenticationFailed { context: "test".to_string() };
+        let data = auth_error.error_data();
+        
+        assert!(matches!(data.category, ErrorCategory::Authentication));
+        assert!(matches!(data.severity, DomainErrorSeverity::High));
+        assert!(data.retry_recommended);
+        
+        let fs_error = DomainError::FileSystemError(FileSystemError::FileNotFound { 
+            path: "test.txt".to_string() 
+        });
+        let fs_data = fs_error.error_data();
+        
+        assert!(matches!(fs_data.category, ErrorCategory::FileSystem));
+        assert!(matches!(fs_data.severity, DomainErrorSeverity::Medium));
+        assert!(!fs_data.retry_recommended);
+    }
+    
+    #[test]
+    fn test_security_error_categorization() {
+        let security_error = DomainError::SecurityViolation(SecurityViolation::DoubleEncryptionAttempt { 
+            file: "test.txt".to_string() 
+        });
+        let data = security_error.error_data();
+        
+        assert!(matches!(data.category, ErrorCategory::Security));
+        assert!(matches!(data.severity, DomainErrorSeverity::High));
+        assert!(!data.retry_recommended);
+        assert!(security_error.is_security_related());
     }
 }

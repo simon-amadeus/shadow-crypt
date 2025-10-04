@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2025-10-04
+
+### Enhanced
+- **Domain Error Handling Framework**: Significantly enhanced the existing comprehensive error handling system with new capabilities for CLI integration and programmatic handling
+- **CLI Exit Code Support**: Added systematic exit code mapping for all domain error types (authentication=2, permissions=3, file conflicts=4, format=5, algorithm=6, security=7, resources=8, config=9)
+- **Structured Error Categorization**: Implemented `ErrorData` with category, severity, and retry recommendation for programmatic error handling
+- **Enhanced Help System**: Added contextual help text for common error scenarios (authentication, file format, permissions)
+- **Improved Documentation**: Enhanced error module documentation with usage examples and design principles
+
+### Added
+- **Error Convenience Methods**: New factory methods for common error scenarios (`authentication_failed`, `file_access_denied`)
+- **Domain Error Severity**: Introduced `DomainErrorSeverity` enum with clear severity levels (Low, Medium, High, Critical)
+- **Error Category System**: Comprehensive categorization (Authentication, FileSystem, Cryptographic, Validation, Security, Configuration, Resource, Other)
+
+### Technical
+- **Comprehensive Test Coverage**: 18 domain error tests covering user-friendliness, security properties, CLI integration, and error categorization
+- **Security Validation**: Verified no sensitive data leakage in error messages while maintaining actionable user guidance
+- **Architecture Compliance**: Enhanced error handling maintains clean architecture principles and security-conscious design
+- **Type Safety**: Added `PartialEq` to error enums for better testability and comparison capabilities
+
+### Foundation
+- **User Experience**: All error messages remain user-friendly with plain language and clear next steps
+- **Developer Experience**: Enhanced error handling supports both user display and programmatic processing
+- **CLI Integration**: Standardized exit codes enable proper shell scripting and automation workflows
+
 ## [0.8.0] - 2025-10-04
 
 ### Added
