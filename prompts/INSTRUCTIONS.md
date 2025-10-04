@@ -86,7 +86,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Critical Context for All Development Cycles**
 - **Legacy Code Location**: All previous implementation moved to `legacy/` folder (preserved with git history)
 - **Implementation Strategy**: Start from scratch based on `docs/specs/` - only copy/paste from legacy when explicitly needed per specs
-- **Primary Guidance**: Use `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md` as implementation blueprints
+- **Primary Guidance**: Use the specs in `docs/specs/**.md` as implementation blueprints
 - **Legacy Reference**: When implementing features, check `legacy/src/` for proven patterns and working code but rewrite according to new architecture
 - **Testing Approach**: Legacy tests in `legacy/tests/` - create new tests aligned with clean architecture
 - **Preserved Patterns**: TLV headers (`legacy/src/shared/header.rs`), config providers, version compatibility - reimplement cleanly
