@@ -81,7 +81,7 @@ impl TlvSerializer {
         // Read version
         let mut version_bytes = [0u8; 2];
         cursor.read_exact(&mut version_bytes)?;
-        let version = u16::from_le_bytes(version_bytes);
+        let _version = u16::from_le_bytes(version_bytes);
         
         // Create header with read values
         let mut header = TlvHeader::new();

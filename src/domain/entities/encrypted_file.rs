@@ -58,6 +58,29 @@ pub struct EncryptedFile {
 }
 
 impl EncryptedFile {
+    /// Get the TLV header
+    pub fn header(&self) -> &TlvHeader {
+        &self.header
+    }
+
+    /// Get the ciphertext
+    pub fn ciphertext(&self) -> &[u8] {
+        &self.ciphertext
+    }
+
+    /// Get the file metadata
+    pub fn metadata(&self) -> &FileMetadata {
+        &self.metadata
+    }
+
+    /// Get the total encrypted file size (header + ciphertext)
+    pub fn total_size(&self) -> usize {
+        // This would need proper TLV serialization to get accurate header size
+        // For now, estimate based on typical header size
+        let estimated_header_size = 256; // Rough estimate for TLV header
+        estimated_header_size + self.ciphertext.len()
+    }
+
     /// Create a new EncryptedFile with V1 header format
     pub fn new(header: TlvHeader, ciphertext: Vec<u8>) -> Self {
         let metadata = Self::extract_metadata_from_header(&header);

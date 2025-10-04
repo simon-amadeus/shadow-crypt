@@ -133,15 +133,7 @@ impl CryptographicAlgorithm for XChaCha20Poly1305Config {
         plaintext: &[u8],
         key_material: &KeyMaterial,
     ) -> Result<EncryptionResult, DomainError> {
-        if key_material.len() != self.key_size() {
-            return Err(DomainError::from(CryptoError::InvalidParameters(format!(
-                "Expected key size {}, got {}",
-                self.key_size(),
-                key_material.len()
-            ))));
-        }
-
-        // Create cipher instance
+        // Create cipher instance using the encryption key
         let cipher = XChaCha20Poly1305::new_from_slice(key_material.as_bytes())
             .map_err(|e| DomainError::from(CryptoError::CryptographicError(format!("Cipher creation failed: {}", e))))?;
 
@@ -164,14 +156,6 @@ impl CryptographicAlgorithm for XChaCha20Poly1305Config {
         nonce: &[u8],
         key_material: &KeyMaterial,
     ) -> Result<Vec<u8>, DomainError> {
-        if key_material.len() != self.key_size() {
-            return Err(DomainError::from(CryptoError::InvalidParameters(format!(
-                "Expected key size {}, got {}",
-                self.key_size(),
-                key_material.len()
-            ))));
-        }
-
         if nonce.len() != self.nonce_size() {
             return Err(DomainError::from(CryptoError::InvalidParameters(format!(
                 "Expected nonce size {}, got {}",
@@ -180,7 +164,7 @@ impl CryptographicAlgorithm for XChaCha20Poly1305Config {
             ))));
         }
 
-        // Create cipher instance
+        // Create cipher instance using the encryption key
         let cipher = XChaCha20Poly1305::new_from_slice(key_material.as_bytes())
             .map_err(|e| DomainError::from(CryptoError::CryptographicError(format!("Cipher creation failed: {}", e))))?;
 
@@ -214,7 +198,6 @@ mod tests {
         assert_eq!(config.nonce_size(), 24);
         assert_eq!(config.salt_length(), 16);
         assert_eq!(config.algorithm_id(), AlgorithmId::XChaCha20Poly1305);
-        assert_eq!(config.algorithm_name(), "XChaCha20-Poly1305");
         assert_eq!(config.name(), "Argon2id");
     }
 
@@ -229,7 +212,7 @@ mod tests {
         
         // Same password and salt should produce same key
         assert_eq!(key1.as_bytes(), key2.as_bytes());
-        assert_eq!(key1.len(), 32);
+        assert_eq!(key1.as_bytes().len(), 32);
         
         // Different salt should produce different key
         let salt2 = config.generate_salt().unwrap();

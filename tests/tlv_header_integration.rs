@@ -69,8 +69,9 @@ fn test_minimal_encryption_header() {
 #[test]
 fn test_duplicate_detection_workflow() {
     // Test content hash functionality for duplicate detection
-    let content1 = b"This is some file content";
-    let content2 = b"This is different content";
+    // Test data for potential future use
+    let _content1 = b"This is some file content";
+    let _content2 = b"This is different content";
     
     // Simulate computing SHA-256 hashes (would use actual SHA-256 in real implementation)
     let hash1 = [0x11u8; 32]; // Simulated hash of content1

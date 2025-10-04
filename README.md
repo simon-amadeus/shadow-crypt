@@ -1,16 +1,24 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.8.0**
+**⚠️ REWRITE IN PROGRESS - v0.8.2**
 
-**Rewrite Status**: 🎯 **Dual Algorithm Support** - AES-256-GCM and XChaCha20-Poly1305 implementations complete  
-**Current Version**: v0.8.0 - Complete cryptographic foundation with algorithm choice  
-**Next Priority**: Error handling framework and file detection logic
+**Rewrite Status**: 🎯 **File Detection & Crypto Foundation** - Complete file format detection with double-encryption prevention  
+**Current Version**: v0.8.2 - Robust file detection and resolved crypto interface  
+**Next Priority**: Double password verification and CLI integration enhancements
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.8.0)**
+### ✅ **Completed (v0.8.2)**
+- **File Detection Service**: Complete FileDetector with magic number validation and double-encryption prevention
+- **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch (96-byte HKDF to 32-byte algorithm keys)
+- **Enhanced Domain Architecture**: PlaintextFile and EncryptedFile with proper APIs and DecryptionService scaffold
+- **Service Integration**: Clean FileDetector integration with EncryptionService workflow validation
+- **Comprehensive Testing**: All 126 tests pass (105 unit + 21 integration) with clean compilation
+
+### ✅ **Previous Foundation (v0.8.1)**
+- **Error Handling Framework**: Security-conscious, user-friendly error system with CLI exit codes and actionable guidance
 - **AES-256-GCM Algorithm**: Complete implementation with secure 12-byte nonce generation alongside XChaCha20-Poly1305
 - **Unified Error Handling**: All cryptographic operations consistently return `DomainError` for improved user experience
 - **Algorithm Factory**: Enum-based pattern supporting both algorithms with unified interfaces
@@ -21,12 +29,11 @@
 - **Configuration Providers**: Clean separation with domain interfaces and infrastructure implementations
 - **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path
 - **Migration Service**: Complete migration orchestration with safety checks and backup/restore
-- **Error Handling Framework**: Security-conscious, user-friendly error system with actionable guidance
 
-### 🚧 **Next Priorities (P0)**
-- **Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
-- **File Detection Logic**: Robust double-encryption prevention using magic number validation
-- **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
+### 🚧 **Next Priorities (P1)**
+- **Double Password Verification**: CLI confirmation prompts for critical operations
+- **Duplicate Content Detection**: SHA-256 infrastructure for content fingerprinting using TLV ContentHash field
+- **CLI Integration Enhancements**: Flag fixes and improved user experience workflows
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  

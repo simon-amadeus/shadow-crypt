@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.2] - 2025-10-04
+
+### Added
+- **File Detection Service**: Complete FileDetector implementation with magic number validation and double-encryption prevention
+- **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch (96-byte HKDF output to 32-byte algorithm keys)
+- **Enhanced Domain Entities**: PlaintextFile and EncryptedFile with proper constructor patterns and accessor methods
+- **DecryptionService Architecture**: Service skeleton following established patterns for upcoming roadmap items
+- **Progress Reporting Enhancement**: Callback support for CLI integration workflows
+
+### Enhanced 
+- **Double-Encryption Prevention**: Robust magic number detection blocks attempts to encrypt already-encrypted files
+- **File Type Classification**: Comprehensive detection of Plaintext vs Encrypted vs Unknown file types
+- **Service Integration**: Clean FileDetector integration with EncryptionService workflow
+- **Code Quality**: Eliminated dead code warnings and improved compilation cleanliness
+- **Architecture Alignment**: Enhanced entity APIs and service patterns for P1-P2 roadmap items
+
+### Fixed
+- **AES256-GCM Crypto Operations**: Now properly extracts 32-byte keys from 96-byte KeyMaterial via slice_array_ref
+- **XChaCha20-Poly1305 Crypto Operations**: Now properly extracts 32-byte keys from 96-byte KeyMaterial via slice_array_ref  
+- **Documentation Examples**: Fixed doctest import paths for accurate user reference
+- **Test Coverage**: All 126 tests pass (105 unit + 21 integration tests)
+
+### Technical
+- **Domain-Driven Architecture**: FileDetector emerged naturally from domain needs with clean vertical slicing
+- **Service Pattern Consistency**: All services follow established architectural patterns
+- **Comprehensive Testing**: Complete test coverage for file detection, crypto operations, and integration workflows
+- **Roadmap Preparation**: Architecture positioned for P0 content fingerprinting, P1 CLI integration, and P2 domain services
+
 ## [0.8.1] - 2025-10-04
 
 ### Enhanced

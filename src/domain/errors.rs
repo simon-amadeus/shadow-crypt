@@ -14,7 +14,7 @@
 //! ## Usage
 //! 
 //! ```rust
-//! use crate::domain::errors::{DomainError, ErrorData};
+//! use shadow_crypt::domain::errors::{DomainError, ErrorData};
 //! 
 //! // Create user-friendly error messages
 //! let error = DomainError::AuthenticationFailed { context: "decryption".to_string() };
@@ -58,6 +58,12 @@ pub enum DomainError {
     
     /// Configuration error
     ConfigurationError(ConfigurationError),
+
+    /// Double encryption prevention safety check failed
+    DoubleEncryptionPrevention(String),
+
+    /// Invalid file format detected
+    InvalidFileFormat(String),
 }
 
 /// Cryptographic operation errors
@@ -243,6 +249,8 @@ impl fmt::Display for DomainError {
             DomainError::SecurityViolation(err) => write!(f, "Security violation: {}", err),
             DomainError::ResourceError(err) => write!(f, "Resource error: {}", err),
             DomainError::ConfigurationError(err) => write!(f, "Configuration error: {}", err),
+            DomainError::DoubleEncryptionPrevention(msg) => write!(f, "Double encryption prevented: {}", msg),
+            DomainError::InvalidFileFormat(msg) => write!(f, "Invalid file format: {}", msg),
         }
     }
 }
@@ -392,6 +400,16 @@ impl DomainError {
             DomainError::InputValidationError(input_err) => input_err.user_friendly_message(),
             DomainError::ResourceError(res_err) => res_err.user_friendly_message(),
             DomainError::ConfigurationError(cfg_err) => cfg_err.user_friendly_message(),
+            DomainError::DoubleEncryptionPrevention(msg) => {
+                format!("SECURITY: Double encryption blocked.\n\n{}\n\n\
+                This is a safety feature to prevent accidentally encrypting already-encrypted files,\n\
+                which would make them unrecoverable. Use --force if you really want to re-encrypt.", msg)
+            },
+            DomainError::InvalidFileFormat(msg) => {
+                format!("File format error: {}\n\n\
+                This file may be corrupted or in an unsupported format.\n\
+                Please check the file and try again.", msg)
+            },
         }
     }
 
