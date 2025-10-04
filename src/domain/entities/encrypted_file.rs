@@ -95,8 +95,11 @@ impl EncryptedFile {
 
     /// Load encrypted file from disk with version compatibility checking
     pub fn from_file(path: &Path, password: &str) -> Result<Self, EncryptedFileError> {
-        // Read file and detect version
-        let file_version = Self::detect_file_version(path)?;
+        use crate::infrastructure::file_system::FileSystemService;
+        
+        // Read header to detect version and validate file
+        let header = FileSystemService::read_header_only(path)?;
+        let file_version = header.version();
         let version_matrix = VersionMatrix::new_shadow_rewrite();
         let baseline_version = version_matrix.current_baseline();
         
@@ -104,7 +107,7 @@ impl EncryptedFile {
         match version_matrix.is_compatible(file_version, baseline_version) {
             VersionCompatibility::Compatible => {
                 // Can read directly
-                Self::load_compatible_file(path, password, file_version)
+                Self::load_compatible_file(path, password, header)
             }
             VersionCompatibility::RequiresMigration => {
                 // Need migration before use
@@ -122,14 +125,16 @@ impl EncryptedFile {
 
     /// Write encrypted file to disk using current baseline format
     pub fn write_to_file(&self, path: &Path) -> Result<(), EncryptedFileError> {
+        use crate::infrastructure::file_system::FileSystemService;
+        
         // Verify we're using supported version
         let current_version = self.version();
         if !self.version_matrix.can_write(current_version) {
             return Err(EncryptedFileError::UnsupportedVersion(current_version));
         }
 
-        // Placeholder implementation - would serialize header + ciphertext
-        self.write_v1_format(path)
+        // Use FileSystemService for atomic write operation
+        FileSystemService::write_encrypted_file(path, &self.header, &self.ciphertext)
     }
 
     /// Get the file version
@@ -177,50 +182,52 @@ impl EncryptedFile {
 
     // Private helper methods
 
-    fn extract_metadata_from_header(_header: &TlvHeader) -> FileMetadata {
+    fn extract_metadata_from_header(header: &TlvHeader) -> FileMetadata {
         use std::time::SystemTime;
         use crate::domain::entities::file_metadata::FileType;
         
-        // Placeholder implementation - would extract from header fields
+        // Extract filename from header, fallback to placeholder
+        let original_filename = header.original_filename()
+            .unwrap_or_else(|| "unknown.txt".to_string());
+        
         FileMetadata {
-            original_filename: "placeholder.txt".to_string(),
-            file_size: 0,
+            original_filename,
+            file_size: 0, // File size would be stored in metadata field
             modified_time: SystemTime::now(),
             created_time: Some(SystemTime::now()),
             file_type: FileType::Regular,
         }
     }
 
-    fn detect_file_version(_path: &Path) -> Result<u16, EncryptedFileError> {
-        // Placeholder implementation - would read file header magic and version
-        // For now, assume V1 format for new files, V3 for legacy
-        Ok(1) // Assume V1 baseline format
-    }
-
     fn load_compatible_file(
-        _path: &Path, 
-        _password: &str, 
-        _version: u16
+        path: &Path, 
+        _password: &str, // Password validation will be implemented later
+        header: TlvHeader
     ) -> Result<Self, EncryptedFileError> {
-        // Placeholder implementation - would:
-        // 1. Read file header and parse according to version
-        // 2. Read ciphertext
-        // 3. Create EncryptedFile instance
-
-        // For testing, create dummy instance
-        let header = TlvHeader::new();
-        let ciphertext = vec![0u8; 100]; // Dummy encrypted data
+        use std::fs::File;
+        use std::io::{Read, Seek, SeekFrom};
+        use crate::infrastructure::tlv_serialization::TlvSerializer;
         
+        // We already have the header, now read the ciphertext
+        let mut file = File::open(path)
+            .map_err(|e| EncryptedFileError::IoError(format!("Failed to open file: {}", e)))?;
+        
+        // Calculate header size by serializing the header we already parsed
+        let header_bytes = TlvSerializer::serialize(&header)
+            .map_err(|e| EncryptedFileError::HeaderParseError(format!("Header serialization error: {}", e)))?;
+        let header_size = header_bytes.len() as u64;
+        
+        // Seek past the header to read ciphertext
+        file.seek(SeekFrom::Start(header_size))
+            .map_err(|e| EncryptedFileError::IoError(format!("Failed to seek past header: {}", e)))?;
+        
+        // Read the remaining content as ciphertext
+        let mut ciphertext = Vec::new();
+        file.read_to_end(&mut ciphertext)
+            .map_err(|e| EncryptedFileError::IoError(format!("Failed to read ciphertext: {}", e)))?;
+        
+        // Create EncryptedFile instance
         Ok(Self::new(header, ciphertext))
-    }
-
-    fn write_v1_format(&self, _path: &Path) -> Result<(), EncryptedFileError> {
-        // Placeholder implementation - would:
-        // 1. Serialize header in V1 format
-        // 2. Write header + ciphertext to file atomically
-        
-        // For testing, assume success
-        Ok(())
     }
 
     fn verify_with_password(&self, _password: &str) -> Result<(), EncryptedFileError> {

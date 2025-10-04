@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.1] - 2025-10-04
+
+### Added
+- **EncryptedFile I/O Operations**: Complete file I/O implementation for encrypted files with TLV header integration
+- **FileSystemService**: Infrastructure service for efficient file operations including header-only reading
+- **Content Hash Extraction**: Ability to extract SHA-256 content hashes from encrypted file headers for duplicate detection
+- **Atomic File Writing**: Safe file writing with temporary files and automatic cleanup on errors
+- **Directory Scanning**: Batch processing capabilities to scan directories for Shadow encrypted files
+- **Shadow File Detection**: Automatic identification of valid Shadow encrypted files by magic number validation
+
+### Enhanced
+- **Error Messages**: Improved error context with file paths and specific failure descriptions
+- **Empty Header Support**: Robust handling of encrypted files with minimal headers (magic + version only)
+- **TLV Boundary Detection**: Accurate detection of header/ciphertext boundaries for efficient parsing
+- **Integration Testing**: Comprehensive test suite covering file I/O, content extraction, and error scenarios
+
+### Technical Details
+- Implemented efficient TLV header parsing without loading entire file content
+- Added atomic file operations with timestamp-based temporary file naming
+- Enhanced metadata extraction from TLV headers with proper filename handling
+- Implemented graceful error handling for corrupted files and I/O failures
+- Added directory scanning with resilient error handling for mixed file types
+
+### Tests
+- 7 new integration tests covering end-to-end file I/O workflows
+- Edge case testing for empty headers, corrupted files, and boundary detection
+- Performance validation for large file scenarios
+
+This release enables the next phase of duplicate content detection by providing the foundational file I/O operations needed to scan existing encrypted files and extract their content fingerprints.
+
+## [0.9.0] - Previous Release
+- [Previous changelog entries...]
+
 ## [0.9.0] - 2025-10-04
 
 ### Added
