@@ -21,19 +21,19 @@ exclude = [
 # Binary targets for each use case
 [[bin]]
 name = "shadow"
-path = "src/main.rs"
+path = "src/bin/shadow.rs"
 
 [[bin]]
 name = "unshadow"
-path = "src/cli/unshadow.rs"
+path = "src/bin/unshadow.rs"
 
 [[bin]]
 name = "shadows"
-path = "src/cli/shadows.rs"
+path = "src/bin/shadows.rs"
 
 [[bin]]
 name = "shadowmigrate"
-path = "src/cli/shadowmigrate.rs"
+path = "src/bin/shadowmigrate.rs"
 
 [dependencies]
 # Cryptographic dependencies for Phase 3
