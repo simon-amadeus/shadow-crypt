@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2025-10-04
+
+### Added
+- **Complete Architecture Rewrite**: Implemented clean layered architecture (domain/application/infrastructure/cli) aligned with domain specifications
+- **Domain Layer**: Created entities (EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata), services (Encryption, Decryption, Listing, Migration), and repository interfaces
+- **Application Layer**: Established workflows for end-to-end operations (EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow)
+- **Infrastructure Layer**: Prepared implementation slots for crypto, file system, and terminal operations
+- **CLI Layer**: Restructured binary implementations (shadow, unshadow, shadows, shadowmigrate) with clean separation
+- **Legacy Preservation**: Moved all existing code to `legacy/` folder preserving complete git history for reference
+
+### Changed
+- **BREAKING CHANGE**: Complete codebase restructure - all previous module paths invalidated
+- **Testing Strategy**: Removed legacy integration tests, established clean testing foundation for new architecture
+- **Binary Paths**: Updated Cargo.toml to point to new CLI layer structure
+- **Development Approach**: Shifted from incremental changes to clean slate implementation based on domain specifications
+
+### Summary
+This version completes the **architecture rewrite foundation phase**. All modules compile successfully with placeholder implementations ready for incremental feature development. The clean architecture enables maintainable, testable, and extensible implementation of the Shadow file encryption suite according to domain-driven design principles.
+
+**Foundation Ready**: Clean layered architecture with domain entities, services, workflows, and CLI structure
+**Next Phase**: Implement TLV Header System V1 as core cryptographic foundation
+
 ## [0.1.1] - 2025-10-04
 
 ### Added

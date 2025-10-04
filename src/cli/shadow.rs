@@ -1,8 +1,8 @@
-//! # Shadow CLI Implementation
+//! # Shadow CLI Binary
 //!
-//! Shared implementation for shadow binary.
+//! File encryption binary implementation.
 
-/// Implementation for shadow binary
-pub fn run() -> Result<(), Box<dyn std::error::Error>> {
+/// Main function for shadow binary
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     todo!("Implement shadow binary according to domain architecture specs")
 }
