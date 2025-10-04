@@ -43,9 +43,7 @@ use std::fs::File;
 use std::io::{BufReader, Read};
 use sha2::{Sha256, Digest};
 use crate::domain::errors::{DomainError, DomainResult};
-
-/// Content hash type for duplicate detection
-pub type ContentHash = [u8; 32]; // SHA-256
+use crate::domain::utilities::content_hash::ContentHash;
 
 /// Buffer size for chunked file reading (8KB for memory efficiency)
 const BUFFER_SIZE: usize = 8192;

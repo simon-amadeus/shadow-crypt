@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2025-10-04
+
+### Added
+- **EncryptionService Content Hash Integration**: Complete integration of content fingerprinting with file encryption
+- **Automatic Content Hash Calculation**: SHA-256 hash calculated before encryption for every file operation
+- **TLV Header Content Hash Storage**: Content hashes automatically stored in encrypted file headers
+- **Duplicate Detection Workflow**: Real-time duplicate detection during encryption with user warnings
+- **Content Hash Utilities**: Shared utility functions for consistent hash calculation across codebase
+- **EncryptionResult Enhancement**: Added content_hash field to track content fingerprints in results
+- **Duplicate Database Integration**: Newly encrypted files automatically tracked in duplicate detection database
+
+### Enhanced
+- **Domain Architecture**: Extracted shared content hash utilities to domain layer for reusability
+- **EncryptionService API**: Streamlined content hash handling with cleaner, more maintainable code
+- **Error Handling**: Improved integration error handling between encryption and duplicate detection systems
+- **Test Coverage**: Comprehensive integration tests for end-to-end content hash workflow
+
+### Technical Details
+- Integrated DuplicateDetector with EncryptionService duplicate detection options
+- Implemented automatic content hash calculation using SHA-256 before encryption begins
+- Enhanced TLV header workflow to include content hash storage in all encrypted files
+- Added content hash utilities module for consistent hash calculation across components
+- Refactored EncryptionResult to include content fingerprint tracking
+- Maintained clean domain boundaries with proper dependency inversion
+
+### Tests
+- 3 new integration tests covering complete content hash integration workflow
+- End-to-end validation of encrypt → hash → store → detect → track cycle
+- Performance testing with multiple file batch operations
+- Content hash persistence verification through TLV header operations
+- Duplicate detection accuracy validation with identical and unique content
+
+### User Experience
+- Real-time duplicate warnings during encryption process with file path listings
+- Progress reporting includes duplicate checking status for transparency
+- Maintains existing encryption performance while adding safety features
+
+This release completes the core content fingerprinting integration, enabling users to detect duplicate content automatically during encryption operations and track content hashes for future duplicate detection.
+
 ## [0.9.1] - 2025-10-04
 
 ### Added

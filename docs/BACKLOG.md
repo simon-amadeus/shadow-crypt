@@ -20,23 +20,22 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P1 - Critical Missing Features (User Safety)**
-1. **EncryptionService Integration**: Integrate content fingerprinting infrastructure with EncryptionService. Calculate content hash before encryption, check for duplicates, store ContentHash in TLV header, and prompt user when duplicates found.
-2. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos
-3. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
-4. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
-5. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
+1. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos
+2. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
+3. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
+4. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
 
 ### **P2 - Domain Architecture (Business Logic)**
-6. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
-7. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
-8. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
-9. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+5. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
+6. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
+7. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
+8. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
 
 ### **P3 - CLI Integration (User Interface)**
-10. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
-11. **unshadow Binary**: File decryption with automatic filename restoration
-12. **shadows Binary**: Directory listing with original filename display and metadata
-13. **shadowmigrate Binary**: Version migration and format updates
+9. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
+10. **unshadow Binary**: File decryption with automatic filename restoration
+11. **shadows Binary**: Directory listing with original filename display and metadata
+12. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 

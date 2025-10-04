@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use crate::domain::entities::{duplicate_detector::DuplicateDetector, tlv_header::{TlvHeader, TlvFieldType}, AlgorithmId};
 use crate::domain::errors::{DomainError, DomainResult, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
+use crate::domain::utilities::content_hash::{ContentHash, calculate_content_hash};
 use crate::infrastructure::tlv_serialization::TlvSerializer;
 
 /// Orchestrates file encryption with duplicate detection and progress reporting
@@ -29,6 +30,7 @@ pub struct EncryptionOptions {
 pub struct EncryptionResult {
     pub input_path: PathBuf,
     pub output_path: PathBuf,
+    pub content_hash: ContentHash,
     pub algorithm: AlgorithmId,
     pub duration: Duration,
 }
@@ -125,22 +127,39 @@ impl EncryptionService {
         // Prevent double-encryption (the core integration with FileDetector)
         self.file_detector.validate_encryption_safety(input_path, options.force_overwrite)?;
 
-        // Phase 2: Duplicate detection (if enabled)
-        if options.check_duplicates {
-            if let Some(_detector) = &self.duplicate_detector {
-                self.progress_reporter.report_progress("Checking for duplicates...");
-                // Duplicate detection implementation would go here
-                // For now, just log that it's enabled
-            }
-        }
-
-        // Phase 3: Read file contents
+        // Phase 2: Read file contents and calculate content hash
         self.progress_reporter.report_progress("Reading file contents...");
         let content = std::fs::read(input_path)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                 operation: format!("read file {}", input_path.display()),
                 reason: e.to_string(),
             }))?;
+
+        // Calculate content hash for fingerprinting and duplicate detection
+        let content_hash = calculate_content_hash(&content);
+
+        // Phase 3: Duplicate detection (if enabled)
+        if options.check_duplicates {
+            if let Some(detector) = &self.duplicate_detector {
+                self.progress_reporter.report_progress("Checking for duplicates...");
+                
+                // Check if this content hash already exists
+                if let Some(duplicate_paths) = detector.check_duplicate(&content_hash) {
+                    // For now, log the duplicates - user prompt will be added in Phase 4
+                    self.progress_reporter.report_progress(&format!(
+                        "Warning: Found {} files with identical content", 
+                        duplicate_paths.len()
+                    ));
+                    for path in duplicate_paths {
+                        self.progress_reporter.report_progress(&format!(
+                            "  Duplicate: {}", 
+                            path.display()
+                        ));
+                    }
+                    // TODO: Implement user prompt for duplicate handling decision
+                }
+            }
+        }
 
         // Phase 4: Generate key material
         self.progress_reporter.report_progress("Deriving encryption keys...");
@@ -151,7 +170,7 @@ impl EncryptionService {
         self.progress_reporter.report_progress("Encrypting file...");
         let encryption_result = algorithm.encrypt(&content, &key_material)?;
 
-        // Phase 6: Create TLV header
+        // Phase 6: Create TLV header with content hash
         self.progress_reporter.report_progress("Creating TLV header...");
         let mut header = TlvHeader::new();
         
@@ -163,6 +182,9 @@ impl EncryptionService {
         
         // Add salt field (using key derivation params)
         header.add_field(TlvFieldType::KeyDerivationParams, salt);
+
+        // Add content hash for duplicate detection and integrity
+        header.set_content_hash(content_hash);
 
         // Phase 7: Serialize header and write encrypted file
         let header_bytes = TlvSerializer::serialize(&header)
@@ -182,7 +204,14 @@ impl EncryptionService {
                 reason: e.to_string(),
             }))?;
 
-        // Phase 8: Source removal (if requested)
+        // Phase 8: Track encrypted file in duplicate database (if duplicate detection enabled)
+        if options.check_duplicates {
+            if let Some(detector) = &mut self.duplicate_detector {
+                detector.add_encrypted_file(output_path.to_path_buf(), content_hash);
+            }
+        }
+
+        // Phase 9: Source removal (if requested)
         if options.remove_source {
             self.progress_reporter.report_progress("Removing source file...");
             std::fs::remove_file(input_path)
@@ -198,6 +227,7 @@ impl EncryptionService {
         Ok(EncryptionResult {
             input_path: input_path.to_path_buf(),
             output_path: output_path.to_path_buf(),
+            content_hash,
             algorithm: algorithm.algorithm_id(),
             duration,
         })
