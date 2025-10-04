@@ -2,6 +2,20 @@
 
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
+## 🎯 IMPLEMENTATION GUIDANCE
+
+**Architecture Foundation (v0.2.0)**: Complete clean architecture rewrite completed - all code now in domain/application/infrastructure/cli layers with placeholder implementations.
+
+**Implementation Strategy**:
+- **Primary Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md` precisely
+- **Legacy Reference**: Proven implementations available in `legacy/src/` - extract patterns but rewrite cleanly
+- **Key Legacy Assets**: 
+  - TLV header system: `legacy/src/shared/header.rs` and `legacy/src/shared/versions/v3_tlv_poc.rs`
+  - Configuration providers: `legacy/src/shared/algorithms/config.rs`
+  - Cryptographic implementations: `legacy/src/shared/algorithms/xchacha20_poly1305/` and `legacy/src/shared/algorithms/aes_gcm/`
+  - Error handling: `legacy/src/shared/core/errors.rs`
+- **Clean Slate Approach**: Start from specs, reference legacy only when needed for proven patterns
+
 ## 🎯 CURRENT WORK
 *No active work - ready for next cycle*
 
