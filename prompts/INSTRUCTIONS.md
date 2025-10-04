@@ -10,8 +10,6 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - **docs/CHANGELOG.md**: Completed work history (semantic versioning, relevant changes only)
 - **docs/FEEDBACK.md**: User feedback pipeline ("New Feedback" section, process regularly)
 - **docs/specs/**: Implementation specifications and architectural blueprints (primary reference)
-- **docs/LEGACY_REFERENCE.md**: Guide for using preserved legacy code during clean reimplementation
-- **legacy/src/**: Preserved legacy implementation for reference patterns (do not modify)
 
 ## 8-Phase Development Cycle
 
@@ -128,16 +126,6 @@ Organize code around complete user capabilities rather than technical layers. Ar
 - Refactor toward shared infrastructure only when patterns are proven
 - Use specs in `docs/specs/` to guide domain boundary discovery
 - Allow architecture to evolve through the development cycle process
-
-## Rewrite Implementation Context
-**Critical Context for All Development Cycles**
-- **Legacy Code Location**: All previous implementation moved to `legacy/` folder (preserved with git history)
-- **Implementation Strategy**: Start from scratch based on `docs/specs/` - only copy/paste from legacy when explicitly needed per specs
-- **Primary Guidance**: Use the specs in `docs/specs/**.md` as implementation blueprints
-- **Legacy Reference**: When implementing features, check `legacy/src/` for proven patterns and working code but rewrite according to new architecture
-- **Testing Approach**: Legacy tests in `legacy/tests/` - create new tests aligned with clean architecture
-- **Preserved Patterns**: TLV headers (`legacy/src/shared/header.rs`), config providers, version compatibility - reimplement cleanly
-- **Dependencies**: Current `Cargo.toml` already has required dependencies - focus on clean implementation over dependency changes
 
 ## Quality Gates
 - ✅ Clean compilation, passing tests (unit, integration, end-to-end)
