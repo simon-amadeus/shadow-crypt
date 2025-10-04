@@ -11,7 +11,7 @@
 **Architecture Foundation (v0.2.0)**: Complete clean architecture rewrite completed - all code now in domain/application/infrastructure/cli layers with placeholder implementations.
 
 **Implementation Strategy**:
-- **Primary Guide**: Follow the `docs/specs/**.md` files precisely. If conflicts arise, make plans to adapt towards the best possible outcome while taking all context into account.
+- **Primary Guide**: Follow the space in `docs/specs/DOMAIN_ARCHITECTURE.md`, `docs/specs/ARCHITECTURE_REQUIREMENTS.md` and the other spec files precisely. If conflicts arise, make plans to adapt towards the best possible outcome while taking all context into account.
 - **Legacy Reference**: Proven implementations available in `legacy/src/` - extract patterns but rewrite cleanly
 - **Key Legacy Assets**: 
   - TLV header system: `legacy/src/shared/header.rs` and `legacy/src/shared/versions/v3_tlv_poc.rs`

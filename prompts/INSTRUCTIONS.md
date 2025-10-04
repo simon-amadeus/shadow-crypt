@@ -13,7 +13,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - **docs/LEGACY_REFERENCE.md**: Guide for using preserved legacy code during clean reimplementation
 - **legacy/src/**: Preserved legacy implementation for reference patterns (do not modify)
 
-## 7-Phase Development Cycle
+## 8-Phase Development Cycle
 
 ### 1. **SYNC**
 **Purpose**: Ensure all documentation reflects current reality
@@ -30,6 +30,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 ### 3. **PLAN**
 **Purpose**: Transform backlog item into executable plan
 - **docs/BACKLOG.md → docs/CURRENT_CYCLE.md**: Create detailed plan for top priority item
+- Include docs, specs and the current state of the codebase as context
 - Define success criteria, approach, and validation steps
 - Remove selected item from docs/BACKLOG.md (it's now in docs/CURRENT_CYCLE.md)
 
@@ -46,7 +47,25 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - Continuous validation against success criteria
 - **Decision Gate**: Assess if another cycle is needed or if work is complete
 
-### 6. **REFLECT & ADAPT**
+### 6. **REFACTOR**
+**Purpose**: Improve code quality and architecture after successful implementation
+**Mandatory Execution**: Execute this phase after every implementation, regardless of size
+**Scope**: Apply refactoring to the code implemented in the current cycle plus any related code that can be improved
+**Actions**:
+- **Roadmap Alignment**: Review `docs/BACKLOG.md` to ensure refactoring decisions support upcoming planned work
+- **Architectural Evolution**: Let structure emerge from domain understanding while considering future requirements
+- **Inward Pointing**: Ensure all modules and functions point inward toward core domain logic
+- **Code Quality & Security**: Improve clarity, eliminate technical debt, enhance security patterns
+- **Abstraction Evaluation**: Extract to shared modules only when actual duplication is proven and roadmap supports it
+- **Test & Documentation**: Enhance test clarity and ensure code remains self-documenting
+**Validation**:
+- All tests must continue passing after refactoring
+- Code must compile cleanly with no warnings
+- Refactoring aligns with and enables roadmap priorities
+- Architecture supports both current functionality and planned future work
+**Documentation**: Record significant refactoring decisions and roadmap considerations in docs/CURRENT_CYCLE.md
+
+### 7. **REFLECT & ADAPT**
 **Purpose**: Incorporate learnings and new insights
 **Triggers**: Execute only if any of these occurred:
 - Further work is needed to complete original item
@@ -62,7 +81,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
     - Let next INTAKE phase process these through normal feedback pipeline (docs/FEEDBACK.md → docs/BACKLOG.md)
     - This preserves rich context that would be lost in high-level backlog items
 
-### 7. **FINALIZE**
+### 8. **FINALIZE**
 **Purpose**: Finalize work and update documentation chain
 - **docs/CURRENT_CYCLE.md → docs/CHANGELOG.md**: Archive completed work with semantic versioning
 - **Update Cargo.toml version**: Sync package version with changelog version for releases
@@ -82,6 +101,33 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - Breaking changes are preferred over suboptimal implementations
 - Focus on what the codebase should be, not what it was
 
+## Architectural Principles
+**Vertical Slicing for Feature-Driven Organization**
+
+Organize code around complete user capabilities rather than technical layers. Architecture should emerge through iterative development guided by user needs and domain boundaries discovered during implementation.
+
+**Core Principles:**
+- **User-Centric Boundaries**: Module boundaries align with complete user workflows and capabilities
+- **Feature Completeness**: Each slice delivers end-to-end user value with minimal external dependencies
+- **Natural Emergence**: Let architecture emerge from domain understanding rather than predetermined technical structures
+- **Shared Infrastructure**: Extract to shared modules only when multiple capabilities need identical functionality
+- **Independent Evolution**: Different user capabilities can evolve and be deployed independently
+- **Testability**: Each capability slice should be testable in isolation with minimal mocking
+
+**Decision Framework:**
+- Does this grouping represent a complete user capability?
+- Can this feature be developed, tested, and deployed independently?
+- Are we extracting shared concerns based on actual duplication, not anticipated reuse?
+- Does the module boundary reflect natural domain concepts?
+- Would splitting or combining improve clarity and maintainability?
+
+**Guidance for Emergence:**
+- Start with user-facing workflows and let technical organization follow
+- Prefer clear duplication over premature abstraction
+- Refactor toward shared infrastructure only when patterns are proven
+- Use specs in `docs/specs/` to guide domain boundary discovery
+- Allow architecture to evolve through the development cycle process
+
 ## Rewrite Implementation Context
 **Critical Context for All Development Cycles**
 - **Legacy Code Location**: All previous implementation moved to `legacy/` folder (preserved with git history)
@@ -95,7 +141,8 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 ## Quality Gates
 - ✅ Clean compilation, passing tests (unit, integration, end-to-end)
 - ✅ Security reviewed, performance validated
-- ✅ Architecture supports vertical slicing and future extension
+- ✅ Architecture reflects user-centric organization with clear domain boundaries
+- ✅ Code refactored for quality, maintainability, and performance
 - ✅ Documentation updated, changes committed using conventional commits standard
 - ✅ Cargo.toml version matches changelog version for releases
 
@@ -123,6 +170,8 @@ docs/CURRENT_CYCLE.md → docs/FEEDBACK.md (detailed context) → next cycle's d
 **Exit Points:**
 - **Completed Work**: docs/CURRENT_CYCLE.md → docs/CHANGELOG.md (via FINALIZE phase)
 - **Additional Requirements**: docs/CURRENT_CYCLE.md → docs/FEEDBACK.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
+
+**Mandatory Refactoring**: Every implementation cycle includes a dedicated REFACTOR phase to ensure continuous code quality improvement and technical debt prevention.
 
 **Cycle Restart**: Each new cycle begins with SYNC phase checking current state of docs/BACKLOG.md
 
