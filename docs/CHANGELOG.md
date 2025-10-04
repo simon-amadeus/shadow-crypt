@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.19.0] - 2025-10-04
+
+### Added
+- **Filename Obfuscation for Enhanced Privacy**: Complete filename obfuscation system using cryptographically secure UUID generation
+  - **FilenameObfuscator Utility**: Domain utility providing secure filename obfuscation and restoration capabilities
+  - **UUID-Based Obfuscation**: Uses UUID v4 for 122 bits of entropy, ensuring no correlation between original and obfuscated names
+  - **Standard Extension Consistency**: Obfuscated files maintain `.shadow` extension for format recognition (e.g., `uuid.shadow` or `uuid.txt.shadow`)
+  - **Cross-Platform Safety**: Validates filenames against Windows reserved names and problematic characters for broad compatibility
+  - **Security Validation**: Prevents path traversal attacks by rejecting filenames with path separators during restoration
+  - **TLV Header Integration**: Original filenames stored securely in TLV header metadata for automatic restoration during decryption
+  - **CLI Support**: `--obfuscate` flag in shadow binary enables filename obfuscation for enhanced privacy
+  - **Service Integration**: EncryptionService and DecryptionService support filename obfuscation workflows
+  - **Automatic Restoration**: DecryptionService automatically restores original filenames from TLV header metadata
+  - **Extension Handling**: Configurable extension preservation for compatibility when needed
+
+### Enhanced
+- **Application Workflow Integration**: EncryptionWorkflow now generates obfuscated output paths when `--obfuscate` flag is enabled
+- **Error Handling**: Comprehensive error handling for filename validation, security checks, and obfuscation failures
+- **Test Coverage**: 15 unit tests plus 6 integration tests covering filename obfuscation functionality and security scenarios
+- **Documentation**: Enhanced module documentation with usage examples and security considerations
+
+### Technical Details
+- Filename obfuscation uses UUID v4 generation for cryptographically secure random filenames
+- Original filenames stored in TLV header `OriginalFilename` field for automatic restoration
+- Cross-platform filename safety validation prevents filesystem-specific issues
+- Security validation prevents path traversal attacks during filename restoration
+- Integration maintains backward compatibility with existing encrypted files
+- Performance impact is minimal due to efficient UUID generation and validation algorithms
+
 ## [0.18.0] - 2025-10-04
 
 ### Added

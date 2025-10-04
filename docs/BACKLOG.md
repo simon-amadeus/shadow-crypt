@@ -19,20 +19,14 @@
 
 ## 📋 PRIORITY ROADMAP
 
-### **P1 - Critical Missing Features (User Safety)**
-*No items - critical safety issues resolved*
-
-### **P2 - Domain Architecture (Business Logic)**
-*No items - application workflows complete*
-
-### **P3 - CLI Integration (User Interface)**
-7. **unshadow Binary**: File decryption with automatic filename restoration
-8. **shadows Binary**: Directory listing with original filename display and metadata
-9. **shadowmigrate Binary**: Version migration and format updates
+### **CLI Integration (User Interface)**
+1. **unshadow Binary**: File decryption with automatic filename restoration
+2. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
+3. **shadows Binary**: Directory listing with original filename display and metadata
+4. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 
-- **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
 - **Async File Operations**: Large directory scanning optimization for 1000+ files with async I/O operations
 - **Domain Event System**: Content fingerprinting operations emit domain events for audit trails and monitoring
 - **Memory Management Optimization**: LRU cache for ContentHashDatabase to prevent unbounded memory growth in high-volume scenarios

@@ -9,6 +9,7 @@ use crate::domain::entities::{duplicate_detector::DuplicateDetector, tlv_header:
 use crate::domain::errors::{DomainError, DomainResult, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::utilities::content_hash::{ContentHash, calculate_content_hash};
+use crate::domain::utilities::filename_obfuscation::{FilenameObfuscator, ObfuscatedFilename};
 use crate::infrastructure::tlv_serialization::TlvSerializer;
 
 /// Orchestrates file encryption with duplicate detection and progress reporting
@@ -108,6 +109,41 @@ impl EncryptionService {
     {
         self.progress_reporter = ProgressReporter::with_callback(callback);
         self
+    }
+
+    /// Encrypt a single file with automatic filename obfuscation when enabled
+    /// 
+    /// This is a convenience method that automatically generates the output path
+    /// based on the filename obfuscation settings in the options.
+    pub fn encrypt_file_with_obfuscation<T: CryptographicAlgorithm>(
+        &mut self,
+        input_path: &Path,
+        algorithm: &T,
+        password: &str,
+        options: EncryptionOptions,
+    ) -> DomainResult<EncryptionResult> {
+        let (output_path, _obfuscated_info) = if options.obfuscate_filename {
+            // Generate obfuscated output path
+            FilenameObfuscator::create_obfuscated_output_path(input_path, false)?
+        } else {
+            // Use standard .shadow extension
+            let output_path = input_path.with_extension("shadow");
+            (output_path, ObfuscatedFilename {
+                obfuscated_name: input_path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+                original_name: input_path.file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("unknown")
+                    .to_string(),
+                extension: input_path.extension()
+                    .and_then(|ext| ext.to_str())
+                    .map(|ext| ext.to_string()),
+            })
+        };
+
+        self.encrypt_file(input_path, &output_path, algorithm, password, options)
     }
 
     /// Encrypt a single file with double-encryption prevention

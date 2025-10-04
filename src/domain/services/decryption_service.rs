@@ -10,6 +10,7 @@ use crate::domain::errors::{DomainResult, DomainError, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::services::crypto_service::KeyDerivationConfig;
 use crate::domain::services::encryption_service::{ProgressReporter, BatchResult};
+use crate::domain::utilities::filename_obfuscation::FilenameObfuscator;
 use crate::infrastructure::crypto::factory::Algorithm;
 use crate::infrastructure::tlv_serialization::TlvSerializer;
 
@@ -57,6 +58,27 @@ impl DecryptionService {
     {
         self.progress_reporter = ProgressReporter::with_callback(callback);
         self
+    }
+
+    /// Decrypt a single file with automatic filename restoration and validation
+    /// 
+    /// This is a convenience method that automatically restores the original filename
+    /// from the TLV header and validates it for security.
+    pub fn decrypt_file_with_validation(
+        &mut self,
+        input_path: &Path,
+        password: &str,
+        options: DecryptionOptions,
+    ) -> DomainResult<DecryptionResult> {
+        // First decrypt to get the original filename
+        let temp_result = self.decrypt_file(input_path, None, password, options.clone())?;
+        
+        // Validate the original filename if it was restored from obfuscation
+        if let Some(ref original_filename) = temp_result.original_filename {
+            FilenameObfuscator::validate_filename_safety(original_filename)?;
+        }
+        
+        Ok(temp_result)
     }
 
     /// Decrypt a single file with automatic filename restoration

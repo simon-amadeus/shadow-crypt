@@ -1,6 +1,6 @@
 [package]
 name = "shadow-crypt"
-version = "0.18.0"
+version = "0.19.0"
 edition = "2024"
 description = "File encryption with modern cryptography (DEVELOPMENT - NOT READY FOR PRODUCTION)"
 license = "MIT OR Apache-2.0"
@@ -56,6 +56,7 @@ rayon = "1.8"            # Parallel processing for multi-file operations
 colored = "3.0"          # Modern terminal colors for enhanced UI
 num_cpus = "1"        # CPU count detection for benchmarking
 tempfile = "3"         # For temporary files in benchmarking
+uuid = { version = "1.10", features = ["v4", "rng"] }  # UUID generation for filename obfuscation
 clap = { version = "4.0", features = ["derive"] }  # For CLI parsing
 
 [dev-dependencies]

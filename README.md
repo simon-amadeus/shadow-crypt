@@ -1,17 +1,18 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.18.0**
+**⚠️ REWRITE IN PROGRESS - v0.19.0**
 
-**Rewrite Status**: 🎯 **CLI Production Complete** - Shadow binary fully operational with production-ready file encryption  
-**Current Version**: v0.18.0 - Complete shadow encryption binary with real crypto operations and professional UX  
+**Rewrite Status**: 🎯 **Filename Obfuscation Complete** - Enhanced privacy features fully operational  
+**Current Version**: v0.19.0 - Complete filename obfuscation for enhanced privacy during encryption  
 **Next Priority**: Additional CLI binaries (unshadow, shadows, shadowmigrate)
 
 ---
 
-## Production Features (v0.18.0)
+## Production Features (v0.19.0)
 
 ### ✅ **Shadow Binary (Complete)**
 - **Real File Encryption**: XChaCha20-Poly1305 and AES-256-GCM algorithms with production crypto operations
+- **Filename Obfuscation**: `--obfuscate` flag for enhanced privacy using cryptographically secure UUID generation
 - **Professional UX**: User-friendly output formatting, progress reporting, and comprehensive error handling  
 - **Batch Processing**: Multiple file encryption with individual success/failure tracking and result summaries
 - **File Lifecycle**: Configurable source removal/preservation using --keep flag
@@ -24,19 +25,23 @@
 # Encrypt single file (removes source)
 ./target/debug/shadow document.txt
 
+# Encrypt with filename obfuscation for enhanced privacy
+./target/debug/shadow --obfuscate secret_document.pdf
+
 # Encrypt with source preservation  
 ./target/debug/shadow --keep document.txt
 
-# Batch encrypt with AES-GCM
-./target/debug/shadow --algorithm aes-gcm *.txt
+# Batch encrypt with AES-GCM and obfuscation
+./target/debug/shadow --algorithm aes-gcm --obfuscate *.txt
 
-# Silent operation
-./target/debug/shadow --quiet --keep files/*.doc
+# Silent operation with all privacy features
+./target/debug/shadow --quiet --keep --obfuscate files/*.doc
 ```
 
 ## Rewrite Progress
 
-### ✅ **Completed Architecture (v0.18.0)**
+### ✅ **Completed Architecture (v0.19.0)**
+- **Filename Obfuscation**: Complete privacy enhancement with UUID-based filename obfuscation and automatic restoration
 - **Complete CLI Integration**: Production-ready shadow binary with end-to-end file encryption functionality
 - **Real Crypto Operations**: EncryptionWorkflow → EncryptionService → Infrastructure crypto integration  
 - **Application Workflows**: Full workflow orchestration with EncryptionWorkflow operational

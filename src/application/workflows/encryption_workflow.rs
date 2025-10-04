@@ -10,6 +10,7 @@ use crate::domain::repositories::{
     file_repository::FileRepository,
 };
 use crate::domain::entities::AlgorithmId;
+use crate::domain::utilities::filename_obfuscation::FilenameObfuscator;
 use crate::infrastructure::crypto::factory::Algorithm;
 use crate::application::workflows::results::{WorkflowResult, BatchResult, EncryptionResult};
 use std::path::{Path, PathBuf};
@@ -296,8 +297,15 @@ impl EncryptionWorkflow {
 
         for input_path in file_paths {
             let output_path = if options.obfuscate_filename {
-                // TODO: Generate random filename
-                input_path.with_extension("shadow")
+                // Generate obfuscated filename for enhanced privacy
+                let (obfuscated_path, _obfuscated_info) = FilenameObfuscator::create_obfuscated_output_path(
+                    input_path, 
+                    false // Don't preserve extension for obfuscation
+                ).map_err(|e| EncryptionWorkflowError::ValidationError(
+                    format!("Failed to generate obfuscated filename for {}: {}", 
+                           input_path.display(), e)
+                ))?;
+                obfuscated_path
             } else {
                 // Append .shadow extension
                 let mut output = input_path.clone();
