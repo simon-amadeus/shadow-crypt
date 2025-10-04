@@ -4,10 +4,12 @@ This document specifies the architectural patterns from the current implementati
 
 ## 🏗️ **Core Architectural Patterns**
 
-### 1. **TLV Header System (V3 Format)**
+### 1. **TLV Header System (New V1 Format)**
 **Status**: 🎯 **PRESERVE EXACTLY**
 
-The current V3 TLV (Type-Length-Value) header system is exceptionally well-designed and should be preserved as-is:
+The current V3 TLV (Type-Length-Value) header system is exceptionally well-designed and should be preserved as the new V1 format for the rewrite:
+
+**Important**: This was previously called "V3" in the legacy codebase, but will become the canonical "V1" format in the rewrite. Legacy V1 and V2 formats should be completely removed.
 
 ```rust
 /// TLV field structure: [Type(1)][Length(4)][Value(Length)]
@@ -234,9 +236,9 @@ impl ProgressReporter {
 ## 📋 **Rewrite Implementation Strategy**
 
 ### Phase 1: Core Infrastructure
-1. **Implement TLV Header System** - Preserve V3 format exactly
+1. **Implement TLV Header System** - Preserve current V3 design as new V1 format
 2. **Build Configuration Provider Pattern** - Trait-based dependency injection
-3. **Create Version Compatibility Matrix** - Future-proof migration system
+3. **Create Version Compatibility Matrix** - Future-proof migration system (V1 as baseline)
 4. **Establish Error Handling** - User-friendly, security-conscious errors
 
 ### Phase 2: Cryptographic Layer
@@ -248,12 +250,12 @@ impl ProgressReporter {
 ### Phase 3: Domain Logic
 1. **File Processing Pipeline** - Encryption/decryption workflows
 2. **Batch Operations** - Multi-file processing
-3. **Migration Services** - Version upgrade capabilities
+3. **Migration Services** - Future version upgrade capabilities (from V1 base)
 4. **CLI Integration** - User interface layer
 
 ### Design Principles for Rewrite
 1. **Preserve Excellent Patterns**: Don't fix what isn't broken
 2. **Complete Missing Features**: Implement documented but missing functionality
-3. **Maintain Compatibility**: V3 files must remain readable
+3. **Clean Version Slate**: V1 as the only supported format initially
 4. **Enhance User Experience**: Better CLI consistency and error messages
 5. **Security First**: No compromises on cryptographic security

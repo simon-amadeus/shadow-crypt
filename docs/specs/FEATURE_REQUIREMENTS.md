@@ -166,7 +166,7 @@ Directory scanning and listing tool for encrypted files with original filename d
 - ✅ **Status Indicators**: Success/failure of password verification (✓/✗)
 - ✅ **Original Filename**: Decrypted original filename (when password works)
 - ✅ **Obfuscated Filename**: Current encrypted filename on disk
-- ✅ **File Version**: Shadow file format version (V1, V2, V3, etc.)
+- ✅ **File Version**: Shadow file format version (V1 baseline, V2, V3, etc.)
 - ✅ **Algorithm Information**: Encryption algorithm used (AES-GCM, XChaCha20-Poly1305)
 - ✅ **File Size**: File size in human-readable format
 - ✅ **Modification Time**: Last modified timestamp

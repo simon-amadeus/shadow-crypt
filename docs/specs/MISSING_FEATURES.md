@@ -54,7 +54,7 @@ pub fn prompt_password_with_confirmation(prompt: &str) -> Result<String, CryptoE
 ### 2. **Duplicate Content Detection**
 **Status**: ❌ **NOT IMPLEMENTED** (Documented as ✅)
 
-**Current State**: V3 header has `ContentHash` TLV field but no detection logic
+**Current State**: New V1 header has `ContentHash` TLV field but no detection logic
 **Required Implementation**:
 
 ```rust
@@ -175,7 +175,7 @@ unshadow --keep secret.txt.shadow    # secret.txt.shadow preserved
 ## 🔧 **Enhancement Features**
 
 ### 5. **Content Fingerprinting for Duplicate Detection**
-**Status**: 🆕 **NEW FEATURE** (Infrastructure exists in V3 TLV)
+**Status**: 🆕 **NEW FEATURE** (Infrastructure exists in new V1 TLV)
 
 **Implementation Strategy**:
 ```rust
@@ -197,14 +197,14 @@ pub fn calculate_content_fingerprint(file_path: &Path) -> Result<[u8; 32], Crypt
 }
 
 pub fn store_content_hash_in_header(
-    header: &mut HeaderV3,
+    header: &mut HeaderV1, // Changed from HeaderV3
     content_hash: [u8; 32]
 ) {
     header.add_tlv_field(TlvFieldType::ContentHash, content_hash.to_vec());
 }
 
 pub fn extract_content_hash_from_header(
-    header: &HeaderV3
+    header: &HeaderV1 // Changed from HeaderV3
 ) -> Option<[u8; 32]> {
     header.get_tlv_field(TlvFieldType::ContentHash)
         .and_then(|data| {

@@ -133,10 +133,11 @@ This document specifies the comprehensive architecture requirements for the Shad
 - **Pluggable Interface**: New algorithms can be added without core changes
 
 ### **Version Management**
-- **V3 Format**: Current implementation with TLV extensible headers
-- **Migration Path**: Clear upgrade routes from V1/V2 to V3 and future versions
+- **V1 Format**: New baseline implementation with TLV extensible headers (derived from legacy V3)
+- **Migration Path**: Future upgrade routes from V1 to V2, V3, etc.
 - **Compatibility Matrix**: Explicit support for reading/writing different versions
 - **Future-Proof**: Extensible design supports new versions and features
+- **Clean Slate**: Legacy V1 and V2 formats completely removed
 
 ## 🔒 **SECURITY ARCHITECTURE**
 
@@ -154,6 +155,12 @@ This document specifies the comprehensive architecture requirements for the Shad
 
 ## 🎛️ **CONFIGURATION MANAGEMENT**
 
+### **Stateless Design Principle**
+The Shadow rewrite follows a **stateless design** with no configuration files or persistent state. All configuration is determined at runtime from:
+- CLI arguments (algorithm selection, behavior flags)
+- Encrypted file headers (algorithm detection, metadata)
+- Hardcoded secure defaults
+
 ### **Algorithm Configuration**
 ```rust
 pub trait CryptoConfig: KeyDerivationConfig + EncryptionConfig {
@@ -162,11 +169,11 @@ pub trait CryptoConfig: KeyDerivationConfig + EncryptionConfig {
 }
 ```
 
-### **User Preferences**
-- **Default Algorithm**: User-configurable default encryption algorithm
-- **Search Paths**: Configurable directories for duplicate detection
-- **Behavior Settings**: Default source removal, progress reporting preferences
-- **Security Settings**: Password strength requirements, confirmation policies
+### **Runtime Configuration Sources**
+- **Default Algorithm**: XChaCha20-Poly1305 (hardcoded secure default)
+- **Search Paths**: Current directory and parent directories (algorithmic determination)
+- **Behavior Settings**: CLI flags only (`--keep`, `--force`, `--quiet`, etc.)
+- **Security Settings**: Hardcoded secure defaults (no user customization)
 
 ## 🧪 **TESTING STRATEGY**
 

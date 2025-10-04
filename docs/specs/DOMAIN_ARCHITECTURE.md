@@ -26,13 +26,13 @@ The domain layer implements the core business logic using clean architecture pri
 ```rust
 #[derive(Debug, Clone)]
 pub struct EncryptedFile {
-    header: HeaderV3,
+    header: HeaderV1, // Using new V1 format (was legacy V3)
     ciphertext: Vec<u8>,
     metadata: FileMetadata,
 }
 
 impl EncryptedFile {
-    pub fn new(header: HeaderV3, ciphertext: Vec<u8>) -> Self;
+    pub fn new(header: HeaderV1, ciphertext: Vec<u8>) -> Self;
     pub fn from_file(path: &Path, password: &str) -> Result<Self, CryptoError>;
     pub fn write_to_file(&self, path: &Path) -> Result<(), CryptoError>;
     
@@ -40,7 +40,7 @@ impl EncryptedFile {
     pub fn original_filename(&self) -> Option<&str>;
     pub fn content_hash(&self) -> Option<&[u8; 32]>;
     pub fn algorithm(&self) -> AlgorithmId;
-    pub fn version(&self) -> u16;
+    pub fn version(&self) -> u16; // Will return 1 for new baseline
     
     // Validation
     pub fn validate_integrity(&self, password: &str) -> Result<(), CryptoError>;
@@ -313,10 +313,12 @@ pub struct MigrationAnalysis {
 }
 ```
 
-## 🔌 **Repository Interfaces**
+### **Repository Interfaces**
+
+**Important**: The Shadow rewrite follows a **stateless design** - no configuration files or persistent state. All relevant data must be stored in encrypted files themselves.
 
 ### 1. **FileRepository**
-**Purpose**: Abstracts file system operations
+**Purpose**: Abstracts file system operations (read-only for configuration)
 
 ```rust
 pub trait FileRepository: Send + Sync {
@@ -335,20 +337,8 @@ pub struct MockFileRepository { /* for testing */ }
 impl FileRepository for MockFileRepository { /* ... */ }
 ```
 
-### 2. **ConfigRepository**
-**Purpose**: Manages configuration and settings
-
-```rust
-pub trait ConfigRepository: Send + Sync {
-    fn get_default_algorithm(&self) -> AlgorithmId;
-    fn get_search_paths(&self) -> Vec<PathBuf>;
-    fn get_duplicate_detection_enabled(&self) -> bool;
-    fn save_preferences(&self, prefs: UserPreferences) -> Result<(), CryptoError>;
-}
-```
-
-### 3. **PasswordRepository**
-**Purpose**: Handles password input and verification
+### 2. **PasswordRepository**
+**Purpose**: Handles password input and validation (no persistence)
 
 ```rust
 pub trait PasswordRepository: Send + Sync {
@@ -364,23 +354,26 @@ pub enum PasswordStrength {
 }
 ```
 
+**Note**: No `ConfigRepository` or persistent configuration. All settings determined at runtime from CLI arguments and encrypted file headers.
+
 ## 🎛️ **Application Services**
 
 ### 1. **EncryptionWorkflow**
-**Purpose**: Coordinates encryption with all features and validations
+**Purpose**: Coordinates encryption with all features and validations (stateless)
 
 ```rust
 pub struct EncryptionWorkflow {
     encryption_service: EncryptionService,
     file_repo: Box<dyn FileRepository>,
     password_repo: Box<dyn PasswordRepository>,
-    config_repo: Box<dyn ConfigRepository>,
+    // Note: No config repository - all configuration from CLI args
 }
 
 impl EncryptionWorkflow {
     pub fn execute(
         &mut self,
         input_patterns: Vec<String>,
+        algorithm: AlgorithmId, // From CLI arguments
         options: EncryptionOptions,
     ) -> Result<WorkflowResult, CryptoError> {
         // 1. Expand glob patterns
@@ -397,8 +390,8 @@ impl EncryptionWorkflow {
             "Enter password for encryption: "
         )?;
         
-        // 5. Get configuration
-        let config = self.get_encryption_config()?;
+        // 5. Create configuration from CLI algorithm choice (no persistence)
+        let config = self.create_config_for_algorithm(algorithm)?;
         
         // 6. Execute encryption
         let results = self.encryption_service.encrypt_multiple_files(
@@ -411,7 +404,7 @@ impl EncryptionWorkflow {
 ```
 
 ### 2. **DecryptionWorkflow**
-**Purpose**: Coordinates decryption with filename restoration
+**Purpose**: Coordinates decryption with filename restoration (stateless)
 
 ```rust
 pub struct DecryptionWorkflow {
@@ -428,8 +421,9 @@ impl DecryptionWorkflow {
     ) -> Result<WorkflowResult, CryptoError> {
         // 1. Expand patterns and validate files
         // 2. Get password (single prompt for decryption)
-        // 3. Execute decryption with filename restoration
-        // 4. Return results
+        // 3. Algorithm detection from file headers (no config needed)
+        // 4. Execute decryption with filename restoration
+        // 5. Return results
     }
 }
 ```
@@ -439,15 +433,14 @@ impl DecryptionWorkflow {
 ```rust
 pub struct Container {
     file_repo: Box<dyn FileRepository>,
-    config_repo: Box<dyn ConfigRepository>,
     password_repo: Box<dyn PasswordRepository>,
+    // Note: No config repository - stateless design
 }
 
 impl Container {
     pub fn new() -> Self {
         Self {
             file_repo: Box::new(StandardFileRepository),
-            config_repo: Box::new(StandardConfigRepository),
             password_repo: Box::new(StandardPasswordRepository),
         }
     }
@@ -455,12 +448,13 @@ impl Container {
     pub fn for_testing() -> Self {
         Self {
             file_repo: Box::new(MockFileRepository::new()),
-            config_repo: Box::new(MockConfigRepository::new()),
             password_repo: Box::new(MockPasswordRepository::new()),
         }
     }
     
-    pub fn encryption_workflow(&self) -> EncryptionWorkflow { /* ... */ }
+    pub fn encryption_workflow(&self, algorithm: AlgorithmId) -> EncryptionWorkflow { 
+        // Pass algorithm directly - no config persistence
+    }
     pub fn decryption_workflow(&self) -> DecryptionWorkflow { /* ... */ }
     pub fn listing_workflow(&self) -> ListingWorkflow { /* ... */ }
     pub fn migration_workflow(&self) -> MigrationWorkflow { /* ... */ }
