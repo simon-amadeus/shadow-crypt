@@ -9,7 +9,7 @@ This document specifies the comprehensive architecture requirements for the Shad
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    CLI Layer (Binaries)                     │ 
-│  shadow | unshadow | shadows | shadowmigrate | shadowview   │
+│    shadow | unshadow | shadows | shadowmigrate              │
 ├─────────────────────────────────────────────────────────────┤
 │                Application Services Layer                    │
 │     Workflows, Orchestration, Cross-cutting Concerns        │

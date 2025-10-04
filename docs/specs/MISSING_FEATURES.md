@@ -11,18 +11,35 @@ This document specifies the features that are documented in the feature requirem
 **Required Implementation**:
 
 ```rust
+// First, extend CryptoError with new variants needed for missing features
+#[derive(Debug, thiserror::Error)]
+pub enum CryptoError {
+    // ... existing variants ...
+    
+    #[error("Validation error: {0}")]
+    ValidationError(String),
+    
+    #[error("Duplicate content detected")]
+    DuplicateContentDetected { 
+        existing_files: Vec<PathBuf>, 
+        suggestion: String 
+    },
+}
+
 pub fn prompt_password_with_confirmation(prompt: &str) -> Result<String, CryptoError> {
     let password1 = rpassword::prompt_password(prompt)?;
     let password2 = rpassword::prompt_password("Confirm password: ")?;
     
     if password1 != password2 {
-        return Err(CryptoError::PasswordMismatch(
+        return Err(CryptoError::ValidationError(
             "Passwords do not match. Please try again.".to_string()
         ));
     }
     
     if password1.is_empty() {
-        return Err(CryptoError::EmptyPassword);
+        return Err(CryptoError::ValidationError(
+            "Password cannot be empty".to_string()
+        ));
     }
     
     Ok(password1)
@@ -233,7 +250,7 @@ pub fn encrypt_with_duplicate_check(
                 println!(" ⚠️ ({})", format_duration(duration));
             }
             
-            return Err(CryptoError::DuplicateContent {
+            return Err(CryptoError::DuplicateContentDetected {
                 existing_files: duplicate_files,
                 suggestion: "Use different content or decrypt existing file first.".to_string(),
             });

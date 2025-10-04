@@ -117,6 +117,28 @@ impl DuplicateDetector {
 }
 ```
 
+### 5. **FileMetadata**
+**Purpose**: Represents file system metadata and attributes
+
+```rust
+#[derive(Debug, Clone)]
+pub struct FileMetadata {
+    pub original_filename: String,
+    pub file_size: u64,
+    pub modified_time: SystemTime,
+    pub created_time: Option<SystemTime>,
+    pub file_type: FileType,
+}
+
+#[derive(Debug, Clone)]
+pub enum FileType {
+    Regular,
+    Directory,
+    Symlink,
+    Other,
+}
+```
+
 ## 🔧 **Domain Services**
 
 ### 1. **EncryptionService**
@@ -133,7 +155,7 @@ impl EncryptionService {
     pub fn with_duplicate_detection(mut self, search_paths: Vec<PathBuf>) -> Self;
     pub fn with_progress_reporting(mut self, enabled: bool) -> Self;
     
-    pub async fn encrypt_file(
+    pub fn encrypt_file(
         &mut self,
         input_path: &Path,
         output_path: &Path,
@@ -142,7 +164,7 @@ impl EncryptionService {
         options: EncryptionOptions,
     ) -> Result<EncryptionResult, CryptoError>;
     
-    pub async fn encrypt_multiple_files(
+    pub fn encrypt_multiple_files(
         &mut self,
         file_pairs: Vec<(PathBuf, PathBuf)>,
         config: &dyn CryptoConfig,
@@ -167,6 +189,13 @@ pub struct EncryptionResult {
     pub algorithm: AlgorithmId,
     pub duration: Duration,
 }
+
+#[derive(Debug)]
+pub struct BatchResult<T> {
+    pub successful: Vec<T>,
+    pub failed: Vec<(PathBuf, CryptoError)>,
+    pub total_duration: Duration,
+}
 ```
 
 ### 2. **DecryptionService**
@@ -181,7 +210,7 @@ impl DecryptionService {
     pub fn new() -> Self;
     pub fn with_progress_reporting(mut self, enabled: bool) -> Self;
     
-    pub async fn decrypt_file(
+    pub fn decrypt_file(
         &mut self,
         input_path: &Path,
         output_path: Option<&Path>, // None = auto-detect from header
@@ -189,7 +218,7 @@ impl DecryptionService {
         options: DecryptionOptions,
     ) -> Result<DecryptionResult, CryptoError>;
     
-    pub async fn decrypt_multiple_files(
+    pub fn decrypt_multiple_files(
         &mut self,
         input_paths: Vec<PathBuf>,
         password: &str,
@@ -225,7 +254,7 @@ pub struct ListingService {
 impl ListingService {
     pub fn new() -> Self;
     
-    pub async fn scan_directory(
+    pub fn scan_directory(
         &self,
         directory: &Path,
         password: &str,
@@ -266,7 +295,7 @@ impl MigrationService {
     pub fn analyze_file(&self, path: &Path) -> Result<MigrationAnalysis, CryptoError>;
     pub fn plan_migration(&self, files: Vec<PathBuf>) -> Result<MigrationPlan, CryptoError>;
     
-    pub async fn migrate_file(
+    pub fn migrate_file(
         &mut self,
         path: &Path,
         target_version: u16,
@@ -290,14 +319,13 @@ pub struct MigrationAnalysis {
 **Purpose**: Abstracts file system operations
 
 ```rust
-#[async_trait]
 pub trait FileRepository: Send + Sync {
-    async fn read_file(&self, path: &Path) -> Result<Vec<u8>, CryptoError>;
-    async fn write_file(&self, path: &Path, content: &[u8]) -> Result<(), CryptoError>;
-    async fn write_file_atomic(&self, path: &Path, content: &[u8]) -> Result<(), CryptoError>;
-    async fn delete_file_secure(&self, path: &Path) -> Result<(), CryptoError>;
-    async fn file_exists(&self, path: &Path) -> bool;
-    async fn file_metadata(&self, path: &Path) -> Result<FileMetadata, CryptoError>;
+    fn read_file(&self, path: &Path) -> Result<Vec<u8>, CryptoError>;
+    fn write_file(&self, path: &Path, content: &[u8]) -> Result<(), CryptoError>;
+    fn write_file_atomic(&self, path: &Path, content: &[u8]) -> Result<(), CryptoError>;
+    fn delete_file_secure(&self, path: &Path) -> Result<(), CryptoError>;
+    fn file_exists(&self, path: &Path) -> bool;
+    fn file_metadata(&self, path: &Path) -> Result<FileMetadata, CryptoError>;
 }
 
 pub struct StandardFileRepository;
@@ -311,12 +339,11 @@ impl FileRepository for MockFileRepository { /* ... */ }
 **Purpose**: Manages configuration and settings
 
 ```rust
-#[async_trait]
 pub trait ConfigRepository: Send + Sync {
-    async fn get_default_algorithm(&self) -> AlgorithmId;
-    async fn get_search_paths(&self) -> Vec<PathBuf>;
-    async fn get_duplicate_detection_enabled(&self) -> bool;
-    async fn save_preferences(&self, prefs: UserPreferences) -> Result<(), CryptoError>;
+    fn get_default_algorithm(&self) -> AlgorithmId;
+    fn get_search_paths(&self) -> Vec<PathBuf>;
+    fn get_duplicate_detection_enabled(&self) -> bool;
+    fn save_preferences(&self, prefs: UserPreferences) -> Result<(), CryptoError>;
 }
 ```
 
@@ -324,11 +351,10 @@ pub trait ConfigRepository: Send + Sync {
 **Purpose**: Handles password input and verification
 
 ```rust
-#[async_trait]
 pub trait PasswordRepository: Send + Sync {
-    async fn prompt_password(&self, prompt: &str) -> Result<String, CryptoError>;
-    async fn prompt_password_with_confirmation(&self, prompt: &str) -> Result<String, CryptoError>;
-    async fn validate_password_strength(&self, password: &str) -> PasswordStrength;
+    fn prompt_password(&self, prompt: &str) -> Result<String, CryptoError>;
+    fn prompt_password_with_confirmation(&self, prompt: &str) -> Result<String, CryptoError>;
+    fn validate_password_strength(&self, password: &str) -> PasswordStrength;
 }
 
 pub enum PasswordStrength {
@@ -352,32 +378,32 @@ pub struct EncryptionWorkflow {
 }
 
 impl EncryptionWorkflow {
-    pub async fn execute(
+    pub fn execute(
         &mut self,
         input_patterns: Vec<String>,
         options: EncryptionOptions,
     ) -> Result<WorkflowResult, CryptoError> {
         // 1. Expand glob patterns
-        let file_paths = self.expand_patterns(input_patterns).await?;
+        let file_paths = self.expand_patterns(input_patterns)?;
         
         // 2. Validate all files exist and are readable
-        self.validate_input_files(&file_paths).await?;
+        self.validate_input_files(&file_paths)?;
         
         // 3. Check for already encrypted files (double-encryption prevention)
-        self.check_already_encrypted(&file_paths).await?;
+        self.check_already_encrypted(&file_paths)?;
         
         // 4. Get password with confirmation (if encrypting)
         let password = self.password_repo.prompt_password_with_confirmation(
             "Enter password for encryption: "
-        ).await?;
+        )?;
         
         // 5. Get configuration
-        let config = self.get_encryption_config().await?;
+        let config = self.get_encryption_config()?;
         
         // 6. Execute encryption
         let results = self.encryption_service.encrypt_multiple_files(
             file_paths, &*config, &password, options
-        ).await?;
+        )?;
         
         Ok(WorkflowResult::Encryption(results))
     }
@@ -395,7 +421,7 @@ pub struct DecryptionWorkflow {
 }
 
 impl DecryptionWorkflow {
-    pub async fn execute(
+    pub fn execute(
         &mut self,
         input_patterns: Vec<String>,
         options: DecryptionOptions,

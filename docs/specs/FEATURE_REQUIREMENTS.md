@@ -1,8 +1,14 @@
 # Shadow File Encryption Suite - Feature Requirements Documentation
 
+**Document Purpose**: This document specifies the **target feature set** for the Shadow rewrite. Features marked as ✅ represent the **desired end state**, not the current implementation status.
+
+**Current Implementation Status**: See `MISSING_FEATURES.md` for gaps between current implementation and these requirements.
+
 ## 📋 **EXECUTIVE SUMMARY**
 
-The Shadow file encryption suite consists of 4 CLI binaries that provide comprehensive file encryption, decryption, management, and analysis capabilities. This document provides a complete analysis of all currently implemented features based on examination of the binary source code.
+The Shadow file encryption suite will consist of 4 CLI binaries that provide comprehensive file encryption, decryption, management, and analysis capabilities:
+
+**Core Principles:**
 - **Default Source Removal**: Remove source files by default after successful operations
 - **Source Preservation Option**: `--keep` flag to preserve source files when needed
 - **Double Password Verification**: Require password confirmation during encryption
@@ -10,8 +16,8 @@ The Shadow file encryption suite consists of 4 CLI binaries that provide compreh
 - **Duplicate Content Prevention**: Prevent encrypting identical file contents multiple times
 - **Integrity Verification**: Verify operation success before any source removal
 
-### **Feature Implementation Status**
-- ✅ **Fully Implemented**: `shadow`, `unshadow`, `shadows`, `shadowmigrate`
+### **Target Implementation Status**
+- 🎯 **Target for Rewrite**: `shadow`, `unshadow`, `shadows`, `shadowmigrate`
 
 ---
 
