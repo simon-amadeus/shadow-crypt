@@ -20,10 +20,9 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **CLI Integration (User Interface)**
-1. **unshadow Binary**: File decryption with automatic filename restoration
-2. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
-3. **shadows Binary**: Directory listing with original filename display and metadata
-4. **shadowmigrate Binary**: Version migration and format updates
+1. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
+2. **shadows Binary**: Directory listing with original filename display and metadata
+3. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 

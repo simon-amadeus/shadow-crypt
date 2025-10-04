@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.20.0] - 2025-10-04
+
+### Added
+- **Complete Unshadow Binary Implementation**: Production-ready file decryption with automatic filename restoration
+  - **Full CLI Binary**: Complete `src/bin/unshadow.rs` implementation with proper argument parsing and validation
+  - **Real Decryption Workflow**: Integration with domain DecryptionService for actual file decryption operations
+  - **Automatic Filename Restoration**: Intelligent filename restoration from TLV header metadata with fallback logic
+  - **Batch Processing Support**: Multiple file decryption with glob pattern expansion and individual success/failure tracking
+  - **File Management Options**: Default source removal with `--keep` flag for preserving encrypted files after decryption
+  - **Overwrite Protection**: `--force` flag prevents accidental file overwrites with user-friendly conflict resolution
+  - **Progress Reporting**: Real-time decryption progress with precise timing information and `--quiet` mode support
+  - **Error Handling**: Comprehensive error messages with actionable hints for common decryption issues
+  - **Round-Trip Compatibility**: Full compatibility with files encrypted by shadow binary, supporting all algorithms
+
+### Enhanced
+- **DecryptionWorkflow Integration**: Application workflow now uses real domain DecryptionService instead of placeholder implementation
+- **CLI Architecture Consistency**: Unshadow binary follows same architectural pattern as shadow binary for maintainability
+- **User Experience**: Professional output formatting with success/failure counts, operation duration, and file path mapping
+- **Code Quality**: Added Default implementation for DecryptionService and improved parameter types per clippy suggestions
+
+### Testing
+- **Integration Test Suite**: Comprehensive test coverage for unshadow binary functionality including help text validation and input validation
+- **Manual Validation**: Extensive manual testing confirming round-trip encryption/decryption, batch processing, and all CLI flags
+- **Quality Assurance**: All existing tests continue passing with new functionality integrated cleanly
+
+### Technical Details
+- **Clean Architecture**: Maintains separation between CLI, application workflows, domain services, and infrastructure layers
+- **Performance**: Efficient single-password prompt for batch operations with optimized file processing
+- **Security**: Secure password handling with proper memory management and error boundary protection
+- **Compatibility**: Full backward compatibility with existing encrypted files and TLV header formats
+
 ## [0.19.0] - 2025-10-04
 
 ### Added

@@ -7,10 +7,10 @@ use crate::domain::repositories::{
     file_repository::FileRepository,
     password_repository::{PasswordRepository, PasswordInputError},
 };
+use crate::domain::services::{DecryptionService, DecryptionOptions as DomainDecryptionOptions};
 use crate::application::workflows::results::{WorkflowResult, BatchResult, DecryptionResult};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
-use crate::domain::entities::AlgorithmId;
 
 /// Result type for decryption workflow operations
 pub type DecryptionWorkflowResult<T> = Result<T, DecryptionWorkflowError>;
@@ -77,6 +77,7 @@ impl Default for DecryptionOptions {
 pub struct DecryptionWorkflow {
     file_repo: Box<dyn FileRepository>,
     password_repo: Box<dyn PasswordRepository>,
+    decryption_service: DecryptionService,
 }
 
 impl DecryptionWorkflow {
@@ -88,6 +89,7 @@ impl DecryptionWorkflow {
         Self {
             file_repo,
             password_repo,
+            decryption_service: DecryptionService::new(),
         }
     }
 
@@ -205,31 +207,30 @@ impl DecryptionWorkflow {
 
     /// Decrypt a single file
     fn decrypt_single_file(
-        &self,
-        input_path: &PathBuf,
-        _password: &str,
-        _options: &DecryptionOptions,
+        &mut self,
+        input_path: &Path,
+        password: &str,
+        options: &DecryptionOptions,
     ) -> DecryptionWorkflowResult<DecryptionResult> {
-        let start_time = Instant::now();
-
-        // TODO: Implement actual decryption using domain services
-        // For now, create a placeholder result
-        
-        // Auto-detect output path (remove .shadow extension or use original filename from header)
-        let output_path = if let Some(stem) = input_path.file_stem() {
-            input_path.with_file_name(stem)
-        } else {
-            input_path.with_extension("")
+        // Convert workflow options to domain options
+        let domain_options = DomainDecryptionOptions {
+            force_overwrite: options.force_overwrite,
+            remove_source: options.remove_source,
+            verify_integrity: options.verify_integrity,
         };
 
-        let duration = start_time.elapsed();
+        // Use the domain service for actual decryption
+        let domain_result = self.decryption_service
+            .decrypt_file(input_path, None, password, domain_options)
+            .map_err(|e| DecryptionWorkflowError::DecryptionError(e.to_string()))?;
 
+        // Convert domain result to workflow result
         Ok(DecryptionResult {
-            input_path: input_path.clone(),
-            output_path,
-            original_filename: Some("original_file.txt".to_string()), // Placeholder
-            algorithm: AlgorithmId::XChaCha20Poly1305, // Placeholder - would be detected from header
-            duration,
+            input_path: domain_result.input_path,
+            output_path: domain_result.output_path,
+            original_filename: domain_result.original_filename,
+            algorithm: domain_result.algorithm,
+            duration: domain_result.duration,
         })
     }
 }

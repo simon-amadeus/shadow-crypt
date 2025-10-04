@@ -36,6 +36,12 @@ pub struct DecryptionResult {
     pub duration: Duration,
 }
 
+impl Default for DecryptionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DecryptionService {
     /// Create a new DecryptionService instance
     pub fn new() -> Self {
