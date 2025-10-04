@@ -8,7 +8,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - **docs/BACKLOG.md**: Priority queue of future work (high-level only, keep concise)
 - **docs/CURRENT_CYCLE.md**: Active cycle plan and progress
 - **docs/CHANGELOG.md**: Completed work history (semantic versioning, relevant changes only)
-- **FEEDBACK.md**: User feedback pipeline ("New Feedback" section, process regularly)
+- **docs/FEEDBACK.md**: User feedback pipeline ("New Feedback" section, process regularly)
 
 ## 7-Phase Development Cycle
 
@@ -20,7 +20,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 
 ### 2. **INTAKE**
 **Purpose**: Process new information into the system
-- **FEEDBACK.md → docs/BACKLOG.md**: Integrate new feedback into backlog priorities
+- **docs/FEEDBACK.md → docs/BACKLOG.md**: Integrate new feedback into backlog priorities
 - Move processed feedback out of "New Feedback" section
 - **Decision Gate**: Stop here if backlog needs major reorganization
 
@@ -54,9 +54,9 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Actions**:
 - Reflect on the current implementation cycle in docs/CURRENT_CYCLE.md
 - If further work is needed:
-    - Add detailed requirements to FEEDBACK.md with full context, technical details, and rationale
+    - Add detailed requirements to docs/FEEDBACK.md with full context, technical details, and rationale
     - Include implementation considerations, root causes, and any architectural insights
-    - Let next INTAKE phase process these through normal feedback pipeline (FEEDBACK.md → docs/BACKLOG.md)
+    - Let next INTAKE phase process these through normal feedback pipeline (docs/FEEDBACK.md → docs/BACKLOG.md)
     - This preserves rich context that would be lost in high-level backlog items
 
 ### 7. **FINALIZE**
@@ -98,25 +98,25 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 **Information Flow**: Multiple pathways exist depending on cycle outcomes:
 
 **Primary Flow (Simple Cycle):**
-FEEDBACK.md → docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
+docs/FEEDBACK.md → docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
 
 **Extended Flow (When Additional Work Discovered):**
-docs/CURRENT_CYCLE.md → FEEDBACK.md (detailed context) → next cycle's docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
+docs/CURRENT_CYCLE.md → docs/FEEDBACK.md (detailed context) → next cycle's docs/BACKLOG.md → docs/CURRENT_CYCLE.md → docs/CHANGELOG.md
 
 **Entry Points:**
-- **User Feedback**: FEEDBACK.md → docs/BACKLOG.md (via INTAKE phase)
-- **Discovery During Work**: docs/CURRENT_CYCLE.md → FEEDBACK.md (via REFLECT & ADAPT phase)
+- **User Feedback**: docs/FEEDBACK.md → docs/BACKLOG.md (via INTAKE phase)
+- **Discovery During Work**: docs/CURRENT_CYCLE.md → docs/FEEDBACK.md (via REFLECT & ADAPT phase)
 
 **Exit Points:**
 - **Completed Work**: docs/CURRENT_CYCLE.md → docs/CHANGELOG.md (via FINALIZE phase)
-- **Additional Requirements**: docs/CURRENT_CYCLE.md → FEEDBACK.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
+- **Additional Requirements**: docs/CURRENT_CYCLE.md → docs/FEEDBACK.md + docs/CHANGELOG.md (via REFLECT & ADAPT + FINALIZE phases)
 
 **Cycle Restart**: Each new cycle begins with SYNC phase checking current state of docs/BACKLOG.md
 
 **File Hygiene Rules**:
 - **docs/BACKLOG.md**: Only future work, remove completed items immediately
 - **docs/CHANGELOG.md**: Only significant changes that impact users
-- **FEEDBACK.md**: Process "New Feedback" regularly, remove resolved items
+- **docs/FEEDBACK.md**: Process "New Feedback" regularly, remove resolved items
 - **Cargo.toml**: Keep version field synchronized with changelog for proper release management
 - **README.md**: Aesthetic minimalism is key; Written for users; Only essentials, no fluff
 

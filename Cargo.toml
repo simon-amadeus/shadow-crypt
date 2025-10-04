@@ -10,10 +10,9 @@ readme = "README.md"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 exclude = [
-    "INSTRUCTIONS.md",
-    "ROLE.md", 
-    "FEEDBACK.md",
+    "prompts/",
     "docs/BACKLOG.md",
+    "docs/FEEDBACK.md",
     "docs/specs/",
     "*.bak",
     "*_backup.*"

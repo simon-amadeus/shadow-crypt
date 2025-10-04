@@ -2,7 +2,7 @@
 
 **⚠️ REWRITE IN PROGRESS**
 
-This is version 0.36.0 - a preparation release for a complete architectural rewrite. The current implementation provides foundational patterns and security insights that inform the upcoming modern architecture rebuild.
+The version is now back to 0.1.0 - a preparation release for a complete architectural rewrite. The current implementation provides foundational patterns and security insights that inform the upcoming modern architecture rebuild.
 
 **Rewrite Status**: 🔄 Specifications complete (`docs/specs/`), implementation in progress  
 **Current Version**: Functional but legacy architecture  
