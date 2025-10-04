@@ -7,8 +7,8 @@
 
 ## 📋 PRIORITY ROADMAP
 
-1. **shadows Binary**: Directory listing with original filename display and metadata
-2. **shadowmigrate Binary**: Version migration and format updates
+- **shadows Binary**: Properly implement directory listing according to docs/specs/FEATURE_REQUIREMENTS.md
+- **shadowmigrate Binary**: Properly implement version migration and format updates according to docs/specs/FEATURE_REQUIREMENTS.md
 
 ## 🔧 FUTURE CONSIDERATIONS
 

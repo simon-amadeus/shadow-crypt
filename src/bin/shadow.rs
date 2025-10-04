@@ -10,6 +10,7 @@ use shadow_crypt::application::workflows::encryption_workflow::{EncryptionWorkfl
 use shadow_crypt::application::workflows::WorkflowResult;
 use shadow_crypt::domain::entities::AlgorithmId;
 use shadow_crypt::infrastructure::{StandardFileRepository, StandardPasswordRepository};
+use shadow_crypt::cli::common::{CLIValidator, CLIFormatter, SourceFileHandler};
 
 /// Shadow File Encryption Tool
 #[derive(Parser, Debug)]
@@ -44,28 +45,18 @@ struct ShadowArgs {
 impl ShadowArgs {
     /// Validate input patterns are provided
     fn validate_input(&self) -> Result<(), String> {
-        if self.input_patterns.is_empty() {
-            return Err("At least one input file or pattern is required".to_string());
-        }
-        Ok(())
+        CLIValidator::validate_input_patterns(&self.input_patterns)
     }
     
     /// Validate algorithm choice
     fn validate_algorithm(&self) -> Result<(), String> {
-        match self.algorithm.as_str() {
-            "xchacha20" | "aes-gcm" => Ok(()),
-            _ => Err(format!(
-                "Unsupported algorithm '{}'. Supported: xchacha20, aes-gcm", 
-                self.algorithm
-            )),
-        }
+        CLIValidator::validate_algorithm(&self.algorithm)
     }
     
     /// Print status information about flag settings
     fn print_status(&self) {
         println!("✅ CLI parsing complete");
-        println!("✅ Source files will be {}", 
-            if self.keep { "preserved" } else { "removed after encryption" });
+        SourceFileHandler::print_source_file_status(self.keep);
     }
 }
 
@@ -74,13 +65,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     
     // Validate arguments
     if let Err(msg) = args.validate_input() {
-        eprintln!("Error: {}", msg);
-        process::exit(1);
+        CLIFormatter::print_error_and_exit(&msg);
     }
     
     if let Err(msg) = args.validate_algorithm() {
-        eprintln!("Error: {}", msg);
-        process::exit(1);
+        CLIFormatter::print_error_and_exit(&msg);
     }
     
     if !args.quiet {

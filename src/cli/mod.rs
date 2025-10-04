@@ -8,5 +8,6 @@ pub mod shadows;
 pub mod shadowmigrate;
 pub mod shared;
 pub mod errors;
+pub mod common;
 
 pub use shared::{CommonModifyFlags, CommonListFlags, validate_input_patterns, validate_algorithm};

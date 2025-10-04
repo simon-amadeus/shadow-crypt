@@ -8,6 +8,7 @@
 pub mod domain;
 pub mod application;
 pub mod infrastructure;
+pub mod cli;
 
 // Re-export commonly used items for easier access
 pub use application::workflows::encryption_workflow::EncryptionWorkflow;

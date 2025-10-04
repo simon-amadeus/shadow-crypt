@@ -5,10 +5,10 @@
 use clap::Parser;
 use std::process;
 
-// Import from the shadow-crypt library
-use shadow_crypt::application::container::Container;
-use shadow_crypt::application::workflows::encryption_workflow::EncryptionOptions;
-use shadow_crypt::domain::entities::AlgorithmId;
+// Import from the crate using relative paths
+use crate::application::container::Container;
+use crate::application::workflows::encryption_workflow::EncryptionOptions;
+use crate::domain::entities::AlgorithmId;
 
 /// Shadow File Encryption Tool
 #[derive(Parser, Debug)]

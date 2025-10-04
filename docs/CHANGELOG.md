@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.21.0] - 2025-10-04
+
+### Added
+- **Missing Binaries Implementation**: Created `shadows` and `shadowmigrate` binaries completing the full CLI suite
+  - **shadows Binary**: Directory scanning and listing tool for encrypted files with original filename display
+  - **shadowmigrate Binary**: Migration tool for updating file format versions with analysis reporting
+  - **Cargo.toml Configuration**: Fixed binary paths to use proper `src/bin/` structure for all 4 binaries
+  - **CLI Integration**: Full integration with existing `ListingWorkflow` and `MigrationWorkflow` from application layer
+  - **Consistent UX**: Professional help output and error handling across all binaries
+
+### Improved
+- **CLI Architecture Refactoring**: Implemented shared utilities and consistent patterns across all binaries
+  - **Common Module**: Created `src/cli/common.rs` with reusable validation, formatting, and error handling utilities
+  - **Standardized Error Handling**: Unified error messages and exit patterns for better user experience
+  - **Source File Handling**: Prepared infrastructure for upcoming --keep flag behavior corrections
+  - **Reduced Duplication**: Eliminated repeated validation and formatting logic across binaries
+
+### Fixed
+- **Binary Compilation**: Resolved circular dependency issues between CLI modules and library code
+- **Module Structure**: Added CLI module to lib.rs for proper access to common utilities without circular imports
+
 ## [0.20.1] - 2025-10-04
 
 ### Fixed
