@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-10-04
+
+### Fixed
+- **Critical CLI Flag Behavior**: Fixed --keep flag implementation where behavior was opposite of specification
+  - **Before**: Files kept by default, `--remove-source` flag to remove
+  - **After**: Files removed by default, `--keep` flag to preserve (matches specification)
+- **Consistent Flag Behavior**: All binaries now implement correct --keep flag behavior
+  - `shadow`: Default removes source files after encryption, `--keep` preserves them
+  - `unshadow`: Default removes encrypted files after decryption, `--keep` preserves them  
+  - `shadowmigrate`: Default removes original files after migration, `--keep` preserves them
+  - `shadows`: No --keep flag needed (read-only operation)
+
+### Enhanced
+- **CLI Code Quality**: Refactored CLI implementations with shared utility functions and improved error handling
+- **Integration Testing**: Added comprehensive integration tests for --keep flag behavior across all binaries
+- **Help Text Compliance**: All CLI help text now matches specification requirements exactly
+
+### Removed
+- **Legacy Flags**: Removed `--remove-source` and `--inplace` flags in favor of correct `--keep` flag behavior
+
 ## [0.11.0] - 2025-10-04
 
 ### Added

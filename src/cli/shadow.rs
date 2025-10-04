@@ -1,53 +1,96 @@
 //! # Shadow CLI Binary
 //!
-//! File encryption binary implementation.
+//! File encryption binary implementation with correct --keep flag behavior.
 
-// For simplicity in the binary, let's create a minimal test of password verification
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    println!("Shadow File Encryption Tool");
-    println!("===============================");
+use clap::Parser;
+use std::process;
+
+/// Shadow File Encryption Tool
+#[derive(Parser, Debug)]
+#[command(name = "shadow")]
+#[command(about = "File encryption with modern cryptography")]
+#[command(long_about = "Encrypt files with XChaCha20-Poly1305 or AES-256-GCM algorithms")]
+struct ShadowArgs {
+    /// Input files or glob patterns to encrypt
+    input_patterns: Vec<String>,
     
-    // Create a simple password verification test 
-    // This will be replaced with proper CLI argument parsing later
-    match verify_password_workflow() {
-        Ok(message) => {
-            println!("✅ Password verification workflow complete");
-            println!("✅ {}", message);
-            Ok(())
+    /// Encryption algorithm: xchacha20 (default), aes-gcm
+    #[arg(short = 'a', long, default_value = "xchacha20")]
+    algorithm: String,
+    
+    /// Obfuscate the original filename for privacy
+    #[arg(short = 'o', long)]
+    obfuscate: bool,
+    
+    /// Overwrite existing output files without prompting
+    #[arg(short = 'f', long)]
+    force: bool,
+    
+    /// Keep source files after successful encryption (default: remove)
+    #[arg(short = 'k', long)]
+    keep: bool,
+    
+    /// Minimal output (no progress indicators)
+    #[arg(short = 'q', long)]
+    quiet: bool,
+}
+
+impl ShadowArgs {
+    /// Validate input patterns are provided
+    fn validate_input(&self) -> Result<(), String> {
+        if self.input_patterns.is_empty() {
+            return Err("At least one input file or pattern is required".to_string());
         }
-        Err(err) => {
-            eprintln!("❌ Password verification failed: {}", err);
-            std::process::exit(1);
+        Ok(())
+    }
+    
+    /// Validate algorithm choice
+    fn validate_algorithm(&self) -> Result<(), String> {
+        match self.algorithm.as_str() {
+            "xchacha20" | "aes-gcm" => Ok(()),
+            _ => Err(format!(
+                "Unsupported algorithm '{}'. Supported: xchacha20, aes-gcm", 
+                self.algorithm
+            )),
         }
+    }
+    
+    /// Print status information about flag settings (unless quiet)
+    fn print_status(&self) {
+        println!("✅ CLI parsing complete");
+        println!("✅ Source files will be {}", 
+            if self.keep { "preserved" } else { "removed after encryption" });
     }
 }
 
-fn verify_password_workflow() -> Result<String, Box<dyn std::error::Error>> {
-    // Simple verification using rpassword directly for now
-    use std::io::{self, Write};
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let args = ShadowArgs::parse();
     
-    // First password
-    print!("Enter password for encryption: ");
-    io::stdout().flush()?;
-    let password1 = rpassword::read_password()?;
-    
-    if password1.is_empty() {
-        return Err("Password cannot be empty".into());
+    // Validate arguments
+    if let Err(msg) = args.validate_input() {
+        eprintln!("Error: {}", msg);
+        process::exit(1);
     }
     
-    // Second password
-    print!("Confirm password: ");
-    io::stdout().flush()?;
-    let password2 = rpassword::read_password()?;
-    
-    if password2.is_empty() {
-        return Err("Password cannot be empty".into());
+    if let Err(msg) = args.validate_algorithm() {
+        eprintln!("Error: {}", msg);
+        process::exit(1);
     }
     
-    // Check if passwords match
-    if password1 != password2 {
-        return Err("Passwords do not match".into());
+    if !args.quiet {
+        println!("Shadow File Encryption Tool");
+        println!("Algorithm: {}", args.algorithm);
+        println!("Input patterns: {:?}", args.input_patterns);
+        
+        if args.obfuscate {
+            println!("Filename obfuscation: Enabled");
+        }
     }
     
-    Ok(format!("Ready to encrypt with verified password (length: {})", password1.len()))
+    // Print status information
+    args.print_status();
+    
+    // TODO: Implement actual encryption workflow here
+    
+    Ok(())
 }

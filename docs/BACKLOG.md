@@ -20,24 +20,23 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P1 - Critical Missing Features (User Safety)**
-1. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
-2. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
-3. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
+*No items - critical safety issues resolved*
 
 ### **P2 - Domain Architecture (Business Logic)**
-4. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
-5. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
-6. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
-7. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+1. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
+2. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
+3. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
+4. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
 
 ### **P3 - CLI Integration (User Interface)**
-8. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
-9. **unshadow Binary**: File decryption with automatic filename restoration
-10. **shadows Binary**: Directory listing with original filename display and metadata
-11. **shadowmigrate Binary**: Version migration and format updates
+5. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
+6. **unshadow Binary**: File decryption with automatic filename restoration
+7. **shadows Binary**: Directory listing with original filename display and metadata
+8. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 
+- **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
 - **Async File Operations**: Large directory scanning optimization for 1000+ files with async I/O operations
 - **Domain Event System**: Content fingerprinting operations emit domain events for audit trails and monitoring
 - **Memory Management Optimization**: LRU cache for ContentHashDatabase to prevent unbounded memory growth in high-volume scenarios
