@@ -143,9 +143,8 @@ impl EncryptedFile {
     }
 
     /// Get content hash if available
-    pub fn content_hash(&self) -> Option<&[u8; 32]> {
-        // Placeholder - would extract from header ContentHash field
-        None
+    pub fn content_hash(&self) -> Option<[u8; 32]> {
+        self.header.content_hash()
     }
 
     /// Get algorithm ID used for encryption

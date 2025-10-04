@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-10-04
+
+### Added
+- **Content Fingerprinting Infrastructure**: Complete SHA-256 content hashing system for duplicate detection
+- **DuplicateDetector Entity**: Production-ready duplicate detection with ContentHashDatabase backend
+- **TLV ContentHash Integration**: Seamless storage and retrieval of content hashes in encrypted file headers
+- **Builder Pattern Architecture**: DuplicateDetectorBuilder for fluent configuration and service integration
+- **Batch Operations**: Efficient `check_multiple_duplicates()` for high-volume duplicate checking
+- **Comprehensive Test Suite**: 7 unit tests + 4 integration tests covering all functionality including performance validation
+
+### Enhanced
+- **Security-Conscious Error Handling**: File I/O errors no longer expose sensitive file system details
+- **Memory Efficiency**: Chunked reading (8KB) handles large files without memory exhaustion
+- **Performance Optimization**: HashMap-based ContentHashDatabase provides O(1) duplicate detection
+- **Documentation Excellence**: Complete module documentation with usage examples and security considerations
+- **Future-Ready Architecture**: ScanResults infrastructure ready for directory scanning when EncryptedFile I/O is complete
+
+### Technical
+- **Cryptographic Grade Hashing**: SHA-256 provides integrity verification and collision resistance
+- **Modular Design**: Clean separation between content hashing, duplicate detection, and file operations
+- **Integration Ready**: Builder pattern enables immediate EncryptionService integration for P1 roadmap items
+- **Roadmap Alignment**: Directly supports P1 Item 9 (Duplicate Content Detection) and P2 Items 12-13 (Domain Architecture)
+- **Test Coverage**: All 141 tests pass across entire codebase (112 unit + 29 integration/doc tests)
+
 ## [0.8.2] - 2025-10-04
 
 ### Added

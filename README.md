@@ -1,44 +1,45 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.8.2**
+**⚠️ REWRITE IN PROGRESS - v0.9.0**
 
-**Rewrite Status**: 🎯 **File Detection & Crypto Foundation** - Complete file format detection with double-encryption prevention  
-**Current Version**: v0.8.2 - Robust file detection and resolved crypto interface  
-**Next Priority**: Double password verification and CLI integration enhancements
+**Rewrite Status**: 🎯 **Content Fingerprinting & Duplicate Detection** - Complete SHA-256 infrastructure for duplicate detection  
+**Current Version**: v0.9.0 - Production-ready content fingerprinting with TLV integration  
+**Next Priority**: EncryptionService integration and CLI duplicate handling workflows
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.8.2)**
+### ✅ **Completed (v0.9.0)**
+- **Content Fingerprinting Infrastructure**: Complete SHA-256 content hashing system for duplicate detection
+- **DuplicateDetector Entity**: Production-ready duplicate detection with O(1) ContentHashDatabase performance
+- **TLV ContentHash Integration**: Seamless storage/retrieval of content hashes in encrypted file headers
+- **Builder Pattern Architecture**: Fluent configuration enabling clean EncryptionService integration
+- **Security-Conscious Design**: File I/O errors no longer expose sensitive system details, chunked reading prevents memory exhaustion
+- **Comprehensive Testing**: All 141 tests pass (112 unit + 29 integration/doc) with performance validation up to 100 files
+
+### ✅ **Previous Foundation (v0.8.2)**
 - **File Detection Service**: Complete FileDetector with magic number validation and double-encryption prevention
 - **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch (96-byte HKDF to 32-byte algorithm keys)
 - **Enhanced Domain Architecture**: PlaintextFile and EncryptedFile with proper APIs and DecryptionService scaffold
 - **Service Integration**: Clean FileDetector integration with EncryptionService workflow validation
-- **Comprehensive Testing**: All 126 tests pass (105 unit + 21 integration) with clean compilation
 
-### ✅ **Previous Foundation (v0.8.1)**
+### ✅ **Core Foundation (v0.8.1)**
 - **Error Handling Framework**: Security-conscious, user-friendly error system with CLI exit codes and actionable guidance
-- **AES-256-GCM Algorithm**: Complete implementation with secure 12-byte nonce generation alongside XChaCha20-Poly1305
-- **Unified Error Handling**: All cryptographic operations consistently return `DomainError` for improved user experience
-- **Algorithm Factory**: Enum-based pattern supporting both algorithms with unified interfaces
+- **Dual Algorithm Support**: AES-256-GCM and XChaCha20-Poly1305 with unified interfaces and secure memory management
 - **Clean Architecture Compliance**: Complete domain/infrastructure separation following dependency inversion
-- **Domain-Driven Cryptography**: Core abstractions (`AlgorithmId`, `KeyMaterial`, `CryptographicAlgorithm`) in domain layer
-- **Secure Memory Management**: Enhanced `KeyMaterial` with automatic zeroization and constant-time operations
-- **TLV Header System V1**: Extensible Type-Length-Value format preserving proven V3 patterns
-- **Configuration Providers**: Clean separation with domain interfaces and infrastructure implementations
-- **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path
+- **TLV Header System V1**: Extensible Type-Length-Value format with version compatibility matrix
 - **Migration Service**: Complete migration orchestration with safety checks and backup/restore
 
 ### 🚧 **Next Priorities (P1)**
-- **Double Password Verification**: CLI confirmation prompts for critical operations
-- **Duplicate Content Detection**: SHA-256 infrastructure for content fingerprinting using TLV ContentHash field
-- **CLI Integration Enhancements**: Flag fixes and improved user experience workflows
+- **EncryptionService Integration**: Leverage DuplicateDetector for pre-encryption duplicate checking
+- **CLI Duplicate Workflows**: User prompts and handling when duplicate content detected
+- **Double Password Verification**: CLI confirmation prompts for encryption operations
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
 **Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
-**Testing**: 139+ tests covering domain architecture, cryptographic abstractions, and version compatibility
+**Testing**: 141+ tests covering domain architecture, content fingerprinting, and cryptographic operations
 
 ---
 

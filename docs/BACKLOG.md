@@ -19,9 +19,6 @@
 
 ## 📋 PRIORITY ROADMAP
 
-### **P0 - Cryptographic Foundation (Security)**
-4. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
-
 ### **P1 - Critical Missing Features (User Safety)**
 8. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos
 9. **Duplicate Content Detection**: Implement ContentHash TLV field usage to prevent redundant encryption
