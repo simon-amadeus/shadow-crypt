@@ -21,20 +21,8 @@ name = "shadows"
 path = "src/bin/shadows.rs"
 
 [[bin]]
-name = "shadowview"
-path = "src/bin/shadowview.rs"
-
-[[bin]]
-name = "shadowedit"
-path = "src/bin/shadowedit.rs"
-
-[[bin]]
 name = "shadowmigrate"
 path = "src/bin/shadowmigrate.rs"
-
-[[bin]]
-name = "shadowbench"
-path = "src/bin/shadowbench.rs"
 
 [dependencies]
 # Cryptographic dependencies for Phase 3
