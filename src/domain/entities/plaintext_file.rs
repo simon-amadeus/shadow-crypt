@@ -6,32 +6,29 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use crate::domain::errors::{DomainError, DomainResult};
+use crate::domain::entities::file_metadata::FileMetadata;
+use sha2::{Sha256, Digest};
 
 /// Represents a plaintext file ready for encryption
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PlaintextFile {
     path: PathBuf,
-    size: Option<u64>,
+    content: Vec<u8>,
+    metadata: FileMetadata,
+    content_hash: [u8; 32],
 }
 
 impl PlaintextFile {
-    /// Create a new PlaintextFile instance from a path
-    pub fn new(path: PathBuf) -> Self {
-        Self {
-            path,
-            size: None,
-        }
-    }
-
-    /// Create PlaintextFile with metadata loaded
+    /// Create PlaintextFile from a file path, loading content and metadata
     pub fn from_path(path: &Path) -> DomainResult<Self> {
-        let metadata = fs::metadata(path)
+        // Validate path points to a regular file
+        let fs_metadata = fs::metadata(path)
             .map_err(|e| DomainError::file_access_denied(
                 path.display().to_string(), 
                 &format!("Cannot read file metadata: {}", e)
             ))?;
 
-        if !metadata.is_file() {
+        if !fs_metadata.is_file() {
             return Err(DomainError::InputValidationError(
                 crate::domain::errors::InputValidationError::InvalidPath { 
                     path: path.display().to_string(),
@@ -40,32 +37,55 @@ impl PlaintextFile {
             ));
         }
 
+        // Load file content
+        let content = fs::read(path)
+            .map_err(|e| DomainError::file_access_denied(
+                path.display().to_string(),
+                &format!("Cannot read file content: {}", e)
+            ))?;
+
+        // Extract metadata
+        let metadata = FileMetadata::from_path(path)
+            .map_err(|e| DomainError::file_access_denied(
+                path.display().to_string(),
+                &format!("Cannot extract file metadata: {}", e)
+            ))?;
+
+        // Calculate content hash
+        let mut hasher = Sha256::new();
+        hasher.update(&content);
+        let content_hash: [u8; 32] = hasher.finalize().into();
+
         Ok(Self {
             path: path.to_path_buf(),
-            size: Some(metadata.len()),
+            content,
+            metadata,
+            content_hash,
         })
     }
 
-    /// Get the file path
-    pub fn path(&self) -> &Path {
+    /// Get the content hash
+    pub fn content_hash(&self) -> &[u8; 32] {
+        &self.content_hash
+    }
+
+    /// Get the file size
+    pub fn size(&self) -> usize {
+        self.content.len()
+    }
+
+    /// Get the original file path
+    pub fn original_path(&self) -> &Path {
         &self.path
     }
 
-    /// Get the file size (if loaded)
-    pub fn size(&self) -> Option<u64> {
-        self.size
+    /// Get the file metadata
+    pub fn metadata(&self) -> &FileMetadata {
+        &self.metadata
     }
 
-    /// Load file size from filesystem
-    pub fn load_size(&mut self) -> DomainResult<u64> {
-        let metadata = fs::metadata(&self.path)
-            .map_err(|e| DomainError::file_access_denied(
-                self.path.display().to_string(), 
-                &format!("Cannot read file metadata: {}", e)
-            ))?;
-
-        let size = metadata.len();
-        self.size = Some(size);
-        Ok(size)
+    /// Get the file content
+    pub fn content(&self) -> &[u8] {
+        &self.content
     }
 }

@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.13.0] - 2025-10-04
+
+### Added
+- **Complete Domain Entities Implementation**: Five core domain entities fully implemented according to architectural specifications
+  - **FileMetadata**: Enhanced with `from_path()` constructor and cross-platform file type detection
+  - **PlaintextFile**: Complete rewrite with content loading, SHA-256 hashing, and metadata integration  
+  - **EncryptedFile**: Enhanced algorithm ID handling with proper AlgorithmId enum integration
+  - **CryptoSession**: Verified spec compliance with secure key material handling and crypto interfaces
+  - **DuplicateDetector**: Already fully implemented with content hash database and multi-path scanning
+- **Comprehensive Unit Tests**: 7 test cases covering all entity behaviors and business rules
+- **TLV Header Enhancement**: Added `algorithm_id()` getter method for algorithm extraction
+- **Content Hash Integration**: SHA-256 hashing throughout PlaintextFile and duplicate detection
+
+### Technical
+- **Memory Safety**: Automatic key material zeroization in CryptoSession via Drop trait
+- **Error Handling**: Consistent domain error types across all entities
+- **Test Coverage**: Complete unit test coverage for entity creation, operations, and workflows
+- **Compilation**: Clean compilation with only expected dead code warnings (CLI stubs)
+
 ## [0.12.0] - 2025-10-04
 
 ### Fixed

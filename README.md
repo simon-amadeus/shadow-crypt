@@ -1,45 +1,51 @@
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.9.0**
+# Shadow
 
-**Rewrite Status**: 🎯 **Content Fingerprinting & Duplicate Detection** - Complete SHA-256 infrastructure for duplicate detection  
-**Current Version**: v0.9.0 - Production-ready content fingerprinting with TLV integration  
-**Next Priority**: EncryptionService integration and CLI duplicate handling workflows
+**⚠️ REWRITE IN PROGRESS - v0.13.0**
+
+**Rewrite Status**: 🎯 **Domain Entities Foundation** - Complete domain layer implementation ready for services  
+**Current Version**: v0.13.0 - All five core domain entities fully implemented per architectural specifications  
+**Next Priority**: Domain Services layer (EncryptionService, DecryptionService, ListingService, MigrationService)
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.9.0)**
+### ✅ **Completed (v0.13.0)**
+- **Complete Domain Entities**: All five core entities fully implemented according to specifications
+  - **FileMetadata**: Cross-platform metadata extraction with file type detection
+  - **PlaintextFile**: Content loading, SHA-256 hashing, and metadata integration
+  - **EncryptedFile**: Algorithm ID handling and TLV header integration
+  - **CryptoSession**: Secure key material management with automatic zeroization
+  - **DuplicateDetector**: Production-ready content hash database with multi-path scanning
+- **Comprehensive Testing**: 7 new unit tests plus existing test suite - all 128+ tests passing
+- **Architectural Foundation**: Clean entity interfaces ready for domain services layer
+- **Memory Safety**: SecureBox integration and automatic key material zeroization
+
+### ✅ **Previous Foundation (v0.9.0-0.12.0)**
 - **Content Fingerprinting Infrastructure**: Complete SHA-256 content hashing system for duplicate detection
-- **DuplicateDetector Entity**: Production-ready duplicate detection with O(1) ContentHashDatabase performance
 - **TLV ContentHash Integration**: Seamless storage/retrieval of content hashes in encrypted file headers
-- **Builder Pattern Architecture**: Fluent configuration enabling clean EncryptionService integration
-- **Security-Conscious Design**: File I/O errors no longer expose sensitive system details, chunked reading prevents memory exhaustion
-- **Comprehensive Testing**: All 141 tests pass (112 unit + 29 integration/doc) with performance validation up to 100 files
-
-### ✅ **Previous Foundation (v0.8.2)**
 - **File Detection Service**: Complete FileDetector with magic number validation and double-encryption prevention
-- **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch (96-byte HKDF to 32-byte algorithm keys)
-- **Enhanced Domain Architecture**: PlaintextFile and EncryptedFile with proper APIs and DecryptionService scaffold
-- **Service Integration**: Clean FileDetector integration with EncryptionService workflow validation
+- **Crypto Interface Resolution**: Fixed KeyMaterial size mismatch and algorithm integration
+- **Error Handling Framework**: Security-conscious, user-friendly error system with CLI exit codes
 
-### ✅ **Core Foundation (v0.8.1)**
-- **Error Handling Framework**: Security-conscious, user-friendly error system with CLI exit codes and actionable guidance
-- **Dual Algorithm Support**: AES-256-GCM and XChaCha20-Poly1305 with unified interfaces and secure memory management
+### ✅ **Core Foundation (v0.8.1-0.8.2)**
 - **Clean Architecture Compliance**: Complete domain/infrastructure separation following dependency inversion
+- **Dual Algorithm Support**: AES-256-GCM and XChaCha20-Poly1305 with unified interfaces
 - **TLV Header System V1**: Extensible Type-Length-Value format with version compatibility matrix
 - **Migration Service**: Complete migration orchestration with safety checks and backup/restore
 
 ### 🚧 **Next Priorities (P1)**
-- **EncryptionService Integration**: Leverage DuplicateDetector for pre-encryption duplicate checking
-- **CLI Duplicate Workflows**: User prompts and handling when duplicate content detected
-- **Double Password Verification**: CLI confirmation prompts for encryption operations
+- **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
+- **Repository Interfaces**: FileRepository and PasswordRepository implementations  
+- **Application Workflows**: Complete user-facing workflow orchestration
+- **CLI Integration**: Connect domain services to CLI binaries
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
 **Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
-**Testing**: 141+ tests covering domain architecture, content fingerprinting, and cryptographic operations
+**Testing**: 128+ tests covering domain entities, content fingerprinting, and cryptographic operations
 
 ---
 

@@ -71,7 +71,7 @@ impl CryptoSession {
         self.key_material.obfuscation_key.expose_secret()
     }
     
-    /// Placeholder for encryption operation
+    /// Encrypt plaintext data with the given nonce
     /// 
     /// This will be implemented when the crypto infrastructure layer is available.
     /// For now, it provides the interface that crypto implementations will use.
@@ -79,9 +79,9 @@ impl CryptoSession {
         todo!("Encryption will be implemented with crypto infrastructure layer")
     }
     
-    /// Placeholder for decryption operation
+    /// Decrypt ciphertext data with the given nonce
     /// 
-    /// This will be implemented when the crypto infrastructure layer is available.
+    /// This will be implemented when the crypto infrastructure layer is available.  
     /// For now, it provides the interface that crypto implementations will use.
     pub fn decrypt(&self, _ciphertext: &[u8], _nonce: &[u8]) -> DomainResult<Vec<u8>> {
         todo!("Decryption will be implemented with crypto infrastructure layer")

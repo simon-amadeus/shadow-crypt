@@ -153,9 +153,15 @@ impl EncryptedFile {
     }
 
     /// Get algorithm ID used for encryption
-    pub fn algorithm(&self) -> u8 {
-        // Placeholder - would extract from header AlgorithmId field
-        1 // Default to algorithm ID 1
+    pub fn algorithm(&self) -> crate::domain::entities::algorithm_id::AlgorithmId {
+        // Extract from header, default to XChaCha20Poly1305 if not found
+        self.header.algorithm_id()
+            .map(|id| match id {
+                1 => crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305,
+                2 => crate::domain::entities::algorithm_id::AlgorithmId::AesGcm256,
+                _ => crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305, // Default
+            })
+            .unwrap_or(crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305)
     }
 
     /// Check if filename is obfuscated

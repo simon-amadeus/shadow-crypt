@@ -163,6 +163,12 @@ impl TlvHeader {
         self.add_field(TlvFieldType::AlgorithmId, vec![algorithm]);
     }
 
+    /// Get algorithm ID if present
+    pub fn algorithm_id(&self) -> Option<u8> {
+        self.get_field(TlvFieldType::AlgorithmId)
+            .and_then(|data| data.first().copied())
+    }
+
     /// Set nonce/IV data
     pub fn set_nonce(&mut self, nonce: Vec<u8>) {
         self.add_field(TlvFieldType::Nonce, nonce);
