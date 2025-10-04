@@ -128,6 +128,49 @@ impl From<getrandom::Error> for CryptoError {
 /// Result type alias for cryptographic operations
 pub type CryptoResult<T> = Result<T, CryptoError>;
 
+// Conversion from domain errors to infrastructure errors
+// This allows infrastructure layer to work with domain layer abstractions
+impl From<crate::domain::errors::DomainError> for CryptoError {
+    fn from(domain_error: crate::domain::errors::DomainError) -> Self {
+        use crate::domain::errors::{DomainError, CryptographicError};
+        
+        match domain_error {
+            DomainError::CryptographicError(crypto_err) => {
+                match crypto_err {
+                    CryptographicError::KeyDerivationFailed { algorithm } => {
+                        CryptoError::KeyDerivationError(format!("Key derivation failed for {}", algorithm))
+                    }
+                    CryptographicError::EncryptionFailed { reason } => {
+                        CryptoError::CryptographicError(format!("Encryption failed: {}", reason))
+                    }
+                    CryptographicError::DecryptionFailed { reason } => {
+                        CryptoError::CryptographicError(format!("Decryption failed: {}", reason))
+                    }
+                    CryptographicError::RandomGenerationFailed => {
+                        CryptoError::RandomGenerationFailed("Random generation failed".to_string())
+                    }
+                    CryptographicError::UnsupportedAlgorithm { algorithm_id } => {
+                        CryptoError::UnsupportedAlgorithm(algorithm_id)
+                    }
+                    CryptographicError::SecureMemoryAllocationFailed => {
+                        CryptoError::SecureMemoryError("Secure memory allocation failed".to_string())
+                    }
+                    CryptographicError::HardwareAccelerationUnavailable => {
+                        CryptoError::ConfigurationError("Hardware acceleration unavailable".to_string())
+                    }
+                }
+            }
+            DomainError::AuthenticationFailed { .. } => {
+                CryptoError::AuthenticationFailed
+            }
+            // For other domain errors, map to generic cryptographic error
+            other => {
+                CryptoError::CryptographicError(format!("Domain error: {}", other))
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

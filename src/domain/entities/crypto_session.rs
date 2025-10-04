@@ -3,41 +3,9 @@
 //! Manages cryptographic state and key material for operations.
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
-use super::secure_memory::KeyMaterial;
+use super::algorithm_id::AlgorithmId;
+use super::key_material::KeyMaterial;
 use crate::domain::errors::DomainResult;
-
-/// Algorithm identifier for cryptographic operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AlgorithmId {
-    XChaCha20Poly1305 = 1,
-    AesGcm256 = 2,
-}
-
-impl AlgorithmId {
-    /// Get human-readable algorithm name
-    pub fn name(&self) -> &'static str {
-        match self {
-            AlgorithmId::XChaCha20Poly1305 => "XChaCha20-Poly1305",
-            AlgorithmId::AesGcm256 => "AES-256-GCM",
-        }
-    }
-    
-    /// Get key size required by this algorithm
-    pub fn key_size(&self) -> usize {
-        match self {
-            AlgorithmId::XChaCha20Poly1305 => 32, // 256 bits
-            AlgorithmId::AesGcm256 => 32,         // 256 bits
-        }
-    }
-    
-    /// Get nonce size required by this algorithm
-    pub fn nonce_size(&self) -> usize {
-        match self {
-            AlgorithmId::XChaCha20Poly1305 => 24, // 192 bits
-            AlgorithmId::AesGcm256 => 12,         // 96 bits
-        }
-    }
-}
 
 /// Manages cryptographic state and key material for operations
 /// 

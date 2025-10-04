@@ -74,11 +74,13 @@ impl XChaCha20Config {
 }
 
 impl KeyDerivationConfig for XChaCha20Config {
-    fn derive_key(&self, password: &str, salt: &[u8]) -> Result<Vec<u8>, CryptoError> {
+    fn derive_key(&self, password: &str, salt: &[u8]) -> Result<crate::domain::entities::KeyMaterial, crate::domain::errors::DomainError> {
         // Validate salt length
         if salt.len() != Self::SALT_SIZE {
-            return Err(CryptoError::InvalidParameters(
-                format!("Invalid salt length: expected {}, got {}", Self::SALT_SIZE, salt.len())
+            return Err(crate::domain::errors::DomainError::CryptographicError(
+                crate::domain::errors::CryptographicError::KeyDerivationFailed { 
+                    algorithm: "XChaCha20-Poly1305".to_string() 
+                }
             ));
         }
         
@@ -114,7 +116,9 @@ impl KeyDerivationConfig for XChaCha20Config {
             *byte = ((hash >> (i % 8)) & 0xFF) as u8;
         }
         
-        Ok(key)
+        Ok(crate::domain::entities::KeyMaterial::from_master_key(
+            key.try_into().expect("Key should be exactly 32 bytes")
+        ))
     }
     
     fn salt_length(&self) -> usize {
@@ -172,8 +176,8 @@ impl CryptoConfig for XChaCha20Config {
         )
     }
     
-    fn validate_security_parameters(&self) -> Result<(), CryptoError> {
-        self.validate_argon2_params()
+    fn validate_security_parameters(&self) -> Result<(), crate::domain::errors::DomainError> {
+        self.validate_argon2_params().map_err(|e| e.into())
     }
 }
 
@@ -278,7 +282,7 @@ mod tests {
         let salt = config.generate_salt().unwrap();
         
         let key = config.derive_key("test_password", &salt).unwrap();
-        assert_eq!(key.len(), 32);
+        assert_eq!(key.len(), 96); // Total of master + encryption + obfuscation keys
         
         // Same password and salt should produce same key
         let key2 = config.derive_key("test_password", &salt).unwrap();

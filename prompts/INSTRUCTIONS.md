@@ -56,6 +56,7 @@ Then begin the first development cycle immediately, starting with the SYNC phase
 - **Architectural Evolution**: Let structure emerge from domain understanding while considering future requirements
 - **Inward Pointing**: Ensure all modules and functions point inward toward core domain logic
 - **Code Quality & Security**: Improve clarity, eliminate technical debt, enhance security patterns
+- **Simplicity**: Balance abstraction needs with simplicity; keep code as lean as possible but no simpler
 - **Abstraction Evaluation**: Extract to shared modules only when actual duplication is proven and roadmap supports it
 - **Test & Documentation**: Enhance test clarity and ensure code remains self-documenting
 **Validation**:

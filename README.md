@@ -2,34 +2,36 @@
 
 # Shadow
 
-**⚠️ REWRITE IN PROGRESS - v0.4.0**
+**⚠️ REWRITE IN PROGRESS - v0.7.0**
 
-**Rewrite Status**: 🚀 **Error Framework Complete** - Comprehensive error handling with user-friendly messages  
-**Current Version**: v0.4.0 - Foundation architecture with error handling framework  
-**Next Priority**: Secure memory management and cryptographic implementation
+**Rewrite Status**: 🎯 **Clean Architecture Achieved** - Domain-driven design with complete layer separation  
+**Current Version**: v0.7.0 - Clean architecture foundation with domain-driven cryptographic abstractions  
+**Next Priority**: Error handling framework and file detection logic
 
 ---
 
 ## Rewrite Progress
 
-### ✅ **Completed (v0.4.0)**
-- **Clean Architecture**: Domain/Application/Infrastructure/CLI layers established
+### ✅ **Completed (v0.7.0)**
+- **Clean Architecture Compliance**: Complete domain/infrastructure separation following dependency inversion
+- **Domain-Driven Cryptography**: Core abstractions (`AlgorithmId`, `KeyMaterial`, `CryptographicAlgorithm`) in domain layer
+- **Secure Memory Management**: Enhanced `KeyMaterial` with automatic zeroization and constant-time operations
+- **Algorithm Abstraction Layer**: Production-ready trait system for XChaCha20-Poly1305 and AES-256-GCM
 - **TLV Header System V1**: Extensible Type-Length-Value format preserving proven V3 patterns
-- **Configuration Providers**: Algorithm abstraction with XChaCha20-Poly1305 and AES-256-GCM support
+- **Configuration Providers**: Clean separation with domain interfaces and infrastructure implementations
 - **Version Compatibility Matrix**: Future-proof migration system with V1 baseline and V3→V1 migration path
 - **Migration Service**: Complete migration orchestration with safety checks and backup/restore
 - **Error Handling Framework**: Security-conscious, user-friendly error system with actionable guidance
 
-### 🚧 **Next Priorities**
-- **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization
-- **Algorithm Implementation**: Complete XChaCha20-Poly1305 and AES-256-GCM implementations
-- **File Detection Logic**: Double-encryption prevention using magic number validation
-- **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection
+### 🚧 **Next Priorities (P0)**
+- **Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
+- **File Detection Logic**: Robust double-encryption prevention using magic number validation
+- **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
 
 ### 📋 **Implementation Strategy**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
 **Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
-**Testing**: 20+ tests covering version compatibility, migration, and domain integration
+**Testing**: 139+ tests covering domain architecture, cryptographic abstractions, and version compatibility
 
 ---
 

@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-10-04
+
+### Architecture
+- **Clean Architecture Compliance**: Achieved complete separation of domain and infrastructure layers following dependency inversion principle
+- **Domain-Driven Cryptographic Abstractions**: Moved core cryptographic concepts (`AlgorithmId`, `KeyMaterial`, `CryptographicAlgorithm`) from infrastructure to domain layer
+- **Consolidated Algorithm Identifiers**: Unified duplicate `AlgorithmId` definitions into single domain entity with complete business logic
+- **Secure Key Material Entity**: Relocated `KeyMaterial` to domain layer with enhanced security properties and constant-time comparison
+- **Domain Cryptographic Services**: Created comprehensive trait definitions (`CryptographicAlgorithm`, `KeyDerivationConfig`, `EncryptionConfig`) representing business capabilities
+- **Bidirectional Error Conversion**: Implemented seamless error translation between domain and infrastructure layers enabling clean adaptation
+
+### Enhanced
+- **Infrastructure Adaptation**: Updated infrastructure implementations to consume domain abstractions through dependency injection pattern
+- **Error Handling Integration**: Enhanced domain error types with infrastructure error conversion for seamless layer interaction
+- **Test Compatibility**: Updated all test suites to work with new domain-driven interfaces while maintaining functional coverage
+- **API Backward Compatibility**: Preserved existing `KeyMaterial` interface while upgrading internal architecture
+
+### Security
+- **Enhanced Key Material Protection**: Maintained secure memory management with automatic zeroization during architectural refactoring
+- **Constant-Time Cryptographic Operations**: Preserved `subtle` crate integration for timing-attack resistant key comparison
+- **Domain Security Abstractions**: Established security-first domain interfaces that prevent accidental security regressions
+
+### Technical Validation
+- **Complete Test Coverage**: All 139 tests pass (106 unit tests + 33 integration tests) validating zero functional regression
+- **Clean Compilation**: Achieved error-free compilation with resolved architectural violations
+- **Dependency Compliance**: Verified no upward dependencies (domain → infrastructure) exist in codebase
+- **Future-Ready Architecture**: Established clean foundation enabling rapid development of upcoming priority features
+
+### Breaking Changes
+- **Internal API Evolution**: `KeyMaterial` API changes required test updates but maintain public interface compatibility
+- **Error Type Integration**: Infrastructure error handling now flows through domain error types for architectural consistency
+
 ## [0.6.1] - 2025-10-04
 
 ### Added

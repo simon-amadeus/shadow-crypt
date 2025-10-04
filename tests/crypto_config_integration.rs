@@ -45,7 +45,7 @@ fn test_key_derivation_workflow() {
     
     // Verify outputs
     assert_eq!(salt.len(), 16);
-    assert_eq!(key.len(), 32);
+    assert_eq!(key.len(), 96); // Total of master + encryption + obfuscation keys
     
     // Same password + salt should produce same key
     let key2 = config.derive_key("test_password", &salt)
@@ -128,12 +128,12 @@ fn test_polymorphic_configuration_usage() {
     let provider = XChaCha20Provider::test()
         .expect("Failed to create provider");
     
-    // Function that works with any CryptoConfig implementation
-    fn derive_session_key<T: CryptoConfig>(config: &T, password: &str) -> Vec<u8> {
+    // Function that works with any CryptoConfig implementation  
+    fn derive_session_key<T: CryptoConfig>(config: &T, password: &str) -> shadow_crypt::domain::entities::KeyMaterial {
         let salt = config.generate_salt().expect("Salt generation failed");
         config.derive_key(password, &salt).expect("Key derivation failed")
     }
     
     let key = derive_session_key(provider.config(), "session_password");
-    assert_eq!(key.len(), 32);
+    assert_eq!(key.len(), 96); // Total length of all key components
 }

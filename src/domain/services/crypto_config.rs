@@ -3,7 +3,10 @@
 //! This module provides abstractions for algorithm-agnostic configuration
 //! of key derivation, encryption parameters, and cryptographic operations.
 
-use crate::infrastructure::crypto::errors::CryptoError;
+use crate::domain::errors::DomainError;
+use crate::domain::entities::KeyMaterial;
+
+type CryptoResult<T> = Result<T, DomainError>;
 
 /// Configuration trait for key derivation function parameters
 /// 
@@ -16,7 +19,7 @@ pub trait KeyDerivationConfig: Send + Sync + Clone + std::fmt::Debug {
     /// - Must use cryptographically secure random salt
     /// - Must apply sufficient work factor to resist brute force attacks
     /// - Must return appropriate key size for target encryption algorithm
-    fn derive_key(&self, password: &str, salt: &[u8]) -> Result<Vec<u8>, CryptoError>;
+    fn derive_key(&self, password: &str, salt: &[u8]) -> CryptoResult<KeyMaterial>;
     
     /// Get recommended salt length in bytes for this KDF
     fn salt_length(&self) -> usize;
@@ -25,10 +28,12 @@ pub trait KeyDerivationConfig: Send + Sync + Clone + std::fmt::Debug {
     fn key_length(&self) -> usize;
     
     /// Generate cryptographically secure salt of appropriate length
-    fn generate_salt(&self) -> Result<Vec<u8>, CryptoError> {
+    fn generate_salt(&self) -> CryptoResult<Vec<u8>> {
         let mut salt = vec![0u8; self.salt_length()];
         getrandom::fill(&mut salt)
-            .map_err(|e| CryptoError::RandomGenerationFailed(e.to_string()))?;
+            .map_err(|_| DomainError::CryptographicError(
+                crate::domain::errors::CryptographicError::RandomGenerationFailed
+            ))?;
         Ok(salt)
     }
     
@@ -57,10 +62,12 @@ pub trait EncryptionConfig: Send + Sync + Clone + std::fmt::Debug {
     fn algorithm_name(&self) -> &'static str;
     
     /// Generate cryptographically secure nonce of appropriate length
-    fn generate_nonce(&self) -> Result<Vec<u8>, CryptoError> {
+    fn generate_nonce(&self) -> CryptoResult<Vec<u8>> {
         let mut nonce = vec![0u8; self.nonce_size()];
         getrandom::fill(&mut nonce)
-            .map_err(|e| CryptoError::RandomGenerationFailed(e.to_string()))?;
+            .map_err(|_| DomainError::CryptographicError(
+                crate::domain::errors::CryptographicError::RandomGenerationFailed
+            ))?;
         Ok(nonce)
     }
 }
@@ -85,7 +92,7 @@ pub trait CryptoConfig: KeyDerivationConfig + EncryptionConfig {
     fn production_config() -> Self where Self: Sized;
     
     /// Validate configuration parameters meet minimum security requirements
-    fn validate_security_parameters(&self) -> Result<(), CryptoError>;
+    fn validate_security_parameters(&self) -> CryptoResult<()>;
 }
 
 /// Provider trait for dependency injection of crypto configurations
@@ -155,8 +162,8 @@ mod tests {
     struct MockCryptoConfig;
 
     impl KeyDerivationConfig for MockCryptoConfig {
-        fn derive_key(&self, _password: &str, _salt: &[u8]) -> Result<Vec<u8>, CryptoError> {
-            Ok(vec![0u8; 32])
+        fn derive_key(&self, _password: &str, _salt: &[u8]) -> CryptoResult<KeyMaterial> {
+            Ok(KeyMaterial::from_master_key([0u8; 32]))
         }
         
         fn salt_length(&self) -> usize { 16 }
@@ -175,7 +182,7 @@ mod tests {
     impl CryptoConfig for MockCryptoConfig {
         fn test_config() -> Self { MockCryptoConfig }
         fn production_config() -> Self { MockCryptoConfig }
-        fn validate_security_parameters(&self) -> Result<(), CryptoError> { Ok(()) }
+        fn validate_security_parameters(&self) -> CryptoResult<()> { Ok(()) }
     }
 
     #[test]
