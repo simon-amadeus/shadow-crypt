@@ -9,6 +9,15 @@ authors = ["Simon Amadeus <code@simonamadeus.com>"]
 readme = "README.md"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
+exclude = [
+    "INSTRUCTIONS.md",
+    "ROLE.md", 
+    "FEEDBACK.md",
+    "docs/BACKLOG.md",
+    "docs/specs/",
+    "*.bak",
+    "*_backup.*"
+]
 
 # Binary targets for each use case
 [[bin]]
