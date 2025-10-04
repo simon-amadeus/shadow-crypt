@@ -6,20 +6,23 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## New Feedback
 
-**2025-10-04 - Critical Architecture Violations in Algorithm Abstraction**: Current implementation violates clean architecture by placing domain abstractions (`CryptographicAlgorithm`, `AlgorithmId`, `KeyMaterial`) in infrastructure layer. Domain services import from infrastructure, breaking dependency inversion principle.
+**2025-10-04 - Complete Crypto Infrastructure Implementation**: After architecture refactoring, infrastructure crypto implementations need completion to achieve full functionality. 
 
-**Violations Identified**:
-- `src/infrastructure/crypto/algorithms.rs` contains domain-level abstractions
-- `src/domain/services/crypto_config.rs:6` imports `crate::infrastructure::crypto::errors::CryptoError`
-- Duplicate `AlgorithmId` definitions in domain and infrastructure
-- Core business traits living in infrastructure instead of domain
+**Technical Requirements**:
+- Fix return type mismatches: Infrastructure methods returning `CryptoError` need conversion to `DomainError` to match domain interfaces
+- Align KeyMaterial interfaces: Domain expects 3-key constructor `new(master_key, encryption_key, obfuscation_key)`, infrastructure providing single key
+- Standardize AlgorithmId naming: Infrastructure uses `Aes256Gcm`, domain uses `AesGcm256` - choose consistent naming
+- Implement missing methods: Add `as_bytes()` method to domain KeyMaterial, implement `generate_nonce()` in infrastructure configs
 
-**Impact**: Breaks clean architecture, makes domain layer dependent on infrastructure, violates SOLID principles
+**Implementation Context**: Clean architecture now properly established with zero domain→infrastructure imports. Core violation resolved, these are implementation details for full functionality.
 
-**Required Action**: Comprehensive refactoring to move all cryptographic abstractions to domain layer, make infrastructure implement domain interfaces through dependency inversion
+**Root Cause**: Architecture migration prioritized layer separation over implementation compatibility, creating interface mismatches that need resolution.
+
+**Priority**: P1 after current critical foundation items, needed for functional crypto operations
 
 ---
 
 ## Processed Feedback
 
+- **2025-10-04**: Critical Architecture Violations in Algorithm Abstraction - Cryptographic abstractions incorrectly placed in infrastructure layer, violating clean architecture. Domain services importing from infrastructure breaks dependency inversion. Requires comprehensive refactoring to move all crypto abstractions to domain layer. → **Processed into backlog P0 item**
 - **2025-10-04**: Rewrite approach guidance - Move existing code to legacy/ folder, start from scratch based on docs/specs, remove old integration tests, focus on clean new codebase aligned to target architecture. → **Processed into backlog P0 item**

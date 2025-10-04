@@ -22,7 +22,7 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P0 - Cryptographic Foundation (Security)**
-1. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
+2. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
 3. **File Detection Logic**: Robust double-encryption prevention using magic number validation
 4. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
 

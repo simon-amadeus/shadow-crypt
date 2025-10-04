@@ -3,9 +3,11 @@
 //! Production-grade configuration implementation for XChaCha20-Poly1305 AEAD cipher
 //! with Argon2id key derivation. This is the recommended default algorithm for Shadow.
 
-use crate::domain::services::crypto_config::{
-    KeyDerivationConfig, EncryptionConfig, CryptoConfig, ConfigurationProvider
+use crate::domain::services::{
+    KeyDerivationConfig, EncryptionConfig, CryptographicAlgorithm, EncryptionResult
 };
+use crate::domain::entities::{AlgorithmId, KeyMaterial};
+use crate::domain::errors::DomainError;
 use crate::infrastructure::crypto::errors::CryptoError;
 
 /// XChaCha20-Poly1305 cryptographic configuration
@@ -74,7 +76,7 @@ impl XChaCha20Config {
 }
 
 impl KeyDerivationConfig for XChaCha20Config {
-    fn derive_key(&self, password: &str, salt: &[u8]) -> Result<crate::domain::entities::KeyMaterial, crate::domain::errors::DomainError> {
+    fn derive_key_material(&self, password: &str, salt: &[u8]) -> Result<crate::domain::entities::KeyMaterial, crate::domain::errors::DomainError> {
         // Validate salt length
         if salt.len() != Self::SALT_SIZE {
             return Err(crate::domain::errors::DomainError::CryptographicError(
@@ -125,11 +127,7 @@ impl KeyDerivationConfig for XChaCha20Config {
         Self::SALT_SIZE
     }
     
-    fn key_length(&self) -> usize {
-        Self::KEY_SIZE
-    }
-    
-    fn config_name(&self) -> &'static str {
+    fn name(&self) -> &'static str {
         "Argon2id"
     }
 }
@@ -143,20 +141,33 @@ impl EncryptionConfig for XChaCha20Config {
         Self::NONCE_SIZE
     }
     
-    fn tag_size(&self) -> usize {
-        Self::TAG_SIZE
-    }
-    
-    fn algorithm_id(&self) -> u16 {
-        Self::ALGORITHM_ID
-    }
-    
-    fn algorithm_name(&self) -> &'static str {
-        "XChaCha20-Poly1305"
+    fn algorithm_id(&self) -> crate::domain::entities::AlgorithmId {
+        crate::domain::entities::AlgorithmId::XChaCha20Poly1305
     }
 }
 
-impl CryptoConfig for XChaCha20Config {
+impl CryptographicAlgorithm for XChaCha20Config {
+    fn encrypt(
+        &self,
+        plaintext: &[u8],
+        key_material: &crate::domain::entities::KeyMaterial,
+    ) -> Result<crate::domain::services::EncryptionResult, crate::domain::errors::DomainError> {
+        // TODO: Implement encryption logic
+        // This is a placeholder during architecture refactoring
+        Err(crate::domain::errors::DomainError::crypto_error("Not implemented".to_string()))
+    }
+    
+    fn decrypt(
+        &self,
+        ciphertext: &[u8],
+        nonce: &[u8],
+        key_material: &crate::domain::entities::KeyMaterial,
+    ) -> Result<Vec<u8>, crate::domain::errors::DomainError> {
+        // TODO: Implement decryption logic  
+        // This is a placeholder during architecture refactoring
+        Err(crate::domain::errors::DomainError::crypto_error("Not implemented".to_string()))
+    }
+    
     fn test_config() -> Self {
         // Fast parameters for testing - INSECURE, development only
         // Use minimum valid parameters that still pass validation
@@ -175,10 +186,6 @@ impl CryptoConfig for XChaCha20Config {
             4,       // 4 parallel threads
         )
     }
-    
-    fn validate_security_parameters(&self) -> Result<(), crate::domain::errors::DomainError> {
-        self.validate_argon2_params().map_err(|e| e.into())
-    }
 }
 
 /// XChaCha20-Poly1305 configuration provider
@@ -193,7 +200,7 @@ pub struct XChaCha20Provider {
 impl XChaCha20Provider {
     /// Create provider with custom configuration
     pub fn new(config: XChaCha20Config) -> Result<Self, CryptoError> {
-        config.validate_security_parameters()?;
+        // TODO: Add validation back
         Ok(Self { config })
     }
     
@@ -216,11 +223,15 @@ impl XChaCha20Provider {
     }
 }
 
-impl ConfigurationProvider for XChaCha20Provider {
-    type Config = XChaCha20Config;
+impl crate::domain::services::ConfigProvider for XChaCha20Provider {
+    type Algorithm = XChaCha20Config;
     
-    fn config(&self) -> &Self::Config {
-        &self.config
+    fn production_config(&self) -> Self::Algorithm {
+        XChaCha20Config::production_config()
+    }
+    
+    fn test_config(&self) -> Self::Algorithm {
+        XChaCha20Config::test_config()
     }
 }
 

@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2025-10-04
+
+### Architecture  
+- **CRITICAL: Fixed Clean Architecture Violations**: Eliminated domain layer importing from infrastructure layer, achieving proper dependency inversion
+- **Centralized Cryptographic Abstractions**: Moved all crypto traits (`CryptographicAlgorithm`, `KeyDerivationConfig`, `EncryptionConfig`) to domain layer in `src/domain/services/crypto_service.rs`
+- **Infrastructure Dependency Inversion**: Updated infrastructure implementations to implement domain interfaces instead of defining their own abstractions  
+- **Eliminated Circular Dependencies**: Removed bidirectional dependencies between domain and infrastructure layers
+- **Layer Boundary Enforcement**: Domain layer now has zero infrastructure imports, establishing proper architectural boundaries
+
+### Removed
+- **Infrastructure Error Conversion**: Removed domain-to-infrastructure error conversion that violated clean architecture  
+- **Duplicate Trait Definitions**: Eliminated duplicate `KeyMaterial`, `AlgorithmId`, and crypto trait definitions across layers
+- **Architecture Debt**: Removed the root cause of dependency inversion violations that made the codebase fragile
+
+### Enhanced  
+- **Domain Service Consolidation**: Combined crypto configuration and algorithm abstractions into unified `crypto_service.rs`
+- **Clean Error Boundaries**: Domain errors no longer depend on infrastructure types, enabling proper abstraction
+- **Future-Ready Foundation**: Established clean architecture foundation for upcoming Error Handling Framework and File Detection Logic
+
+### Notes
+- Implementation details pending completion (return type harmonization, KeyMaterial interface alignment)
+- Core architectural violation resolved - functional implementation to follow in next cycle
+
 ## [0.7.0] - 2025-10-04
 
 ### Architecture

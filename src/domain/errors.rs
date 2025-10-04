@@ -353,49 +353,10 @@ impl DomainError {
     pub fn unsupported_algorithm(algorithm_id: u16) -> Self {
         DomainError::CryptographicError(CryptographicError::UnsupportedAlgorithm { algorithm_id })
     }
-}
 
-// Conversion from infrastructure crypto errors to domain errors
-// This allows infrastructure implementations to use domain interfaces
-impl From<crate::infrastructure::crypto::errors::CryptoError> for DomainError {
-    fn from(crypto_error: crate::infrastructure::crypto::errors::CryptoError) -> Self {
-        use crate::infrastructure::crypto::errors::CryptoError;
-        
-        match crypto_error {
-            CryptoError::CryptographicError(msg) => {
-                DomainError::CryptographicError(CryptographicError::EncryptionFailed { reason: msg })
-            }
-            CryptoError::AuthenticationFailed => {
-                DomainError::AuthenticationFailed { context: "Authentication failed".to_string() }
-            }
-            CryptoError::KeyDerivationError(msg) => {
-                DomainError::CryptographicError(CryptographicError::KeyDerivationFailed { algorithm: msg })
-            }
-            CryptoError::UnsupportedAlgorithm(id) => {
-                DomainError::CryptographicError(CryptographicError::UnsupportedAlgorithm { algorithm_id: id })
-            }
-            CryptoError::RandomGenerationFailed(_) => {
-                DomainError::CryptographicError(CryptographicError::RandomGenerationFailed)
-            }
-            CryptoError::InvalidParameters(msg) => {
-                DomainError::InputValidationError(crate::domain::errors::InputValidationError::InvalidArgument { 
-                    argument: "crypto_parameter".to_string(), 
-                    reason: msg 
-                })
-            }
-            CryptoError::SecureMemoryError(_) => {
-                DomainError::CryptographicError(CryptographicError::SecureMemoryAllocationFailed)
-            }
-            CryptoError::ConfigurationError(msg) => {
-                DomainError::ConfigurationError(crate::domain::errors::ConfigurationError::ConfigParsingFailed { reason: msg })
-            }
-            // Map other crypto errors to generic cryptographic errors
-            other => {
-                DomainError::CryptographicError(CryptographicError::EncryptionFailed { 
-                    reason: format!("Infrastructure error: {}", other) 
-                })
-            }
-        }
+    /// Create a crypto error with message (for infrastructure implementations)
+    pub fn crypto_error(message: String) -> Self {
+        DomainError::CryptographicError(CryptographicError::EncryptionFailed { reason: message })
     }
 }
 
