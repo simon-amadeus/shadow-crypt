@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-10-04
+
+### Added
+- **Complete Algorithm Abstraction Layer**: Production-ready trait-based abstraction for cryptographic algorithms with pluggable interface
+- **XChaCha20-Poly1305 Implementation**: Full implementation with 24-byte extended nonces, Argon2id key derivation, and production/test configurations
+- **AES-256-GCM Implementation**: Complete implementation with 12-byte nonces, identical interface to XChaCha20-Poly1305 for seamless interoperability
+- **Enum-Based Algorithm Selection**: `Algorithm` enum solving Rust trait object limitations while providing unified interface for all supported algorithms
+- **Secure Key Material Management**: Automatic memory zeroization for cryptographic keys with debug-safe representation
+- **Algorithm Factory Methods**: Convenient constructors for production and test configurations of all supported algorithms
+- **Comprehensive Security Validation**: Test coverage for nonce uniqueness, cross-algorithm compatibility, large data handling, and edge cases
+
+### Changed
+- **Cryptographic Architecture**: Established clean abstraction layer separating algorithm implementations from domain logic
+- **Algorithm Independence**: Domain services can now use any supported algorithm through identical interfaces
+- **Security Foundation**: All cryptographic operations now use consistent security patterns with automatic cleanup
+
+### Technical Details
+- **Interface Consistency**: Both algorithms implement identical `CryptographicAlgorithm`, `KeyDerivationConfig`, and `EncryptionConfig` traits
+- **Parameter Configurations**: Test configurations use fast parameters (64 KiB memory, 1 iteration) while production uses secure parameters (64 MiB memory, 3 iterations)
+- **Nonce Management**: XChaCha20-Poly1305 uses 24-byte nonces eliminating birthday paradox concerns, AES-GCM uses standard 12-byte nonces
+- **Error Handling**: Comprehensive error types covering authentication failures, parameter validation, and cryptographic operation failures
+- **Test Coverage**: 42 total tests (35 unit + 7 integration) validating all functionality including security properties and cross-algorithm compatibility
+- **Memory Safety**: All sensitive key material automatically zeroized on drop with compiler-resistant clearing
+
 ## [0.5.0] - 2025-10-04
 
 ### Added

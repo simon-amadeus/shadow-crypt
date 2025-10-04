@@ -26,7 +26,6 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P0 - Cryptographic Foundation (Security)**
-6. **Algorithm Abstraction Layer**: XChaCha20-Poly1305 (default) + AES-256-GCM implementations with pluggable interface
 7. **File Detection Logic**: Robust double-encryption prevention using magic number validation
 8. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
 
