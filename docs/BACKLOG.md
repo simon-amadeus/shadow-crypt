@@ -3,17 +3,46 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- ** no elements **
+*No active work - ready for next cycle*
 
 ## 📋 PRIORITY ROADMAP
-1. **Read Rewrite Specs**: Read all specs in `docs/specs/` to understand target architecture and features. Your goal of this item is to prepare for the rewrite implementation. This will probably result in a lot of smaller tasks in the backlog.
+
+### **P0 - Core Infrastructure (Foundation)**
+1. **Implement TLV Header System V1**: Preserve current V3 TLV design as new baseline format with extensible Type-Length-Value fields
+2. **Build Configuration Provider Pattern**: Trait-based dependency injection for clean algorithm abstraction (KeyDerivationConfig + EncryptionConfig + CryptoConfig)
+3. **Create Version Compatibility Matrix**: Future-proof migration system with V1 as baseline and explicit compatibility checking
+4. **Establish Error Handling Framework**: User-friendly, security-conscious error messages with actionable guidance
+
+### **P0 - Cryptographic Foundation (Security)**
+5. **Secure Memory Management**: KeyMaterial with SecureBox automatic zeroization for cryptographic hygiene
+6. **Algorithm Abstraction Layer**: XChaCha20-Poly1305 (default) + AES-256-GCM implementations with pluggable interface
+7. **File Detection Logic**: Robust double-encryption prevention using magic number validation
+8. **Content Fingerprinting**: SHA-256 infrastructure for duplicate detection using TLV ContentHash field
+
+### **P1 - Critical Missing Features (User Safety)**
+9. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos
+10. **Duplicate Content Detection**: Implement ContentHash TLV field usage to prevent redundant encryption
+11. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
+12. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
+
+### **P2 - Domain Architecture (Business Logic)**
+13. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
+14. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
+15. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
+16. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+
+### **P3 - CLI Integration (User Interface)**
+17. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
+18. **unshadow Binary**: File decryption with automatic filename restoration
+19. **shadows Binary**: Directory listing with original filename display and metadata
+20. **shadowmigrate Binary**: Version migration and format updates
 
 
 ## 🔧 FUTURE CONSIDERATIONS
 
 - **Secure Viewing (`shadowview`)**: View encrypted files without persistent decryption
 - **Secure Editing (`shadowedit`)**: Edit encrypted text files in-place  
-- **Post-Quantum Cryptography**: Future-proof encryption algorithms leveraging V2 header extensibility
+- **Post-Quantum Cryptography**: Future-proof encryption algorithms leveraging TLV header extensibility
 - **Cloud Storage Integration**: Seamless encrypted backup and sync
 - **Streaming I/O Optimization**: Large file handling with chunked processing *(when needed)*
 
