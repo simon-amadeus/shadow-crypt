@@ -7,8 +7,10 @@ use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant, SystemTime};
 use crate::domain::entities::{AlgorithmId, tlv_header::TlvFieldType};
 use crate::domain::errors::{DomainResult, DomainError, FileSystemError};
-use crate::domain::services::FileDetector;
+use crate::domain::services::{FileDetector, CryptographicAlgorithm};
+use crate::domain::services::crypto_service::KeyDerivationConfig;
 use crate::infrastructure::tlv_serialization::TlvSerializer;
+use crate::infrastructure::crypto::factory::Algorithm;
 
 /// Manages directory scanning and file information display
 pub struct ListingService {
@@ -134,7 +136,7 @@ impl ListingService {
     }
 
     /// Try to parse the header with the given password
-    fn try_parse_header(&self, path: &Path, _password: &str) -> DomainResult<(Option<String>, AlgorithmId, u16)> {
+    fn try_parse_header(&self, path: &Path, password: &str) -> DomainResult<(Option<String>, AlgorithmId, u16)> {
         // Read the encrypted file
         let encrypted_data = std::fs::read(path)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed {
@@ -161,16 +163,77 @@ impl ListingService {
             })
             .unwrap_or(AlgorithmId::XChaCha20Poly1305); // Default fallback
 
-        // Extract original filename (can be read without password)
+        // Extract original filename from header
         let original_filename = header.original_filename();
 
         // Version is stored in header format (V1 for new implementation)
         let version = header.version();
 
-        // TODO: In a full implementation, we'd verify the password by attempting
-        // to decrypt a small portion or validating against a checksum
-        // For now, we assume password is valid since header parsing succeeded
-        
-        Ok((original_filename, algorithm_id, version))
+        // Password verification: try to decrypt just enough to validate the password
+        // This avoids decrypting the entire file just for validation
+        let password_is_valid = self.verify_password_against_file(&encrypted_data, password);
+
+        if password_is_valid {
+            Ok((original_filename, algorithm_id, version))
+        } else {
+            // Return error to signal password verification failed
+            Err(DomainError::authentication_failed("Password verification failed during listing"))
+        }
+    }
+
+    /// Verify password by attempting to decrypt a small portion of the file
+    fn verify_password_against_file(&self, encrypted_data: &[u8], password: &str) -> bool {
+        // Parse header to get cryptographic parameters
+        let header = match TlvSerializer::deserialize(encrypted_data) {
+            Ok(h) => h,
+            Err(_) => return false,
+        };
+
+        // Extract algorithm
+        let algorithm_id = header.get_field(TlvFieldType::AlgorithmId)
+            .and_then(|data| data.first().copied())
+            .and_then(|id_byte| match id_byte {
+                1 => Some(AlgorithmId::XChaCha20Poly1305),
+                2 => Some(AlgorithmId::AesGcm256),
+                _ => None,
+            });
+
+        let algorithm_id = match algorithm_id {
+            Some(id) => id,
+            None => return false,
+        };
+
+        let algorithm = Algorithm::from_id(algorithm_id);
+
+        // Extract nonce and salt
+        let nonce = match header.get_field(TlvFieldType::Nonce) {
+            Some(n) => n,
+            None => return false,
+        };
+
+        let salt = match header.get_field(TlvFieldType::KeyDerivationParams) {
+            Some(s) => s,
+            None => return false,
+        };
+
+        // Get ciphertext (everything after header)
+        let (_, ciphertext) = match TlvSerializer::deserialize_with_remainder(encrypted_data) {
+            Ok((h, c)) => (h, c),
+            Err(_) => return false,
+        };
+
+        // Try to derive key material and decrypt
+        // If the password is wrong, key derivation will succeed but decryption will fail
+        match algorithm.derive_key_material(password, salt) {
+            Ok(key_material) => {
+                // Try to decrypt the first few bytes to validate password
+                // We don't need the full content, just enough to verify
+                match algorithm.decrypt(ciphertext, nonce, &key_material) {
+                    Ok(_) => true,  // Password is correct
+                    Err(_) => false, // Password is wrong or file is corrupted
+                }
+            }
+            Err(_) => false, // Key derivation failed
+        }
     }
 }

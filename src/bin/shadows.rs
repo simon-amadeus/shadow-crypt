@@ -75,21 +75,50 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 }
                 
                 println!("⏱️  Scan time: {:?}", listing_result.scan_duration);
+                println!();
+
+                // Smart ordering: successful decryptions first (alphabetically), then failed attempts
+                let mut files = listing_result.files.clone();
+                files.sort_by(|a, b| {
+                    match (a.password_valid, b.password_valid) {
+                        (true, false) => std::cmp::Ordering::Less,    // successful first
+                        (false, true) => std::cmp::Ordering::Greater, // failed last
+                        _ => {
+                            // Same validation status, sort alphabetically by filename
+                            let a_name = a.path.file_name().unwrap_or_default();
+                            let b_name = b.path.file_name().unwrap_or_default();
+                            a_name.cmp(b_name)
+                        }
+                    }
+                });
+
+                // Professional table formatting with wider columns
+                println!("┌─────┬─────────────────────────────────────────────────────────────────────────────┐");
+                println!("│ ✓/✗ │ Encrypted Filename → Original Filename                                     │");
+                println!("├─────┼─────────────────────────────────────────────────────────────────────────────┤");
                 
-                // Print file details
-                for file_info in &listing_result.files {
+                for file_info in &files {
                     let status = if file_info.password_valid { "✓" } else { "✗" };
-                    println!("   {} {} → {}",
-                        status,
-                        file_info.path.file_name().unwrap_or_default().to_string_lossy(),
-                        file_info.original_filename.as_deref().unwrap_or("[Unable to decrypt]")
-                    );
-                    println!("      Algorithm: {:?}, Version: {}, Size: {} bytes",
-                        file_info.algorithm,
-                        file_info.version,
-                        file_info.size
-                    );
+                    let encrypted_name = file_info.path.file_name().unwrap_or_default().to_string_lossy();
+                    let original_name = file_info.original_filename.as_deref().unwrap_or("[Unable to decrypt]");
+                    
+                    // Format the main line with proper padding
+                    let main_line = format!("{} → {}", encrypted_name, original_name);
+                    println!("│  {}  │ {:<75} │", status, truncate_string(&main_line, 75));
+                    
+                    // Format the metadata line with modification time (more compact)
+                    let size_str = format_file_size(file_info.size);
+                    let modified_str = format_modified_time(&file_info.path);
+                    let algo_short = match file_info.algorithm {
+                        shadow_crypt::domain::entities::AlgorithmId::XChaCha20Poly1305 => "XChaCha20",
+                        shadow_crypt::domain::entities::AlgorithmId::AesGcm256 => "AES-256",
+                    };
+                    let metadata = format!("{}, V{}, {}, {}", 
+                        algo_short, file_info.version, size_str, modified_str);
+                    println!("│     │ {:<75} │", truncate_string(&metadata, 75));
                 }
+                
+                println!("└─────┴─────────────────────────────────────────────────────────────────────────────┘");
             }
         }
         Ok(_other_result) => {
@@ -107,4 +136,65 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     
     Ok(())
+}
+
+/// Helper function to format file sizes in human-readable format
+fn format_file_size(size: u64) -> String {
+    const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
+    let mut size_f = size as f64;
+    let mut unit_index = 0;
+    
+    while size_f >= 1024.0 && unit_index < UNITS.len() - 1 {
+        size_f /= 1024.0;
+        unit_index += 1;
+    }
+    
+    if unit_index == 0 {
+        format!("{} {}", size, UNITS[unit_index])
+    } else {
+        format!("{:.1} {}", size_f, UNITS[unit_index])
+    }
+}
+
+/// Helper function to truncate strings with ellipsis
+fn truncate_string(s: &str, max_len: usize) -> String {
+    if s.len() <= max_len {
+        s.to_string()
+    } else {
+        format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
+}
+
+/// Helper function to format modification time
+fn format_modified_time(path: &std::path::Path) -> String {
+    use std::time::SystemTime;
+    
+    match std::fs::metadata(path) {
+        Ok(metadata) => {
+            match metadata.modified() {
+                Ok(modified) => {
+                    // Format as relative time (e.g., "2 hours ago")
+                    match SystemTime::now().duration_since(modified) {
+                        Ok(duration) => {
+                            let secs = duration.as_secs();
+                            if secs < 60 {
+                                "just now".to_string()
+                            } else if secs < 3600 {
+                                format!("{}m ago", secs / 60)
+                            } else if secs < 86400 {
+                                format!("{}h ago", secs / 3600)
+                            } else if secs < 604800 {
+                                format!("{}d ago", secs / 86400)
+                            } else {
+                                format!("{}w ago", secs / 604800)
+                            }
+                        }
+                        Err(_) => "in future".to_string(),
+                    }
+                }
+                Err(_) => "unknown".to_string(),
+            }
+        }
+        Err(_) => "unknown".to_string(),
+    }
 }

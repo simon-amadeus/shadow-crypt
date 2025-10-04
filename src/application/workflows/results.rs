@@ -57,7 +57,7 @@ pub struct DirectoryListing {
 }
 
 /// Information about an encrypted file in a directory
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct EncryptedFileInfo {
     pub path: PathBuf,
     pub original_filename: Option<String>,
