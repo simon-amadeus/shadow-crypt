@@ -1,11 +1,14 @@
 [package]
 name = "shadow-crypt"
-version = "0.36.0"
+version = "0.1.0"
 edition = "2024"
-description = "Simple, secure file encryption with modern cryptography"
+description = "File encryption with modern cryptography (DEVELOPMENT - NOT READY FOR PRODUCTION)"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]
+readme = "README.md"
+keywords = ["encryption", "cryptography", "file", "security", "cli"]
+categories = ["command-line-utilities", "cryptography"]
 
 # Binary targets for each use case
 [[bin]]
