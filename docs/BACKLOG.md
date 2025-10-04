@@ -23,10 +23,9 @@
 *No items - critical safety issues resolved*
 
 ### **P2 - Domain Architecture (Business Logic)**
-*No items - application workflows in active development*
+*No items - application workflows complete*
 
 ### **P3 - CLI Integration (User Interface)**
-5. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
 6. **unshadow Binary**: File decryption with automatic filename restoration
 7. **shadows Binary**: Directory listing with original filename display and metadata
 8. **shadowmigrate Binary**: Version migration and format updates

@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.17.0] - 2025-10-04
+
+### Added
+- **Complete CLI Integration for Shadow Binary**: Full end-to-end file encryption functionality
+  - **Workflow Orchestration**: CLI arguments seamlessly connect to EncryptionWorkflow.execute() with proper error handling
+  - **Algorithm Selection**: User-friendly algorithm mapping (xchacha20/aes-gcm) to domain AlgorithmId with validation
+  - **Glob Pattern Expansion**: Real glob pattern matching using glob crate with deduplication and file filtering
+  - **Batch Processing**: Multiple file encryption with individual success/failure tracking and comprehensive results
+  - **Container Integration**: Clean dependency injection providing workflow instantiation and configuration
+- **Binary Architecture**: Proper separation with binaries in src/bin/ importing shadow_crypt library
+- **CLI Error Handling**: User-friendly error messages with appropriate exit codes for all failure scenarios
+- **Progress and Configuration Display**: Intelligent output control with quiet mode and essential policy information
+- **Flag Logic Integration**: Complete support for --keep, --force, --obfuscate, --quiet, and --algorithm options
+
+### Enhanced
+- **Library Structure**: Removed CLI module from lib.rs enabling clean binary imports and testing isolation
+- **Test Coverage**: All 177 tests passing including new CLI integration tests for flag behavior and workflows
+- **Password Workflow**: Terminal password prompting with confirmation works seamlessly through repository abstraction
+- **File Validation**: Comprehensive input validation, duplicate prevention, and overwrite protection
+
+### Technical Details
+- Binary targets properly import library functionality without circular dependencies
+- Workflow execution handles real file operations with glob pattern expansion and batch coordination
+- Error translation provides clear user feedback while maintaining proper exit codes
+- Architecture enables replication across other CLI binaries (unshadow, shadows, shadowmigrate)
+
 ## [0.16.0] - 2025-10-04
 
 ### Added

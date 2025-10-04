@@ -166,15 +166,44 @@ impl EncryptionWorkflow {
         let mut file_paths = Vec::new();
         
         for pattern in patterns {
-            // TODO: Implement actual glob expansion
-            // For now, treat as direct file paths
-            let path = PathBuf::from(pattern);
-            if self.file_repo.file_exists(&path) {
-                file_paths.push(path);
-            } else {
-                return Err(EncryptionWorkflowError::FileError(
-                    format!("File not found: {}", path.display())
-                ));
+            // Use glob pattern matching for multi-file support
+            match glob::glob(&pattern) {
+                Ok(entries) => {
+                    let mut found_files = false;
+                    for entry in entries {
+                        match entry {
+                            Ok(path) => {
+                                // Only include files (not directories)
+                                if self.file_repo.file_exists(&path) && path.is_file() {
+                                    file_paths.push(path);
+                                    found_files = true;
+                                }
+                            }
+                            Err(e) => {
+                                return Err(EncryptionWorkflowError::FileError(
+                                    format!("Error processing glob pattern '{}': {}", pattern, e)
+                                ));
+                            }
+                        }
+                    }
+                    
+                    // If no files found for this pattern, check if it's a direct file path
+                    if !found_files {
+                        let direct_path = PathBuf::from(&pattern);
+                        if self.file_repo.file_exists(&direct_path) {
+                            file_paths.push(direct_path);
+                        } else {
+                            return Err(EncryptionWorkflowError::FileError(
+                                format!("No files found matching pattern: {}", pattern)
+                            ));
+                        }
+                    }
+                }
+                Err(e) => {
+                    return Err(EncryptionWorkflowError::FileError(
+                        format!("Invalid glob pattern '{}': {}", pattern, e)
+                    ));
+                }
             }
         }
 
@@ -183,6 +212,10 @@ impl EncryptionWorkflow {
                 "No files to encrypt".to_string()
             ));
         }
+
+        // Remove duplicates and sort for consistent ordering
+        file_paths.sort();
+        file_paths.dedup();
 
         Ok(file_paths)
     }
