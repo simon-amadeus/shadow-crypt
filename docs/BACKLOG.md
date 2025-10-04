@@ -15,7 +15,7 @@
 - **Clean Slate Approach**: Start from specs, reference legacy only when needed for proven patterns
 
 ## 🎯 CURRENT WORK
-**Active Cycle**: Domain Entities Implementation (P2)
+- no active work - ready for next cycle
 
 ## 📋 PRIORITY ROADMAP
 
@@ -23,8 +23,7 @@
 *No items - critical safety issues resolved*
 
 ### **P2 - Domain Architecture (Business Logic)**
-2. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
-3. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
+2. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
 4. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
 
 ### **P3 - CLI Integration (User Interface)**

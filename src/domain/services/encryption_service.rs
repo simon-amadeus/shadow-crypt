@@ -174,6 +174,11 @@ impl EncryptionService {
         self.progress_reporter.report_progress("Creating TLV header...");
         let mut header = TlvHeader::new();
         
+        // Add original filename
+        if let Some(filename) = input_path.file_name().and_then(|n| n.to_str()) {
+            header.set_original_filename(filename);
+        }
+        
         // Add algorithm ID field
         header.add_field(TlvFieldType::AlgorithmId, vec![algorithm.algorithm_id() as u8]);
         

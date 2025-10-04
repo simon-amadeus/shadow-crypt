@@ -31,8 +31,15 @@ pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionRes
 // Re-export decryption services
 pub use decryption_service::{DecryptionService, DecryptionOptions, DecryptionResult};
 
+// Re-export listing services
+pub use listing_service::{ListingService, DirectoryListing, EncryptedFileInfo};
+
 // Re-export password services
 pub use password_service::{PasswordVerificationService, PasswordVerificationError};
 
 // Legacy re-exports for compatibility during transition
 pub use crypto_algorithm::{CryptographicAlgorithm as LegacyCryptographicAlgorithm, KeyDerivationConfig as LegacyKeyDerivationConfig, EncryptionConfig as LegacyEncryptionConfig, EncryptionResult as LegacyEncryptionResult, CryptoResult};
+
+// Integration tests module
+#[cfg(test)]
+mod integration_tests;

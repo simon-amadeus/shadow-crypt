@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.14.0] - 2025-10-04
+
+### Added
+- **Complete Domain Services Implementation**: Four core domain services fully implemented according to architectural specifications
+  - **EncryptionService**: Production-ready with builder pattern, duplicate detection, progress reporting, and batch operations
+  - **DecryptionService**: Complete implementation with automatic filename restoration, batch decryption, and integrity verification
+  - **ListingService**: Directory scanning with encrypted file detection, original filename extraction, and metadata display
+  - **MigrationService**: Existing substantial implementation (interface alignment deferred for future cycle)
+- **Enhanced TLV Serialization**: Added `deserialize_with_remainder()` method to properly separate TLV headers from ciphertext data
+- **Comprehensive Integration Tests**: Three test scenarios validating end-to-end encryption/decryption workflows and directory operations
+- **Service Module Organization**: Clean re-exports and integration of all domain services with proper architectural boundaries
+
+### Fixed
+- **TLV Header Parsing**: Resolved critical issue where ciphertext was incorrectly interpreted as TLV fields during decryption
+- **File Format Handling**: Proper separation of TLV header from encrypted content in file structure
+- **Test Suite Alignment**: Updated TLV serialization tests to reflect correct graceful handling of partial data
+
+### Changed
+- **Domain Architecture Compliance**: All implemented services now fully match domain architecture specifications
+- **Error Handling**: Consistent error propagation and user-friendly messages across all services
+- **Progress Reporting**: Configurable progress callbacks for long-running operations
+
 ## [0.13.0] - 2025-10-04
 
 ### Added

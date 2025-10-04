@@ -67,8 +67,8 @@ impl TlvSerializer {
         Ok(buffer)
     }
     
-    /// Deserialize a TLV header from bytes
-    pub fn deserialize(data: &[u8]) -> Result<TlvHeader, TlvSerializationError> {
+    /// Deserialize a TLV header from bytes and return remaining bytes
+    pub fn deserialize_with_remainder(data: &[u8]) -> Result<(TlvHeader, &[u8]), TlvSerializationError> {
         let mut cursor = Cursor::new(data);
         
         // Read and validate magic number
@@ -85,14 +85,44 @@ impl TlvSerializer {
         
         // Create header with read values
         let mut header = TlvHeader::new();
-        // Note: In a real implementation, we'd support version validation here
         
-        // Read TLV fields
-        while cursor.position() < data.len() as u64 {
+        // Read TLV fields - but we need to be careful about where to stop
+        // We'll read until we can't read a complete field
+        loop {
+            let current_pos = cursor.position() as usize;
+            
+            // Check if we have enough bytes for type (1) + length (4)
+            if current_pos + 5 > data.len() {
+                break; // Not enough data for another field header
+            }
+            
+            // Try to read field type and length
+            let _field_type_byte = data[current_pos];
+            let length_bytes = &data[current_pos + 1..current_pos + 5];
+            let length = u32::from_le_bytes([
+                length_bytes[0], length_bytes[1], 
+                length_bytes[2], length_bytes[3]
+            ]) as usize;
+            
+            // Check if we have enough data for the complete field
+            if current_pos + 5 + length > data.len() {
+                break; // Not enough data for this field's value
+            }
+            
+            // Read the field
             let field = Self::deserialize_field(&mut cursor)?;
             header.add_field(field.field_type(), field.data().to_vec());
         }
         
+        // Return header and remaining bytes (ciphertext)
+        let header_end = cursor.position() as usize;
+        let remaining = &data[header_end..];
+        Ok((header, remaining))
+    }
+    
+    /// Deserialize a TLV header from bytes
+    pub fn deserialize(data: &[u8]) -> Result<TlvHeader, TlvSerializationError> {
+        let (header, _) = Self::deserialize_with_remainder(data)?;
         Ok(header)
     }
     
@@ -172,7 +202,7 @@ mod tests {
     }
     
     #[test]
-    fn test_insufficient_data() {
+    fn test_insufficient_data_graceful_handling() {
         let mut data = Vec::new();
         data.extend_from_slice(&TlvHeader::MAGIC_NUMBER);
         data.extend_from_slice(&1u16.to_le_bytes());
@@ -180,8 +210,14 @@ mod tests {
         data.extend_from_slice(&10u32.to_le_bytes()); // Length: 10
         data.extend_from_slice(b"short"); // Only 5 bytes instead of 10
         
+        // With the new implementation, this should gracefully stop parsing
+        // and return a valid header with no fields (since the incomplete field is ignored)
         let result = TlvSerializer::deserialize(&data);
-        assert!(matches!(result, Err(TlvSerializationError::InsufficientData)));
+        assert!(result.is_ok(), "Should gracefully handle insufficient data");
+        
+        let header = result.unwrap();
+        assert_eq!(header.version(), 1);
+        assert!(header.original_filename().is_none(), "Should not have parsed incomplete field");
     }
     
     #[test]
