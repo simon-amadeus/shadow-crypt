@@ -10,6 +10,7 @@ pub mod decryption_service;
 pub mod listing_service;
 pub mod migration_service;
 pub mod file_detector;
+pub mod password_service;
 
 // Re-export key traits from the new crypto service
 pub use crypto_service::{
@@ -29,6 +30,9 @@ pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionRes
 
 // Re-export decryption services
 pub use decryption_service::{DecryptionService, DecryptionOptions, DecryptionResult};
+
+// Re-export password services
+pub use password_service::{PasswordVerificationService, PasswordVerificationError};
 
 // Legacy re-exports for compatibility during transition
 pub use crypto_algorithm::{CryptographicAlgorithm as LegacyCryptographicAlgorithm, KeyDerivationConfig as LegacyKeyDerivationConfig, EncryptionConfig as LegacyEncryptionConfig, EncryptionResult as LegacyEncryptionResult, CryptoResult};

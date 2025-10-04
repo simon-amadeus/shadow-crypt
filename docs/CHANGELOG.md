@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.0] - 2025-10-04
+
+### Added
+- **Double Password Verification**: Implemented secure password confirmation prompts for encryption operations
+- **PasswordVerificationService**: New domain service providing double password verification with constant-time comparison
+- **TerminalPasswordRepository**: Infrastructure implementation for secure password input using rpassword
+- **Encryption Workflow Integration**: Password verification integrated into encryption workflow with clean error handling
+- **Security Features**: Constant-time string comparison to prevent timing attacks on password verification
+- **Comprehensive Error Handling**: User-friendly error messages for password mismatches and input failures
+
+### Enhanced
+- **CLI Password Safety**: Shadow binary now requires password confirmation to prevent data loss from typos
+- **Domain Architecture**: Clean dependency inversion pattern with repository interfaces for password operations
+- **Security Best Practices**: Automatic memory zeroization of passwords after use
+- **User Experience**: Clear error messages and graceful failure handling for password operations
+- **Test Coverage**: Complete unit test coverage for password verification logic and error cases
+
+### Technical Details
+- Implemented PasswordRepository trait for dependency inversion in domain layer
+- Added PasswordVerificationService with double confirmation workflow
+- Created TerminalPasswordRepository using rpassword for secure hidden input
+- Enhanced EncryptionWorkflow to integrate password verification before encryption
+- Added constant-time password comparison function to prevent timing attacks
+- Comprehensive error types for password verification failures
+
 ## [0.10.0] - 2025-10-04
 
 ### Added

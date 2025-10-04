@@ -20,22 +20,21 @@
 ## 📋 PRIORITY ROADMAP
 
 ### **P1 - Critical Missing Features (User Safety)**
-1. **Double Password Verification**: Confirmation prompt during encryption to prevent data loss from password typos
-2. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
-3. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
-4. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
+1. **CLI Duplicate Handling**: User experience design for duplicate detection prompts with options: abort, overwrite, rename, or force duplicate encryption
+2. **Fix --keep Flag Behavior**: Correct CLI flag implementation (current behavior is opposite of spec)
+3. **Fix Source Removal Default**: Remove source files by default with --keep flag to preserve
 
 ### **P2 - Domain Architecture (Business Logic)**
-5. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
-6. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
-7. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
-8. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+4. **Domain Entities Implementation**: EncryptedFile, PlaintextFile, CryptoSession, DuplicateDetector, FileMetadata
+5. **Domain Services Implementation**: EncryptionService, DecryptionService, ListingService, MigrationService
+6. **Repository Interfaces**: FileRepository + PasswordRepository (stateless design - no ConfigRepository)
+7. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
 
 ### **P3 - CLI Integration (User Interface)**
-9. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
-10. **unshadow Binary**: File decryption with automatic filename restoration
-11. **shadows Binary**: Directory listing with original filename display and metadata
-12. **shadowmigrate Binary**: Version migration and format updates
+8. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
+9. **unshadow Binary**: File decryption with automatic filename restoration
+10. **shadows Binary**: Directory listing with original filename display and metadata
+11. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 
