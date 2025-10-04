@@ -4,11 +4,13 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::services::password_service::{PasswordVerificationService, PasswordVerificationError};
+use crate::domain::services::EncryptionService;
 use crate::domain::repositories::{
     password_repository::PasswordRepository,
     file_repository::FileRepository,
 };
 use crate::domain::entities::AlgorithmId;
+use crate::infrastructure::crypto::factory::Algorithm;
 use crate::application::workflows::results::{WorkflowResult, BatchResult, EncryptionResult};
 use std::path::{Path, PathBuf};
 use std::time::Instant;
@@ -81,6 +83,7 @@ pub struct EncryptionWorkflow {
     password_service: PasswordVerificationService,
     file_repo: Box<dyn FileRepository>,
     algorithm: AlgorithmId,
+    quiet_mode: bool,
 }
 
 impl EncryptionWorkflow {
@@ -94,7 +97,14 @@ impl EncryptionWorkflow {
             password_service: PasswordVerificationService::new(password_repository),
             file_repo,
             algorithm,
+            quiet_mode: false,
         }
+    }
+
+    /// Enable or disable quiet mode (affects progress reporting)
+    pub fn with_quiet_mode(mut self, quiet: bool) -> Self {
+        self.quiet_mode = quiet;
+        self
     }
 
     /// Execute complete encryption workflow for multiple files
@@ -151,14 +161,37 @@ impl EncryptionWorkflow {
             ));
         }
 
-        // Step 3: TODO - Implement actual encryption using the verified password
-        // For now, just return success to show the password verification works
-        
-        Ok(format!(
-            "Encryption would proceed with verified password (length: {}) for file: {}",
-            password.len(),
-            input_path.display()
-        ))
+        // Step 3: Generate output path
+        let output_path = {
+            let mut output = input_path.to_path_buf();
+            if let Some(current_ext) = output.extension() {
+                let new_ext = format!("{}.shadow", current_ext.to_string_lossy());
+                output.set_extension(new_ext);
+            } else {
+                output.set_extension("shadow");
+            }
+            output
+        };
+
+        // Step 4: Execute encryption using real crypto
+        let options = EncryptionOptions::default();
+        match self.encrypt_single_file(
+            input_path,
+            &output_path,
+            &password,
+            &options,
+        ) {
+            Ok(result) => {
+                Ok(format!(
+                    "Successfully encrypted '{}' to '{}' using {} (took {:?})",
+                    result.input_path.display(),
+                    result.output_path.display(),
+                    result.algorithm.name(),
+                    result.duration
+                ))
+            }
+            Err(err) => Err(err),
+        }
     }
 
     /// Expand glob patterns into file paths
@@ -294,26 +327,47 @@ impl EncryptionWorkflow {
     /// Encrypt a single file
     fn encrypt_single_file(
         &self,
-        input_path: &PathBuf,
-        output_path: &PathBuf,
-        _password: &str,
-        _options: &EncryptionOptions,
+        input_path: &Path,
+        output_path: &Path,
+        password: &str,
+        options: &EncryptionOptions,
     ) -> EncryptionWorkflowResult<EncryptionResult> {
-        let start_time = Instant::now();
+        // Create algorithm instance from stored ID
+        let algorithm = Algorithm::from_id(self.algorithm);
 
-        // TODO: Implement actual encryption using domain services
-        // For now, create a placeholder result
-        use crate::domain::utilities::content_hash::ContentHash;
-        
-        let content_hash: ContentHash = [0u8; 32]; // Placeholder
-        let duration = start_time.elapsed();
+        // Create encryption service with progress reporting based on quiet mode
+        let mut encryption_service = EncryptionService::new()
+            .with_progress_reporting(!self.quiet_mode);
 
-        Ok(EncryptionResult {
-            input_path: input_path.clone(),
-            output_path: output_path.clone(),
-            content_hash,
-            algorithm: self.algorithm,
-            duration,
-        })
+        // Convert options
+        let service_options = crate::domain::services::EncryptionOptions {
+            obfuscate_filename: options.obfuscate_filename,
+            force_overwrite: options.force_overwrite,
+            remove_source: options.remove_source,
+            check_duplicates: options.check_duplicates,
+        };
+
+        // Execute encryption through domain service
+        match encryption_service.encrypt_file(
+            input_path,
+            output_path,
+            &algorithm,
+            password,
+            service_options,
+        ) {
+            Ok(service_result) => {
+                // Convert domain service result to workflow result
+                Ok(EncryptionResult {
+                    input_path: service_result.input_path,
+                    output_path: service_result.output_path,
+                    content_hash: service_result.content_hash,
+                    algorithm: service_result.algorithm,
+                    duration: service_result.duration,
+                })
+            }
+            Err(domain_error) => {
+                Err(EncryptionWorkflowError::EncryptionError(domain_error.to_string()))
+            }
+        }
     }
 }

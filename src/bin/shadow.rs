@@ -6,9 +6,10 @@ use clap::Parser;
 use std::process;
 
 // Import from the shadow-crypt library
-use shadow_crypt::application::container::Container;
-use shadow_crypt::application::workflows::encryption_workflow::EncryptionOptions;
+use shadow_crypt::application::workflows::encryption_workflow::{EncryptionWorkflow, EncryptionOptions};
+use shadow_crypt::application::workflows::WorkflowResult;
 use shadow_crypt::domain::entities::AlgorithmId;
+use shadow_crypt::infrastructure::{StandardFileRepository, StandardPasswordRepository};
 
 /// Shadow File Encryption Tool
 #[derive(Parser, Debug)]
@@ -95,8 +96,73 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Print status information
     args.print_status();
     
-    // TODO: Proof-of-concept workflow integration
-    println!("✅ Validation complete - ready for workflow integration");
+    // Parse algorithm ID
+    let algorithm_id = match args.algorithm.as_str() {
+        "xchacha20" => AlgorithmId::XChaCha20Poly1305,
+        "aes-gcm" => AlgorithmId::AesGcm256,
+        _ => unreachable!(), // Already validated above
+    };
+    
+    // Create repository instances
+    let file_repo = Box::new(StandardFileRepository::new());
+    let password_repo = Box::new(StandardPasswordRepository::new());
+    
+    // Create encryption workflow
+    let mut workflow = EncryptionWorkflow::new(
+        file_repo,
+        password_repo,
+        algorithm_id,
+    ).with_quiet_mode(args.quiet);
+    
+    // Prepare encryption options
+    let options = EncryptionOptions {
+        obfuscate_filename: args.obfuscate,
+        force_overwrite: args.force,
+        remove_source: !args.keep,  // Inverted: keep=true means remove_source=false
+        check_duplicates: true,     // Always check for duplicates
+    };
+    
+    // Execute encryption workflow
+    match workflow.execute(args.input_patterns, options) {
+        Ok(WorkflowResult::Encryption(batch_result)) => {
+            if !args.quiet {
+                // Print user-friendly results
+                println!("\n🔒 Encryption Complete!");
+                println!("✅ Successfully encrypted {} files", batch_result.successful.len());
+                
+                if !batch_result.failed.is_empty() {
+                    println!("❌ Failed to encrypt {} files", batch_result.failed.len());
+                    for (path, error) in &batch_result.failed {
+                        eprintln!("   Error: {} - {}", path.display(), error);
+                    }
+                }
+                
+                println!("⏱️  Total time: {:?}", batch_result.total_duration);
+                
+                // Print details for successful encryptions
+                for result in &batch_result.successful {
+                    println!("   {} → {} ({:?})",
+                        result.input_path.display(),
+                        result.output_path.display(),
+                        result.duration
+                    );
+                }
+            }
+            
+            // Exit with error code if any files failed
+            if !batch_result.failed.is_empty() {
+                process::exit(1);
+            }
+        }
+        Ok(_other_result) => {
+            eprintln!("Error: Unexpected workflow result type");
+            process::exit(1);
+        }
+        Err(e) => {
+            eprintln!("Encryption failed: {}", e);
+            process::exit(1);
+        }
+    }
     
     Ok(())
 }

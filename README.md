@@ -1,39 +1,52 @@
 # Shadow
 
-# Shadow
+**⚠️ REWRITE IN PROGRESS - v0.18.0**
 
-**⚠️ REWRITE IN PROGRESS - v0.15.0**
-
-**Rewrite Status**: 🎯 **Repository Interfaces Foundation** - Complete infrastructure abstraction layer ready for application workflows  
-**Current Version**: v0.15.0 - Repository interfaces with both standard and mock implementations fully operational  
-**Next Priority**: Application Workflows (EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow)
+**Rewrite Status**: 🎯 **CLI Production Complete** - Shadow binary fully operational with production-ready file encryption  
+**Current Version**: v0.18.0 - Complete shadow encryption binary with real crypto operations and professional UX  
+**Next Priority**: Additional CLI binaries (unshadow, shadows, shadowmigrate)
 
 ---
 
+## Production Features (v0.18.0)
+
+### ✅ **Shadow Binary (Complete)**
+- **Real File Encryption**: XChaCha20-Poly1305 and AES-256-GCM algorithms with production crypto operations
+- **Professional UX**: User-friendly output formatting, progress reporting, and comprehensive error handling  
+- **Batch Processing**: Multiple file encryption with individual success/failure tracking and result summaries
+- **File Lifecycle**: Configurable source removal/preservation using --keep flag
+- **Safety Features**: Double-encryption prevention with clear error messages and override options
+- **Algorithm Selection**: Simple algorithm choice (xchacha20/aes-gcm) with proper validation
+- **Progress Control**: Real-time encryption feedback with --quiet mode for silent operation
+
+### Usage Examples
+```bash
+# Encrypt single file (removes source)
+./target/debug/shadow document.txt
+
+# Encrypt with source preservation  
+./target/debug/shadow --keep document.txt
+
+# Batch encrypt with AES-GCM
+./target/debug/shadow --algorithm aes-gcm *.txt
+
+# Silent operation
+./target/debug/shadow --quiet --keep files/*.doc
+```
+
 ## Rewrite Progress
 
-### ✅ **Completed (v0.15.0)**
-- **Complete Repository Interfaces**: Full infrastructure abstraction layer with production and testing implementations
-  - **FileRepository**: Atomic file operations, secure deletion, and comprehensive metadata handling
-  - **PasswordRepository**: Secure password input, confirmation, and strength validation
-  - **Standard Implementations**: Production-ready StandardFileRepository and StandardPasswordRepository
-  - **Mock Implementations**: Full-featured test infrastructure with operation tracking and failure simulation
-- **Enhanced Security**: Cryptographic secure deletion, atomic write operations, and memory-safe password handling
-- **Comprehensive Testing**: 12 integration tests covering all repository operations and error scenarios
-- **Clean Architecture**: Proper dependency inversion with infrastructure → domain direction
-
-### ✅ **Foundation (v0.13.0-0.14.0)**
-- **Complete Domain Layer**: All entities and services fully implemented per architectural specifications
-- **Content Fingerprinting**: SHA-256 content hashing integrated throughout domain layer
-- **TLV Header System**: Extensible format with algorithm detection and version compatibility
+### ✅ **Completed Architecture (v0.18.0)**
+- **Complete CLI Integration**: Production-ready shadow binary with end-to-end file encryption functionality
+- **Real Crypto Operations**: EncryptionWorkflow → EncryptionService → Infrastructure crypto integration  
+- **Application Workflows**: Full workflow orchestration with EncryptionWorkflow operational
+- **Repository Interfaces**: Complete infrastructure abstraction with FileRepository and PasswordRepository
+- **Domain Layer Foundation**: All entities, services, and cryptographic abstractions per architectural specs
+- **Content Fingerprinting**: SHA-256 content hashing with duplicate detection capabilities
+- **TLV Header System**: Extensible format supporting algorithm detection and version compatibility
 - **Memory Safety**: Automatic key material zeroization and secure data handling
 
-### 🚧 **Next Priorities (P1)**
-- **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
-- **CLI Integration**: Connect domain workflows to CLI binaries
-- **End-to-End Testing**: Complete user workflow validation
-
-### 📋 **Implementation Strategy**
+### 🚧 **Next Priorities (P3)**
 **Architecture Guide**: Follow `docs/specs/DOMAIN_ARCHITECTURE.md` and `docs/specs/ARCHITECTURE_REQUIREMENTS.md`  
 **Legacy Reference**: Proven patterns available in `legacy/src/` for extraction and clean reimplementation  
 **Testing**: 140+ tests covering full domain layer and infrastructure abstractions

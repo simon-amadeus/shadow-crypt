@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.18.0] - 2025-10-04
+
+### Added
+- **Production-Ready Shadow Binary**: Complete file encryption implementation with real cryptographic operations
+  - **Real Crypto Integration**: EncryptionWorkflow now executes actual file encryption using domain EncryptionService
+  - **End-to-End Functionality**: Full workflow from CLI arguments to encrypted files with proper lifecycle management
+  - **User Experience Excellence**: Professional output formatting with success/failure reporting, file counts, and operation durations
+  - **Progress Reporting**: Real-time encryption progress with --quiet mode support for suppressed output
+  - **File Operations**: Complete source file removal/preservation logic based on --keep flag implementation
+  - **Batch Processing**: Multiple file encryption with individual success/failure tracking and comprehensive error reporting
+  - **Safety Features**: Double-encryption prevention with user-friendly error messages and override options
+  - **Algorithm Support**: Working XChaCha20-Poly1305 and AES-256-GCM encryption with proper configuration
+
+### Enhanced
+- **Code Quality**: Method signature improvements using `&Path` instead of `&PathBuf` for better performance
+- **Progress Control**: Intelligent progress reporting that respects --quiet flag for silent operation
+- **Error Handling**: Production-ready error messages with proper exit codes and actionable user guidance
+- **Test Coverage**: All 132 library tests continue passing after production integration
+
+### Technical Details
+- EncryptionWorkflow integration eliminates placeholder implementations with real domain service calls
+- CLI binary provides complete encryption functionality with professional user experience
+- Quiet mode properly suppresses progress output while maintaining essential user feedback
+- Algorithm factory integration supports both XChaCha20-Poly1305 and AES-256-GCM with proper configuration
+- File lifecycle management correctly handles source removal/preservation based on user preferences
+
 ## [0.17.0] - 2025-10-04
 
 ### Added

@@ -26,9 +26,9 @@
 *No items - application workflows complete*
 
 ### **P3 - CLI Integration (User Interface)**
-6. **unshadow Binary**: File decryption with automatic filename restoration
-7. **shadows Binary**: Directory listing with original filename display and metadata
-8. **shadowmigrate Binary**: Version migration and format updates
+7. **unshadow Binary**: File decryption with automatic filename restoration
+8. **shadows Binary**: Directory listing with original filename display and metadata
+9. **shadowmigrate Binary**: Version migration and format updates
 
 ## 🔧 FUTURE CONSIDERATIONS
 
