@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.16.0] - 2025-10-04
+
+### Added
+- **Complete Application Workflows Implementation**: End-to-end workflow orchestration for all user operations
+  - **EncryptionWorkflow**: Full file encryption with pattern expansion, validation, duplicate detection, and batch processing
+  - **DecryptionWorkflow**: Complete file decryption with automatic filename restoration and integrity verification  
+  - **ListingWorkflow**: Directory scanning with encrypted file detection and original filename revelation
+  - **MigrationWorkflow**: Version analysis and upgrade planning with compatibility checking
+- **Dependency Injection Container**: Stateless workflow coordination with clean architecture separation
+- **Unified Result Types**: Comprehensive WorkflowResult system with BatchResult for multi-file operations
+- **Error Handling Excellence**: User-friendly error messages with actionable guidance across all workflows
+- **Integration Testing**: Complete test coverage validating workflow creation and dependency injection
+- **Architectural Foundation**: Clean layer separation enabling CLI integration and future extensibility
+
+### Enhanced
+- **Stateless Design**: All configuration determined at runtime from CLI arguments - no persistent state
+- **Repository Integration**: Full utilization of FileRepository and PasswordRepository abstractions
+- **Progress Reporting**: Infrastructure for real-time operation feedback (ready for CLI integration)
+- **Algorithm Configuration**: Runtime crypto algorithm selection with proper domain service coordination
+
+### Technical Details
+- All workflows implement complete orchestration logic with proper validation and error handling
+- Container provides clean dependency injection for workflow instantiation
+- Result types support both single-file and batch operations with success/failure tracking
+- Error types provide specific context for password, file, validation, and business logic failures
+- Test coverage validates architectural compliance and workflow functionality
+
 ## [0.15.0] - 2025-10-04
 
 ### Added

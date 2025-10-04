@@ -6,7 +6,37 @@ Add your feedback here. Keep it simple - just write what you think.
 
 ## New Feedback
 
-*No new feedback - ready for next input*
+**2025-10-04**: CLI Integration Requirements - Complete workflow integration needed for user-facing binaries. The application workflows foundation is now complete and ready for integration into CLI binaries. Key requirements:
+
+**Technical Implementation Context**:
+- ✅ **Application Workflows Completed**: All four workflows (EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow) are fully implemented with proper orchestration, error handling, and dependency injection
+- ✅ **Container Infrastructure**: Stateless dependency injection container provides clean workflow instantiation
+- ✅ **Architecture Compliance**: Clean architecture with proper layer separation and domain-driven design
+- ✅ **Test Coverage**: Integration tests validate workflow creation and basic structure
+
+**Immediate CLI Integration Needs**:
+1. **shadow Binary Integration**: Connect CLI arguments (algorithm selection, options) to EncryptionWorkflow.execute() with proper pattern expansion and batch processing
+2. **unshadow Binary Integration**: Integrate CLI with DecryptionWorkflow.execute() for file decryption and filename restoration  
+3. **shadows Binary Integration**: Connect directory listing CLI to ListingWorkflow.execute() with password handling and formatted output
+4. **shadowmigrate Binary Integration**: Integrate migration planning CLI with MigrationWorkflow.execute() and analysis output
+
+**Root Cause Analysis**:
+The workflow layer represents complete end-to-end business capabilities but requires CLI integration to become user-accessible. Each binary currently has skeleton CLI parsing but lacks workflow orchestration connection.
+
+**Implementation Considerations**:
+- Workflows use glob pattern expansion (currently placeholder - needs actual implementation)
+- Error handling provides user-friendly messages ready for CLI display
+- Progress reporting infrastructure exists but needs terminal output integration
+- Password prompting works through repository abstraction
+- Algorithm configuration created at runtime from CLI arguments (stateless design)
+
+**Architectural Benefits**:
+- Clean separation allows CLI layer to focus purely on argument parsing and result formatting
+- Workflow orchestration handles all business logic, validation, and cross-cutting concerns
+- Testing strategy enables both unit tests (mock repositories) and integration tests (real workflows)
+- Dependency injection supports future extension points and alternative implementations
+
+This represents a natural progression from internal workflow orchestration to user-facing CLI integration, enabling complete feature delivery.
 
 ---
 

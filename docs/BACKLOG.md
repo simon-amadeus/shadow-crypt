@@ -23,7 +23,7 @@
 *No items - critical safety issues resolved*
 
 ### **P2 - Domain Architecture (Business Logic)**
-4. **Application Workflows**: EncryptionWorkflow, DecryptionWorkflow, ListingWorkflow, MigrationWorkflow
+*No items - application workflows in active development*
 
 ### **P3 - CLI Integration (User Interface)**
 5. **shadow Binary**: File encryption with all features (obfuscation, progress, batch processing)
