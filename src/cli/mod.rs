@@ -2,10 +2,6 @@
 //!
 //! Command-line interface implementations for all Shadow binaries.
 
-pub mod shadow;
-pub mod unshadow;
-pub mod shadows;
-pub mod shadowmigrate;
 pub mod shared;
 pub mod errors;
 pub mod common;

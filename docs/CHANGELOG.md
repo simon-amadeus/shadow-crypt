@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.22.0] - 2025-10-04
+
+### Added
+- **Complete Shadowmigrate Binary Implementation**: Production-ready file format migration with full execution capabilities
+  - **Real Version Detection**: Integrated `FileSystemService::read_header_only()` for actual TLV header version reading
+  - **Migration Execution**: Full integration with domain layer `MigrationService` for actual file migrations with backup/restore
+  - **User Control Flags**: Added `--yes` for auto-confirmation and `--dry-run` for analysis-only mode
+  - **Directory Scanning**: Recursive `.shadow` file discovery in directories with comprehensive file validation
+  - **Progress Reporting**: Real-time migration progress with file-by-file status indicators and completion summaries
+  - **Version Matrix Integration**: Proper V3→V1 migration path detection using domain layer compatibility checking
+  - **Error Recovery**: Comprehensive error handling with backup creation and restore capabilities on failures
+
+### Improved
+- **Migration Analysis Accuracy**: Replaced hardcoded version placeholders with actual TLV header parsing
+- **CLI User Experience**: Professional progress indicators, confirmation prompts, and detailed migration summaries
+- **Domain Integration**: Seamless connection between application workflow and domain services for migrations
+- **Code Quality**: Eliminated unused template CLI modules and resolved all compilation warnings
+
+### Fixed
+- **Template Code Cleanup**: Added `#[allow(dead_code)]` to unused CLI template modules to eliminate warnings
+
 ## [0.21.0] - 2025-10-04
 
 ### Added

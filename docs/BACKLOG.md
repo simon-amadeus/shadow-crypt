@@ -3,10 +3,9 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- **shadows Binary Implementation**: Active development in docs/CURRENT_CYCLE.md
+*No active development cycle*
 
 ## 📋 PRIORITY ROADMAP
-- **shadowmigrate Binary**: Properly implement version migration and format updates according to docs/specs/FEATURE_REQUIREMENTS.md. please look at the current domain layer and scan it for usable implementation pieces. it should contain most of the logic already.
 
 ## 🔧 FUTURE CONSIDERATIONS
 

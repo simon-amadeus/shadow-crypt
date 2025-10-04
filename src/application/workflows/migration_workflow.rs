@@ -122,21 +122,42 @@ impl MigrationWorkflow {
             ));
         }
 
-        // TODO: Read and parse TLV header to determine current version
-        // For now, return placeholder analysis
-        let current_version = 1; // Would be read from file header
-        let target_version = 1;  // Would be specified by user
+        // Read actual file version from TLV header
+        use crate::infrastructure::file_system::FileSystemService;
+        use crate::domain::entities::version_matrix::{VersionMatrix, VersionCompatibility};
+        
+        let header = FileSystemService::read_header_only(path)
+            .map_err(|e| MigrationWorkflowError::FileError(
+                format!("Failed to read header from {}: {}", path.display(), e)
+            ))?;
+            
+        let current_version = header.version();
+        let version_matrix = VersionMatrix::new_shadow_rewrite();
+        let target_version = version_matrix.current_baseline();
+        
+        // Check compatibility and migration requirements
+        let compatibility = version_matrix.is_compatible(current_version, target_version);
+        let is_required = matches!(compatibility, VersionCompatibility::RequiresMigration);
+        let is_possible = version_matrix.can_migrate(current_version, target_version);
+        
+        // Build migration path
+        let migration_path = if is_required && is_possible {
+            // Use version matrix to get proper migration path
+            if let Some(path) = version_matrix.get_migration_path(current_version, target_version) {
+                vec![path.from_version, path.to_version]
+            } else {
+                vec![current_version, target_version]
+            }
+        } else {
+            vec![current_version]
+        };
 
         let analysis = MigrationAnalysis {
             current_version,
             target_version,
-            migration_path: if current_version < target_version {
-                (current_version..=target_version).collect()
-            } else {
-                vec![current_version]
-            },
-            is_required: current_version < target_version,
-            is_possible: true, // Would check compatibility matrix
+            migration_path,
+            is_required,
+            is_possible,
         };
 
         Ok(analysis)
@@ -176,20 +197,31 @@ impl MigrationWorkflow {
             "Enter password for migration: "
         )?;
 
-        // Step 3: TODO - Execute actual migration
-        // This would involve:
-        // 1. Decrypt file with current format
-        // 2. Re-encrypt with new format
-        // 3. Update header version
-        // 4. Verify integrity
-
-        Ok(format!(
-            "Migration would proceed for {} from version {} to {} with password (length: {})",
-            path.display(),
-            analysis.current_version,
-            target_version,
-            password.len()
-        ))
+        // Step 3: Execute actual migration using domain service
+        use crate::domain::services::migration_service::{MigrationService, MigrationOptions};
+        
+        let migration_service = MigrationService::new();
+        let options = MigrationOptions::default(); // Use safe defaults (backup enabled, etc.)
+        
+        match migration_service.migrate_file(path, target_version, Some(&password), &options) {
+            Ok(result) => {
+                Ok(format!(
+                    "Successfully migrated {} from version {} to version {} ({} bytes processed in {:?})",
+                    path.display(),
+                    result.original_version,
+                    result.target_version,
+                    result.bytes_processed,
+                    result.duration
+                ))
+            }
+            Err(e) => {
+                Err(MigrationWorkflowError::MigrationError(format!(
+                    "Failed to migrate {}: {}",
+                    path.display(),
+                    e
+                )))
+            }
+        }
     }
 
     /// Expand glob patterns into file paths
@@ -197,29 +229,65 @@ impl MigrationWorkflow {
         let mut file_paths = Vec::new();
         
         for pattern in patterns {
-            // TODO: Implement actual glob expansion
-            // For now, treat as direct file paths
             let path = PathBuf::from(pattern);
-            if self.file_repo.file_exists(&path) {
+            
+            if path.is_dir() {
+                // Scan directory for .shadow files
+                let dir_files = self.scan_directory_for_shadow_files(&path)?;
+                file_paths.extend(dir_files);
+            } else if self.file_repo.file_exists(&path) {
                 file_paths.push(path);
             } else {
+                // Try as a potential glob pattern or missing file
                 return Err(MigrationWorkflowError::FileError(
-                    format!("File not found: {}", path.display())
+                    format!("File or directory not found: {}", path.display())
                 ));
             }
         }
 
         if file_paths.is_empty() {
             return Err(MigrationWorkflowError::ValidationError(
-                "No files to migrate".to_string()
+                "No encrypted files found to migrate".to_string()
             ));
         }
 
         Ok(file_paths)
     }
+    
+    /// Scan directory for .shadow files recursively
+    fn scan_directory_for_shadow_files(&self, dir: &Path) -> MigrationWorkflowResult<Vec<PathBuf>> {
+        use std::fs;
+        
+        let mut shadow_files = Vec::new();
+        
+        let entries = fs::read_dir(dir)
+            .map_err(|e| MigrationWorkflowError::FileError(
+                format!("Cannot read directory {}: {}", dir.display(), e)
+            ))?;
+            
+        for entry in entries {
+            let entry = entry.map_err(|e| MigrationWorkflowError::FileError(
+                format!("Error reading directory entry in {}: {}", dir.display(), e)
+            ))?;
+            
+            let path = entry.path();
+            
+            if path.is_dir() {
+                // Recursive directory scanning
+                let nested_files = self.scan_directory_for_shadow_files(&path)?;
+                shadow_files.extend(nested_files);
+            } else if path.extension().and_then(|s| s.to_str()) == Some("shadow") {
+                shadow_files.push(path);
+            }
+        }
+        
+        Ok(shadow_files)
+    }
 
     /// Validate all input files are encrypted files
     fn validate_encrypted_files(&self, file_paths: &[PathBuf]) -> MigrationWorkflowResult<()> {
+        use crate::infrastructure::file_system::FileSystemService;
+        
         for path in file_paths {
             if !self.file_repo.file_exists(path) {
                 return Err(MigrationWorkflowError::FileError(
@@ -227,11 +295,10 @@ impl MigrationWorkflow {
                 ));
             }
 
-            // TODO: Validate file has proper TLV header structure
-            // For now, just check accessibility
-            self.file_repo.file_metadata(path)
-                .map_err(|e| MigrationWorkflowError::FileError(
-                    format!("Cannot access file {}: {}", path.display(), e)
+            // Validate file has proper TLV header structure by attempting to read it
+            FileSystemService::read_header_only(path)
+                .map_err(|e| MigrationWorkflowError::ValidationError(
+                    format!("File {} is not a valid encrypted file: {}", path.display(), e)
                 ))?;
         }
         Ok(())
