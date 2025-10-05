@@ -1,0 +1,67 @@
+//! # FileMetadata Entity
+//!
+//! Represents file system metadata and attributes.
+//! Based on specs/DOMAIN_ARCHITECTURE.md
+
+use std::time::SystemTime;
+use std::path::Path;
+use std::fs;
+
+/// Represents file system metadata and attributes
+#[derive(Debug, Clone)]
+pub struct FileMetadata {
+    pub original_filename: String,
+    pub file_size: u64,
+    pub modified_time: SystemTime,
+    pub created_time: Option<SystemTime>,
+    pub file_type: FileType,
+}
+
+impl FileMetadata {
+    /// Extract metadata from a file path
+    pub fn from_path(path: &Path) -> Result<Self, std::io::Error> {
+        let metadata = fs::metadata(path)?;
+        let file_type = if metadata.is_dir() {
+            FileType::Directory
+        } else if metadata.is_file() {
+            FileType::Regular
+        } else {
+            // Check if it's a symlink (Unix-specific)
+            #[cfg(unix)]
+            {
+                if metadata.file_type().is_symlink() {
+                    FileType::Symlink
+                } else {
+                    FileType::Other
+                }
+            }
+            #[cfg(not(unix))]
+            {
+                FileType::Other
+            }
+        };
+
+        let original_filename = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        Ok(Self {
+            original_filename,
+            file_size: metadata.len(),
+            modified_time: metadata.modified()?,
+            created_time: metadata.created().ok(),
+            file_type,
+        })
+    }
+}
+
+/// Type of file system entity
+#[derive(Debug, Clone)]
+pub enum FileType {
+    Regular,
+    Directory,
+    Symlink,
+    Other,
+}

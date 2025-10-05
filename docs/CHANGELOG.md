@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.27.0] - 2025-10-05
+
+### Added
+- **Architectural Dependency Enforcement**: Implemented cargo workspace structure to enforce clean architecture dependency flow at compile time
+  - **Workspace Structure**: Separated codebase into shadow-domain, shadow-application, shadow-infrastructure, and shadow-cli crates
+  - **Compile-time Validation**: Domain layer dependency violations now impossible (90+ architectural violations detected and fixed)
+  - **Domain Purity**: Domain crate contains only pure business logic with zero internal crate dependencies
+  - **Dependency Inversion**: Created domain abstractions (TlvSerializer, ProgressReporter traits) for infrastructure concerns
+  - **Clean Module Paths**: Systematic correction of module imports from `crate::domain::` to `crate::`
+  - **External Dependencies Organization**: Proper distribution of external crates by layer responsibility
+
+### Changed
+- **Service Layer Architecture**: Moved infrastructure-dependent services to application layer scope
+  - Services requiring infrastructure concerns (EncryptionService, DecryptionService) identified for application layer implementation
+  - Domain layer now contains only pure business logic and interface abstractions
+  - Foundation established for proper dependency injection patterns in application layer
+
+### Technical
+- **Dependency Management**: Added required external dependencies (hkdf, getrandom) to domain crate
+- **Infrastructure Abstractions**: Removed direct infrastructure imports from domain layer
+- **Compilation Safety**: Workspace structure prevents inappropriate cross-layer dependencies
+
 ## [0.26.0] - 2025-10-05
 
 ### Added

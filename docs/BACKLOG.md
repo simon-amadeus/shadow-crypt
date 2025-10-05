@@ -10,6 +10,7 @@
 ### High Priority (Core Quality & Stability)
 
 ### Medium Priority (User Experience)
+- **Progress System Integration**: Complete integration of enhanced progress system into CLI binaries (currently using old progress system)
 - **Beautiful Shadows Listing**: Make shadows listing output beautiful and user-friendly
 - **General UI/UX Polish**: General UI polish and UX improvements across all commands
 

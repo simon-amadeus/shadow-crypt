@@ -1,6 +1,15 @@
+[workspace]
+members = [
+    "crates/shadow-domain",
+    "crates/shadow-application", 
+    "crates/shadow-infrastructure",
+    "crates/shadow-cli",
+]
+resolver = "2"
+
 [package]
 name = "shadow-crypt"
-version = "0.26.0"
+version = "0.27.0"
 edition = "2024"
 description = "File encryption with modern cryptography (DEVELOPMENT - NOT READY FOR PRODUCTION)"
 license = "MIT OR Apache-2.0"
@@ -36,7 +45,12 @@ name = "shadowmigrate"
 path = "src/bin/shadowmigrate.rs"
 
 [dependencies]
-# Cryptographic dependencies for Phase 3
+shadow-domain = { path = "crates/shadow-domain" }
+shadow-application = { path = "crates/shadow-application" }
+shadow-infrastructure = { path = "crates/shadow-infrastructure" }
+shadow-cli = { path = "crates/shadow-cli" }
+
+# External dependencies needed by main binaries
 aes-gcm = "0.10"         # AES-256-GCM authenticated encryption
 chacha20poly1305 = "0.10" # XChaCha20-Poly1305 authenticated encryption
 argon2 = "0.5"           # Argon2id key derivation
