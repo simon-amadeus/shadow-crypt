@@ -26,12 +26,21 @@ fn test_empty_header_serialization_debug() {
     
     println!("File data with ciphertext: {} bytes", file_data.len());
     
-    // This should fail because it tries to read the ciphertext as TLV
+    // With robust boundary detection, this should succeed by parsing only the header
     match TlvSerializer::deserialize(&file_data) {
-        Ok(_) => println!("File data with ciphertext deserializes successfully (unexpected!)"),
-        Err(e) => println!("File data with ciphertext deserialization failed (expected): {:?}", e),
+        Ok(_) => println!("✅ File data with ciphertext deserializes successfully (correct behavior with robust boundary detection)"),
+        Err(e) => println!("❌ File data with ciphertext deserialization failed (unexpected): {:?}", e),
     }
     
-    // The issue is that TlvSerializer::deserialize expects to consume the entire buffer
-    // but we only want to consume the header portion
+    // Test that deserialize_with_remainder correctly separates header from ciphertext
+    match TlvSerializer::deserialize_with_remainder(&file_data) {
+        Ok((_, remaining)) => {
+            println!("✅ Header/ciphertext boundary correctly detected");
+            println!("Ciphertext portion: {} bytes", remaining.len());
+            assert_eq!(remaining, b"some ciphertext data", "Should extract exact ciphertext");
+        },
+        Err(e) => {
+            println!("❌ deserialize_with_remainder failed: {:?}", e);
+        }
+    }
 }

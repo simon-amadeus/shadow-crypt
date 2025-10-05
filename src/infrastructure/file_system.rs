@@ -7,9 +7,9 @@ use crate::domain::entities::tlv_header::TlvHeader;
 use crate::domain::repositories::file_repository::{
     FileRepository, FileMetadata, FileType, CryptoResult
 };
-use crate::infrastructure::tlv_serialization::{TlvSerializer, TlvSerializationError};
+use crate::infrastructure::tlv_serialization::TlvSerializer;
 use std::fs::{File, OpenOptions};
-use std::io::{Read, Write, Seek, SeekFrom};
+use std::io::{Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::time::SystemTime;
 
@@ -20,134 +20,18 @@ impl FileSystemService {
     /// Read just the TLV header from an encrypted file without loading the entire content
     /// This enables efficient metadata extraction for duplicate detection
     pub fn read_header_only(path: &Path) -> Result<TlvHeader, EncryptedFileError> {
+        use crate::domain::services::tlv_parser::TlvParser;
+        
         let mut file = File::open(path)
             .map_err(|e| EncryptedFileError::IoError(format!("Failed to open file '{}': {}", path.display(), e)))?;
         
-        // Read magic number and version first to validate
-        let mut magic_and_version = [0u8; 10];
-        file.read_exact(&mut magic_and_version)
-            .map_err(|e| EncryptedFileError::IoError(format!("File '{}' too small or corrupted: {}", path.display(), e)))?;
-        
-        // Check magic number
-        let magic = &magic_and_version[0..8];
-        if magic != TlvHeader::MAGIC_NUMBER {
-            return Err(EncryptedFileError::HeaderParseError(format!(
-                "File '{}' is not a valid Shadow encrypted file (invalid magic number)", 
-                path.display()
-            )));
-        }
-        
-        // Read the rest of the file
-        let mut remaining_data = Vec::new();
-        file.read_to_end(&mut remaining_data)
-            .map_err(|e| EncryptedFileError::IoError(format!("Failed to read from '{}': {}", path.display(), e)))?;
-        
-        // Combine magic+version with remaining data
-        let mut all_data = magic_and_version.to_vec();
-        all_data.extend_from_slice(&remaining_data);
-        
-        // Find the end of TLV section
-        let header_end = Self::find_tlv_section_end(&all_data, 10).unwrap_or(10);
-        
-        // Extract just the header portion
-        let header_data = &all_data[0..header_end];
-        
-        // Parse the header using TlvSerializer
-        TlvSerializer::deserialize(header_data)
-            .map_err(|e| match e {
-                TlvSerializationError::InvalidMagicNumber => {
-                    EncryptedFileError::HeaderParseError(format!(
-                        "File '{}' has invalid magic number", 
-                        path.display()
-                    ))
-                }
-                TlvSerializationError::InvalidFormat(msg) => {
-                    EncryptedFileError::HeaderParseError(format!(
-                        "Corrupted header in '{}': {}", 
-                        path.display(), 
-                        msg
-                    ))
-                }
-                TlvSerializationError::InsufficientData => {
-                    EncryptedFileError::HeaderParseError(format!(
-                        "Incomplete header data in '{}'", 
-                        path.display()
-                    ))
-                }
-                TlvSerializationError::Io(io_err) => {
-                    EncryptedFileError::IoError(format!(
-                        "I/O error parsing header in '{}': {}", 
-                        path.display(), 
-                        io_err
-                    ))
-                }
-            })
-    }
-    
-    /// Find the end of TLV section by parsing field boundaries
-    /// Returns the position where TLV section ends, or None if not yet found
-    fn find_tlv_section_end(data: &[u8], search_start: usize) -> Option<usize> {
-        let mut pos = 10; // Start after magic + version
-        
-        // Don't re-parse data we've already validated
-        let parse_start = search_start.max(10);
-        if parse_start < data.len() {
-            pos = parse_start;
-        }
-        
-        // If we only have magic + version (10 bytes), that's a valid empty header
-        if data.len() <= 10 {
-            return Some(10);
-        }
-        
-        while pos < data.len() {
-            // Check if we can read a complete TLV field header
-            if pos + 5 > data.len() {
-                // Not enough data for type + length, need more
-                return None;
-            }
-            
-            let field_type_raw = data[pos];
-            
-            // Validate field type - must be a known TLV type
-            if !Self::is_valid_tlv_field_type(field_type_raw) {
-                // Hit something that's not a TLV field - probably ciphertext
-                return Some(pos);
-            }
-            
-            // Read field length
-            let length = u32::from_le_bytes([
-                data[pos + 1],
-                data[pos + 2],
-                data[pos + 3],
-                data[pos + 4],
-            ]) as usize;
-            
-            // Validate field length is reasonable
-            if length > 65536 {
-                // Suspiciously large field - probably not TLV
-                return Some(pos);
-            }
-            
-            // Check if we have enough data for the complete field
-            let field_end = pos + 5 + length;
-            if field_end > data.len() {
-                // Don't have complete field yet, need more data
-                return None;
-            }
-            
-            // Move to next field
-            pos = field_end;
-        }
-        
-        // Reached end of available data - all data consumed by TLV fields
-        Some(pos)
-    }
-    
-    /// Check if a byte value represents a valid TLV field type
-    fn is_valid_tlv_field_type(byte: u8) -> bool {
-        // Valid TLV field types: 0x01-0x0A or 0xFF (ExtensionMarker)
-        (0x01..=0x0A).contains(&byte) || byte == 0xFF
+        // Use streaming parser for efficient header-only reading
+        TlvSerializer::parse_header_from_reader(&mut file)
+            .map_err(|e| EncryptedFileError::HeaderParseError(format!(
+                "Failed to parse header from '{}': {}", 
+                path.display(), 
+                e
+            )))
     }
     
     /// Extract content hash from an encrypted file's header

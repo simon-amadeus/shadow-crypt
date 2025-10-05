@@ -11,6 +11,8 @@ pub mod listing_service;
 pub mod migration_service;
 pub mod file_detector;
 pub mod password_service;
+pub mod tlv_parser;
+pub mod header_analysis;
 
 // Re-export key traits from the new crypto service
 pub use crypto_service::{

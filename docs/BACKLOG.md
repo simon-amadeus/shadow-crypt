@@ -3,13 +3,12 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-*No active development cycle*
+- none. ready for next priority item
 
 ## 📋 PRIORITY ROADMAP
 
 ### High Priority (Core Quality & Stability)
-- **Robust File Header Deserialization**: Make file header deserialization robust and fail-safe with proper error handling
-- **Header Format Versioning Review**: Review and validate header format versioning implementation for future compatibility
+- **Header Format Versioning Review**: Review and validate header format and versioning implementation for future compatibility
 - **Algorithm Extensibility Review**: Review algorithm extensibility implementation for cryptographic future-proofing
 
 ### Medium Priority (User Experience)
