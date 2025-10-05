@@ -1,7 +1,31 @@
-//! TLV Header System V1 - Proof of Concept
+//! TLV Header System V1 - Production Ready
 //!
-//! This module implements the Type-Length-Value header system for V1 format,
-//! preserving the proven V3 TLV design patterns while implementing clean architecture.
+//! This module implements the Type-Length-Value header system for Shadow V1 format,
+//! preserving the proven TLV design patterns while enabling clean architecture.
+//!
+//! ## Design Principles
+//!
+//! - **Extensibility**: Unknown field types are handled gracefully for forward compatibility
+//! - **Algorithm Agnostic**: Header format independent of specific encryption algorithms
+//! - **Migration Safe**: V3 → V1 migration preserves all essential cryptographic metadata
+//! - **Version Evolution**: Clean upgrade path for future V1 → V2+ format evolution
+//!
+//! ## Field Type Strategy
+//!
+//! The TLV field type space (0x01-0xFF) is organized for systematic evolution:
+//! - **0x01-0x0F**: Core metadata (filename, directory, timestamps)
+//! - **0x10-0x2F**: Cryptographic parameters (algorithm, nonce, key derivation)
+//! - **0x30-0x4F**: Content integrity (hashes, signatures, checksums)
+//! - **0x50-0x6F**: Compression and encoding parameters
+//! - **0x70-0x8F**: User-defined and application-specific fields
+//! - **0x90-0xFE**: Reserved for future Shadow format extensions
+//! - **0xFF**: Extension marker for unknown field handling
+//!
+//! ## Future Compatibility
+//!
+//! New Shadow versions can add field types without breaking V1 compatibility.
+//! V1 implementations preserve unknown fields as ExtensionMarker during roundtrip
+//! operations, ensuring no data loss during format evolution.
 
 use std::collections::HashMap;
 

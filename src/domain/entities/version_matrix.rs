@@ -1,3 +1,29 @@
+//! Version Compatibility Matrix for Shadow Format Evolution
+//!
+//! This module manages version compatibility relationships and migration paths
+//! across Shadow file format versions, ensuring safe evolution and data preservation.
+//!
+//! ## Shadow Version Strategy
+//!
+//! - **V1 (Current)**: New baseline with proven TLV extensible headers
+//! - **V3 (Legacy)**: Migration source only, preserved for compatibility
+//! - **V2+ (Future)**: Forward evolution path with backward compatibility
+//!
+//! ## Migration Philosophy
+//!
+//! - **One-Way Progress**: Legacy → Current, never reverse to prevent technical debt
+//! - **Data Preservation**: All cryptographic material and metadata maintained
+//! - **Password Required**: Migration requires decryption/re-encryption for security
+//! - **Format Evolution**: V1 → V2+ when new features justify format changes
+//!
+//! ## Compatibility Matrix Design
+//!
+//! The version matrix prevents dangerous operations while enabling safe evolution:
+//! - Cross-version compatibility explicitly defined
+//! - Migration paths with clear requirements and limitations
+//! - Unknown version handling defaults to incompatible (safe failure mode)
+//! - Future version support designed for seamless integration
+
 use std::collections::{HashMap, HashSet};
 
 /// Version compatibility relationship between format versions
