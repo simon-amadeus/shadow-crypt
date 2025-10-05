@@ -3,7 +3,7 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- none. ready for next priority item
+- **Architecture Specification Design**: Creating comprehensive 3-layered architecture specs with vertical slicing (see docs/CURRENT_CYCLE.md)
 
 ## 📋 PRIORITY ROADMAP
 
