@@ -2,6 +2,36 @@
 //!
 //! This module provides an enum-based approach for selecting and creating
 //! cryptographic algorithm configurations, solving trait object limitations.
+//!
+//! ## Factory Pattern Design
+//!
+//! The `Algorithm` enum implements all cryptographic traits and can be used
+//! directly instead of trait objects to avoid object safety issues. This design
+//! provides:
+//!
+//! - **Type Safety**: Compile-time algorithm selection and dispatch
+//! - **Performance**: Zero-cost abstractions with monomorphization
+//! - **Extensibility**: New algorithms require only enum variant additions
+//! - **Testability**: Each algorithm can be tested in isolation
+//!
+//! ## Adding New Algorithms
+//!
+//! To add a new algorithm:
+//! 1. Create algorithm implementation following the three-trait pattern
+//! 2. Add new variant to `Algorithm` enum
+//! 3. Update all match statements to handle new variant
+//! 4. Add to `supported_algorithms()` list
+//! 5. Update `AlgorithmId` enum in domain layer
+//!
+//! See `docs/specs/ALGORITHM_IMPLEMENTATION_GUIDE.md` for detailed instructions.
+//!
+//! ## Cross-Algorithm Compatibility
+//!
+//! All algorithms share the same trait interface, ensuring that:
+//! - Domain services work with any supported algorithm
+//! - Files encrypted with different algorithms remain compatible
+//! - Algorithm choice is determined by file header during decryption
+//! - New algorithms don't break existing functionality
 
 use super::{AlgorithmId, CryptographicAlgorithm, EncryptionResult, KeyMaterial};
 use crate::domain::errors::DomainError;

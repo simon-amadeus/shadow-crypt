@@ -2,6 +2,34 @@
 //!
 //! This module defines the core cryptographic abstractions that belong in the domain layer.
 //! These traits represent business rules and capabilities, not implementation details.
+//!
+//! ## Algorithm Registry
+//!
+//! The `AlgorithmId` enum serves as a stable registry for all supported cryptographic
+//! algorithms. Each algorithm receives a unique `u16` identifier that:
+//!
+//! - **Persists in file headers** for format compatibility
+//! - **Remains stable across releases** to ensure file accessibility
+//! - **Provides systematic allocation** to prevent ID conflicts
+//! - **Supports 65,535 algorithms** for long-term extensibility
+//!
+//! ## Adding New Algorithms
+//!
+//! When adding a new algorithm:
+//! 1. Add new variant with next available ID number
+//! 2. Update `from_u16()` conversion method
+//! 3. Update `name()`, `key_size()`, and `nonce_size()` methods
+//! 4. Update factory pattern in `infrastructure::crypto::factory`
+//!
+//! **Important**: Never change existing ID numbers as this would break file compatibility.
+//!
+//! ## Post-Quantum Considerations
+//!
+//! Future post-quantum algorithms can be added using the same pattern:
+//! - Larger key sizes supported via `key_size()` method
+//! - Extended nonces supported via `nonce_size()` method  
+//! - Algorithm-specific metadata via TLV headers
+//! - Hybrid algorithms as single enum variants
 
 use crate::domain::errors::DomainError;
 

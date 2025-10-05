@@ -2,6 +2,30 @@
 //!
 //! This module defines the cryptographic service abstractions that belong in the domain layer.
 //! Infrastructure implementations will implement these traits to provide concrete crypto operations.
+//!
+//! ## Architecture
+//!
+//! The cryptographic architecture uses a three-trait system that provides clean separation of concerns:
+//!
+//! - **`KeyDerivationConfig`**: Password-based key derivation functions and parameters
+//! - **`EncryptionConfig`**: Algorithm-specific metadata and validation logic  
+//! - **`CryptographicAlgorithm`**: Complete encryption/decryption operations
+//!
+//! ## Extensibility
+//!
+//! New algorithms integrate by implementing all three traits. The factory pattern in
+//! `infrastructure::crypto::factory` provides unified access across all algorithms while
+//! maintaining type safety and performance.
+//!
+//! ## Post-Quantum Readiness
+//!
+//! The trait design accommodates post-quantum algorithms through:
+//! - Variable key/nonce/salt sizes via trait methods
+//! - Algorithm-specific parameter configurations
+//! - Extensible metadata support via TLV headers
+//! - Hybrid algorithm composition patterns
+//!
+//! See `docs/specs/ALGORITHM_IMPLEMENTATION_GUIDE.md` for complete implementation guidance.
 
 use crate::domain::entities::{AlgorithmId, KeyMaterial};
 use crate::domain::errors::DomainError;

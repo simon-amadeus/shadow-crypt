@@ -8,7 +8,6 @@
 ## 📋 PRIORITY ROADMAP
 
 ### High Priority (Core Quality & Stability)
-- **Algorithm Extensibility Review**: Review algorithm extensibility implementation for cryptographic future-proofing
 
 ### Medium Priority (User Experience)
 - **Progress Feedback Enhancement**: Improve progress feedback during operations for better user experience
