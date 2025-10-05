@@ -7,8 +7,10 @@ pub mod file_system;
 pub mod terminal;
 pub mod tlv_serialization;
 pub mod errors;
+pub mod progress;
 
 pub use errors::{InfrastructureError, InfrastructureResult};
+pub use progress::{ProgressReporter, ProgressContext, ProgressStyle};
 
 // Re-export standard repository implementations
 pub use file_system::StandardFileRepository;

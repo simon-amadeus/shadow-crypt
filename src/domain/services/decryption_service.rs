@@ -9,7 +9,8 @@ use crate::domain::entities::{AlgorithmId, tlv_header::TlvFieldType};
 use crate::domain::errors::{DomainResult, DomainError, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::services::crypto_service::KeyDerivationConfig;
-use crate::domain::services::encryption_service::{ProgressReporter, BatchResult};
+use crate::domain::services::encryption_service::BatchResult;
+use crate::infrastructure::{ProgressReporter, ProgressStyle};
 use crate::domain::utilities::filename_obfuscation::FilenameObfuscator;
 use crate::infrastructure::crypto::factory::Algorithm;
 use crate::infrastructure::tlv_serialization::TlvSerializer;
@@ -47,22 +48,19 @@ impl DecryptionService {
     pub fn new() -> Self {
         Self {
             file_detector: FileDetector::new(),
-            progress_reporter: ProgressReporter::new(false),
+            progress_reporter: ProgressReporter::from_quiet_mode(true), // Default to quiet
         }
     }
 
     /// Enable or disable progress reporting
     pub fn with_progress_reporting(mut self, enabled: bool) -> Self {
-        self.progress_reporter = ProgressReporter::new(enabled);
+        self.progress_reporter = ProgressReporter::from_quiet_mode(!enabled);
         self
     }
 
-    /// Set custom progress reporting callback
-    pub fn with_progress_callback<F>(mut self, callback: F) -> Self 
-    where 
-        F: Fn(&str) + Send + Sync + 'static,
-    {
-        self.progress_reporter = ProgressReporter::with_callback(callback);
+    /// Set progress style
+    pub fn with_progress_style(mut self, style: ProgressStyle) -> Self {
+        self.progress_reporter = ProgressReporter::new(style);
         self
     }
 
@@ -98,7 +96,7 @@ impl DecryptionService {
         let start_time = Instant::now();
 
         // Phase 1: File detection and validation
-        self.progress_reporter.report_progress("Detecting file format...");
+        self.progress_reporter.report_simple("Detecting file format...");
         
         if !self.file_detector.is_encrypted_file(input_path)? {
             return Err(DomainError::InputValidationError(
@@ -110,7 +108,7 @@ impl DecryptionService {
         }
 
         // Phase 2: Read and parse encrypted file
-        self.progress_reporter.report_progress("Reading encrypted file...");
+        self.progress_reporter.report_simple("Reading encrypted file...");
         let encrypted_data = std::fs::read(input_path)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                 operation: format!("read encrypted file {}", input_path.display()),
@@ -118,7 +116,7 @@ impl DecryptionService {
             }))?;
 
         // Phase 3: Parse TLV header and extract ciphertext
-        self.progress_reporter.report_progress("Parsing file header...");
+        self.progress_reporter.report_simple("Parsing file header...");
         let (header, ciphertext) = TlvSerializer::deserialize_with_remainder(&encrypted_data)
             .map_err(|e| DomainError::FormatError(
                 crate::domain::errors::FormatError::HeaderParsingFailed { 
@@ -162,11 +160,11 @@ impl DecryptionService {
             ))?;
 
         // Phase 6: Derive key material
-        self.progress_reporter.report_progress("Deriving decryption keys...");
+        self.progress_reporter.report_simple("Deriving decryption keys...");
         let key_material = algorithm.derive_key_material(password, salt)?;
 
         // Phase 7: Decrypt content  
-        self.progress_reporter.report_progress("Decrypting file content...");
+        self.progress_reporter.report_simple("Decrypting file content...");
         let plaintext = algorithm.decrypt(ciphertext, nonce, &key_material)?;
 
         // Phase 8: Determine output path
@@ -202,7 +200,7 @@ impl DecryptionService {
         }
 
         // Phase 10: Write decrypted file
-        self.progress_reporter.report_progress("Writing decrypted file...");
+        self.progress_reporter.report_simple("Writing decrypted file...");
         std::fs::write(&final_output_path, &plaintext)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                 operation: format!("write decrypted file {}", final_output_path.display()),
@@ -211,7 +209,7 @@ impl DecryptionService {
 
         // Phase 11: Remove source file if requested
         if options.remove_source {
-            self.progress_reporter.report_progress("Removing encrypted source file...");
+            self.progress_reporter.report_simple("Removing encrypted source file...");
             std::fs::remove_file(input_path)
                 .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                     operation: format!("remove source file {}", input_path.display()),
@@ -220,7 +218,7 @@ impl DecryptionService {
         }
 
         let duration = start_time.elapsed();
-        self.progress_reporter.report_progress("Decryption complete!");
+        self.progress_reporter.complete_operation("Decryption complete!");
 
         Ok(DecryptionResult {
             input_path: input_path.to_path_buf(),

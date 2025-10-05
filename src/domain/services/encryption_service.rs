@@ -11,6 +11,7 @@ use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::utilities::content_hash::{ContentHash, calculate_content_hash};
 use crate::domain::utilities::filename_obfuscation::{FilenameObfuscator, ObfuscatedFilename};
 use crate::infrastructure::tlv_serialization::TlvSerializer;
+use crate::infrastructure::{ProgressReporter, ProgressContext, ProgressStyle};
 
 /// Orchestrates file encryption with duplicate detection and progress reporting
 pub struct EncryptionService {
@@ -43,43 +44,6 @@ pub struct BatchResult<T> {
     pub total_duration: Duration,
 }
 
-/// Progress reporting functionality
-pub struct ProgressReporter {
-    enabled: bool,
-    callback: Option<Box<dyn Fn(&str) + Send + Sync>>,
-}
-
-impl ProgressReporter {
-    pub fn new(enabled: bool) -> Self {
-        Self { 
-            enabled,
-            callback: None,
-        }
-    }
-
-    /// Create a progress reporter with a custom callback
-    pub fn with_callback<F>(callback: F) -> Self 
-    where 
-        F: Fn(&str) + Send + Sync + 'static,
-    {
-        Self {
-            enabled: true,
-            callback: Some(Box::new(callback)),
-        }
-    }
-
-    pub fn report_progress(&self, message: &str) {
-        if self.enabled {
-            if let Some(callback) = &self.callback {
-                callback(message);
-            } else {
-                // Default progress reporting for testing/development
-                eprintln!("[PROGRESS] {}", message);
-            }
-        }
-    }
-}
-
 impl Default for EncryptionService {
     fn default() -> Self {
         Self::new()
@@ -92,7 +56,7 @@ impl EncryptionService {
         Self {
             duplicate_detector: None,
             file_detector: FileDetector::new(),
-            progress_reporter: ProgressReporter::new(false),
+            progress_reporter: ProgressReporter::from_quiet_mode(true), // Default to quiet
         }
     }
 
@@ -104,16 +68,13 @@ impl EncryptionService {
 
     /// Enable or disable progress reporting
     pub fn with_progress_reporting(mut self, enabled: bool) -> Self {
-        self.progress_reporter = ProgressReporter::new(enabled);
+        self.progress_reporter = ProgressReporter::from_quiet_mode(!enabled);
         self
     }
 
-    /// Set custom progress reporting callback
-    pub fn with_progress_callback<F>(mut self, callback: F) -> Self 
-    where 
-        F: Fn(&str) + Send + Sync + 'static,
-    {
-        self.progress_reporter = ProgressReporter::with_callback(callback);
+    /// Set progress style
+    pub fn with_progress_style(mut self, style: ProgressStyle) -> Self {
+        self.progress_reporter = ProgressReporter::new(style);
         self
     }
 
@@ -164,13 +125,21 @@ impl EncryptionService {
         let start_time = Instant::now();
 
         // Phase 1: File detection and double-encryption prevention
-        self.progress_reporter.report_progress("Checking file format and encryption safety...");
+        let context = ProgressContext::new("Encrypting file".to_string())
+            .with_file(input_path.display().to_string())
+            .with_phase("Checking encryption safety".to_string())
+            .with_elapsed(start_time.elapsed());
+        self.progress_reporter.report_with_context(context);
         
         // Prevent double-encryption (the core integration with FileDetector)
         self.file_detector.validate_encryption_safety(input_path, options.force_overwrite)?;
 
         // Phase 2: Read file contents and calculate content hash
-        self.progress_reporter.report_progress("Reading file contents...");
+        let context = ProgressContext::new("Encrypting file".to_string())
+            .with_file(input_path.display().to_string())
+            .with_phase("Reading content".to_string())
+            .with_elapsed(start_time.elapsed());
+        self.progress_reporter.report_with_context(context);
         let content = std::fs::read(input_path)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                 operation: format!("read file {}", input_path.display()),
@@ -183,17 +152,17 @@ impl EncryptionService {
         // Phase 3: Duplicate detection (if enabled)
         if options.check_duplicates {
             if let Some(detector) = &self.duplicate_detector {
-                self.progress_reporter.report_progress("Checking for duplicates...");
+                self.progress_reporter.report_simple("Checking for duplicates...");
                 
                 // Check if this content hash already exists
                 if let Some(duplicate_paths) = detector.check_duplicate(&content_hash) {
                     // For now, log the duplicates - user prompt will be added in Phase 4
-                    self.progress_reporter.report_progress(&format!(
+                    self.progress_reporter.report_simple(&format!(
                         "Warning: Found {} files with identical content", 
                         duplicate_paths.len()
                     ));
                     for path in duplicate_paths {
-                        self.progress_reporter.report_progress(&format!(
+                        self.progress_reporter.report_simple(&format!(
                             "  Duplicate: {}", 
                             path.display()
                         ));
@@ -206,16 +175,16 @@ impl EncryptionService {
         }
 
         // Phase 4: Generate key material
-        self.progress_reporter.report_progress("Deriving encryption keys...");
+        self.progress_reporter.report_simple("Deriving encryption keys...");
         let salt = algorithm.generate_salt()?;
         let key_material = algorithm.derive_key_material(password, &salt)?;
 
         // Phase 5: Encrypt content
-        self.progress_reporter.report_progress("Encrypting file...");
+        self.progress_reporter.report_simple("Encrypting file...");
         let encryption_result = algorithm.encrypt(&content, &key_material)?;
 
         // Phase 6: Create TLV header with content hash
-        self.progress_reporter.report_progress("Creating TLV header...");
+        self.progress_reporter.report_simple("Creating TLV header...");
         let mut header = TlvHeader::new();
         
         // Add original filename
@@ -246,7 +215,7 @@ impl EncryptionService {
         output_data.extend_from_slice(&header_bytes);
         output_data.extend_from_slice(&encryption_result.ciphertext);
 
-        self.progress_reporter.report_progress("Writing encrypted file...");
+        self.progress_reporter.report_simple("Writing encrypted file...");
         std::fs::write(output_path, &output_data)
             .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                 operation: format!("write encrypted file {}", output_path.display()),
@@ -262,7 +231,7 @@ impl EncryptionService {
 
         // Phase 9: Source removal (if requested)
         if options.remove_source {
-            self.progress_reporter.report_progress("Removing source file...");
+            self.progress_reporter.report_simple("Removing source file...");
             std::fs::remove_file(input_path)
                 .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
                     operation: format!("remove source file {}", input_path.display()),
@@ -271,7 +240,7 @@ impl EncryptionService {
         }
 
         let duration = start_time.elapsed();
-        self.progress_reporter.report_progress("Encryption complete!");
+        self.progress_reporter.complete_operation("Encryption complete!");
 
         Ok(EncryptionResult {
             input_path: input_path.to_path_buf(),

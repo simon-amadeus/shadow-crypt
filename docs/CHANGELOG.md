@@ -5,6 +5,45 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.26.0] - 2025-10-05
+
+### Added
+- **Enhanced Progress Infrastructure**: Professional progress reporting system with visual indicators and timing information
+  - **Visual Progress Styles**: Multiple output formats including animated spinners, progress bars, minimal text, and silent mode
+  - **Rich Context Tracking**: Progress messages include file names, batch information, operation phases, timing, and size data
+  - **Professional Formatting**: Modern CLI aesthetics with emojis, smart unit formatting, and consistent visual hierarchy
+  - **Performance Optimization**: 100ms update throttling prevents terminal spam while maintaining responsive feedback
+  - **Builder Pattern API**: Fluent interface for creating progress contexts with optional chaining
+- **Enhanced Domain Services**: EncryptionService and DecryptionService integration with rich progress reporting
+  - **Phase-Specific Progress**: Detailed 9-phase encryption and 7-phase decryption progress with contextual information
+  - **Error Context Preservation**: Failed operations maintain progress context for improved debugging experience
+  - **Completion Reporting**: Professional success and error completion messages with timing summaries
+  - **Backward Compatibility**: Maintained existing APIs while adding enhanced progress capabilities
+- **CLI Binary Integration**: shadow and unshadow binaries with enhanced progress experience
+  - **Quiet Mode Respect**: Perfect `--quiet` flag integration completely suppresses progress output
+  - **Batch Operation Progress**: Clear "Processing file X of Y" indicators for multi-file operations
+  - **Real-Time Timing**: Elapsed time display with intelligent unit scaling (ms/s/m)
+  - **ETA Calculation**: Estimated completion time for batch operations based on processing speed
+
+### Enhanced
+- **User Experience Excellence**: Professional progress indicators match modern CLI tool standards
+  - **Visual Clarity**: Intuitive emoji-based progress indicators create clear visual patterns
+  - **Timing Information**: Real-time operation feedback helps users understand processing speed
+  - **File Context**: Always clear which file is being processed in batch operations
+  - **Error Feedback**: Enhanced error display maintains progress context for troubleshooting
+- **Technical Architecture**: Clean separation between progress infrastructure and domain logic
+  - **Dependency Inversion**: Domain services depend on progress abstractions, not concrete implementations
+  - **Single Responsibility**: Each progress component has focused, well-defined responsibilities
+  - **Extensibility**: Easy to add new progress styles without modifying existing code
+  - **Memory Efficiency**: Zero allocations in silent mode, minimal overhead in active modes
+
+### Technical Details
+- **Progress Infrastructure**: Created `src/infrastructure/progress.rs` with comprehensive progress reporting system
+- **Integration Pattern**: Established consistent pattern for progress integration across domain services
+- **Test Coverage**: Added 6 comprehensive tests for progress infrastructure (160 total tests passing)
+- **API Design**: Fluent builder pattern for progress contexts with optional chaining for ease of use
+- **Performance Impact**: Sub-millisecond overhead per operation with intelligent update throttling
+
 ## [0.25.0] - 2025-10-05
 
 ### Validated

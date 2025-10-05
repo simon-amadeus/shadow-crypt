@@ -10,7 +10,6 @@
 ### High Priority (Core Quality & Stability)
 
 ### Medium Priority (User Experience)
-- **Progress Feedback Enhancement**: Improve progress feedback during operations for better user experience
 - **Beautiful Shadows Listing**: Make shadows listing output beautiful and user-friendly
 - **General UI/UX Polish**: General UI polish and UX improvements across all commands
 

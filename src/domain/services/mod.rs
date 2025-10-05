@@ -28,7 +28,7 @@ pub use crypto_service::{
 pub use file_detector::{FileDetector, FileFormat};
 
 // Re-export encryption services
-pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionResult as ServiceEncryptionResult, BatchResult, ProgressReporter};
+pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionResult as ServiceEncryptionResult, BatchResult};
 
 // Re-export decryption services
 pub use decryption_service::{DecryptionService, DecryptionOptions, DecryptionResult};
