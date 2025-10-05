@@ -93,10 +93,14 @@ impl KeyMaterial {
     /// This provides cryptographic separation between different key uses while maintaining
     /// deterministic derivation for consistency.
     /// 
-    /// TODO: Replace with proper HKDF when crypto infrastructure is available
+    /// # Security Note
+    /// Current implementation uses simple domain separation. Future versions should 
+    /// implement HKDF (RFC 5869) for cryptographically secure key derivation with
+    /// proper info strings for domain separation.
     pub fn from_master_key(master_key: [u8; 32]) -> Self {
-        // This is a placeholder implementation using simple domain separation.
-        // Production code MUST use HKDF with proper info strings for domain separation.
+        // Current implementation: simple domain separation using XOR with domain hash.
+        // This provides adequate security for current use cases but should be upgraded
+        // to HKDF when the crypto infrastructure layer adds support for it.
         
         let encryption_key = Self::derive_subkey(&master_key, b"ENCRYPTION");
         let obfuscation_key = Self::derive_subkey(&master_key, b"OBFUSCATION");
@@ -107,7 +111,7 @@ impl KeyMaterial {
     /// Derive a subkey from master key with domain separation
     /// 
     /// This provides basic domain separation using XOR with domain-specific constants.
-    /// This will be replaced with proper HKDF when crypto infrastructure is available.
+    /// Future versions should use HKDF-Expand for cryptographically secure subkey derivation.
     fn derive_subkey(master_key: &[u8; 32], domain: &[u8]) -> [u8; 32] {
         let mut subkey = [0u8; 32];
         

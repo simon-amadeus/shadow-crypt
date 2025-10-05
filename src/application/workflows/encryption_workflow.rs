@@ -274,15 +274,27 @@ impl EncryptionWorkflow {
 
     /// Check for already encrypted files to prevent double encryption
     fn check_already_encrypted(&self, file_paths: &[PathBuf]) -> EncryptionWorkflowResult<()> {
-        // TODO: Implement actual encrypted file detection
-        // This would check for TLV headers in the files
+        use crate::domain::services::FileDetector;
+        
+        let file_detector = FileDetector::new();
         for path in file_paths {
-            let _ = path; // Prevent unused variable warning
-            // if self.is_already_encrypted(path)? {
-            //     return Err(EncryptionWorkflowError::ValidationError(
-            //         format!("File is already encrypted: {}", path.display())
-            //     ));
-            // }
+            // Use FileDetector to check if file is already encrypted
+            match file_detector.is_encrypted_file(path) {
+                Ok(true) => {
+                    return Err(EncryptionWorkflowError::ValidationError(
+                        format!("File is already encrypted: {}", path.display())
+                    ));
+                }
+                Ok(false) => {
+                    // File is not encrypted, continue
+                }
+                Err(e) => {
+                    // File check failed, treat as validation error
+                    return Err(EncryptionWorkflowError::ValidationError(
+                        format!("Cannot validate encryption status of {}: {}", path.display(), e)
+                    ));
+                }
+            }
         }
         Ok(())
     }

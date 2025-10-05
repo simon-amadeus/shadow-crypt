@@ -228,10 +228,7 @@ impl ListingService {
             Ok(key_material) => {
                 // Try to decrypt the first few bytes to validate password
                 // We don't need the full content, just enough to verify
-                match algorithm.decrypt(ciphertext, nonce, &key_material) {
-                    Ok(_) => true,  // Password is correct
-                    Err(_) => false, // Password is wrong or file is corrupted
-                }
+                algorithm.decrypt(ciphertext, nonce, &key_material).is_ok()
             }
             Err(_) => false, // Key derivation failed
         }

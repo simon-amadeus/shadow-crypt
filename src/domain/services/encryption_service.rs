@@ -80,6 +80,12 @@ impl ProgressReporter {
     }
 }
 
+impl Default for EncryptionService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl EncryptionService {
     /// Create a new EncryptionService instance
     pub fn new() -> Self {
@@ -192,7 +198,9 @@ impl EncryptionService {
                             path.display()
                         ));
                     }
-                    // TODO: Implement user prompt for duplicate handling decision
+                    // Future enhancement: Interactive duplicate handling.
+                    // Currently duplicates are detected and logged for user awareness.
+                    // Future versions could prompt for action (skip, encrypt anyway, view diff).
                 }
             }
         }

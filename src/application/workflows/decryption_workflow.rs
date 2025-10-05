@@ -131,7 +131,7 @@ impl DecryptionWorkflow {
 
     /// Decrypt a single file with automatic filename restoration
     pub fn decrypt_file(
-        &self,
+        &mut self,
         input_path: &Path,
         output_path: Option<&Path>,
     ) -> DecryptionWorkflowResult<String> {
@@ -145,19 +145,23 @@ impl DecryptionWorkflow {
         // Step 2: Get password
         let password = self.password_repo.prompt_password("Enter password for decryption: ")?;
 
-        // Step 3: TODO - Implement actual decryption
-        let output_display = if let Some(path) = output_path {
-            path.display().to_string()
-        } else {
-            "auto-detected from header".to_string()
+        // Step 3: Perform decryption using the workflow's DecryptionService
+        let domain_options = DomainDecryptionOptions {
+            force_overwrite: false,
+            remove_source: false, // Don't remove source in workflow - let caller decide
+            verify_integrity: true,
         };
-
-        Ok(format!(
-            "Decryption would proceed with password (length: {}) for file: {} -> {}",
-            password.len(),
-            input_path.display(),
-            output_display
-        ))
+        
+        match self.decryption_service.decrypt_file(input_path, output_path, &password, domain_options) {
+            Ok(result) => Ok(format!(
+                "Successfully decrypted {} -> {} (algorithm: {:?}, duration: {:?})",
+                result.input_path.display(),
+                result.output_path.display(),
+                result.algorithm,
+                result.duration
+            )),
+            Err(e) => Err(DecryptionWorkflowError::DecryptionError(e.to_string())),
+        }
     }
 
     /// Expand glob patterns into file paths
@@ -165,8 +169,9 @@ impl DecryptionWorkflow {
         let mut file_paths = Vec::new();
         
         for pattern in patterns {
-            // TODO: Implement actual glob expansion
-            // For now, treat as direct file paths
+            // Current implementation: treat patterns as direct file paths.
+            // Future enhancement: Add glob pattern support using the `glob` crate
+            // for patterns like "*.shadow" or "dir/**/*.shadow"
             let path = PathBuf::from(pattern);
             if self.file_repo.file_exists(&path) {
                 file_paths.push(path);
@@ -195,8 +200,9 @@ impl DecryptionWorkflow {
                 ));
             }
 
-            // TODO: Validate file has proper TLV header structure
-            // For now, just check accessibility
+            // Current implementation: basic file accessibility check.
+            // Future enhancement: Validate TLV header structure using FileDetector
+            // to ensure file has proper Shadow format before attempting decryption.
             self.file_repo.file_metadata(path)
                 .map_err(|e| DecryptionWorkflowError::FileError(
                     format!("Cannot access file {}: {}", path.display(), e)

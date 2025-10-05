@@ -72,7 +72,7 @@ impl ContentHashDatabase {
     pub fn add_encrypted_file(&mut self, file_path: PathBuf, content_hash: ContentHash) {
         self.hash_to_files
             .entry(content_hash)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(file_path);
     }
 
@@ -210,25 +210,75 @@ impl DuplicateDetector {
     /// 
     /// This method will scan all configured search paths for .shadow files
     /// and extract their content hashes to build the duplicate detection database.
-    /// 
-    /// # Implementation Note
-    /// Currently returns success immediately. Full implementation requires
-    /// EncryptedFile parsing capabilities to extract ContentHash from TLV headers.
-    /// This will be implemented in a future cycle when EncryptedFile I/O is ready.
     pub fn scan_existing_files(&mut self) -> DomainResult<ScanResults> {
-        // TODO: Implementation will be added when EncryptedFile parsing is ready
-        // Planned implementation:
-        // 1. Recursively scan search_paths for *.shadow files
-        // 2. Parse each file header to extract ContentHash TLV field  
-        // 3. Add to content_database with add_encrypted_file()
-        // 4. Return statistics about scan results
-        
-        Ok(ScanResults {
+        let mut results = ScanResults {
             scanned_files: 0,
             valid_headers: 0,
             added_hashes: 0,
             errors: Vec::new(),
-        })
+        };
+        
+        // Clone search paths to avoid borrowing issues
+        let search_paths = self.search_paths.clone();
+        for search_path in &search_paths {
+            if let Err(e) = self.scan_directory(search_path, &mut results) {
+                results.errors.push(format!("Failed to scan directory {}: {}", search_path.display(), e));
+            }
+        }
+        
+        Ok(results)
+    }
+    
+    /// Recursively scan a directory for shadow files
+    fn scan_directory(&mut self, dir_path: &PathBuf, results: &mut ScanResults) -> DomainResult<()> {
+        use crate::infrastructure::file_system::FileSystemService;
+        
+        let entries = std::fs::read_dir(dir_path)
+            .map_err(|e| DomainError::FileSystemError(
+                crate::domain::errors::FileSystemError::IoOperationFailed {
+                    operation: format!("read directory {}", dir_path.display()),
+                    reason: e.to_string(),
+                }
+            ))?;
+        
+        for entry in entries {
+            let entry = entry.map_err(|e| DomainError::FileSystemError(
+                crate::domain::errors::FileSystemError::IoOperationFailed {
+                    operation: "read directory entry".to_string(),
+                    reason: e.to_string(),
+                }
+            ))?;
+            
+            let path = entry.path();
+            
+            if path.is_dir() {
+                // Recursively scan subdirectories
+                if let Err(e) = self.scan_directory(&path, results) {
+                    results.errors.push(format!("Failed to scan subdirectory {}: {}", path.display(), e));
+                }
+            } else if let Some(extension) = path.extension()
+                && extension == "shadow" {
+                    // Found a shadow file, try to extract its content hash
+                    results.scanned_files += 1;
+                    
+                    match FileSystemService::read_header_only(&path) {
+                        Ok(header) => {
+                            results.valid_headers += 1;
+                            
+                            // Extract content hash if present
+                            if let Some(content_hash) = header.content_hash() {
+                                self.content_database.add_encrypted_file(path.clone(), content_hash);
+                                results.added_hashes += 1;
+                            }
+                        }
+                        Err(e) => {
+                            results.errors.push(format!("Failed to read header from {}: {}", path.display(), e));
+                        }
+                    }
+                }
+        }
+        
+        Ok(())
     }
 
     /// Get database statistics
@@ -521,12 +571,13 @@ mod tests {
         assert_eq!(stats.search_paths, 2);
         assert!(!stats.database_empty);
 
-        // Test scan_existing_files (placeholder implementation)
+        // Test scan_existing_files (now with real implementation)
         let scan_results = detector.scan_existing_files().unwrap();
         assert_eq!(scan_results.scanned_files, 0);
         assert_eq!(scan_results.valid_headers, 0);
         assert_eq!(scan_results.added_hashes, 0);
-        assert!(scan_results.errors.is_empty());
+        // Should report errors for non-existent test directories
+        assert!(!scan_results.errors.is_empty());
 
         // Test clear database
         detector.clear_database();

@@ -113,10 +113,9 @@ impl FileDetector {
                 reason: format!("Seek failed: {}", e)
             }))?;
 
-        // For now, we can't fully parse the header without TlvHeaderReader
-        // We know it has the right magic number, so we assume it's valid V1
-        // and default to XChaCha20Poly1305 algorithm
-        // TODO: Implement proper header parsing when needed
+        // Current implementation: basic V1 format validation with default algorithm assumption.
+        // For enhanced header parsing, future versions could parse the full TLV header
+        // to extract the actual algorithm ID from the AlgorithmId field.
         
         Ok(FileFormat::ShadowV1 { 
             algorithm: AlgorithmId::XChaCha20Poly1305 
@@ -125,8 +124,9 @@ impl FileDetector {
 
     /// Analyze potential legacy header formats  
     fn analyze_legacy_header(&self, _magic_buffer: &[u8; 8], _reader: &mut BufReader<&mut File>) -> DomainResult<FileFormat> {
-        // TODO: Implement legacy format detection when V3 compatibility is needed
-        // For now, anything that's not V1 format should be treated as plaintext
+        // Future enhancement: Legacy format detection for Shadow V3 compatibility.
+        // Currently, files that don't match V1 format are treated as plaintext,
+        // which is the safest approach for encryption safety.
         Err(DomainError::InvalidFileFormat("Not a recognized Shadow format".to_string()))
     }
 

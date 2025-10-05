@@ -71,52 +71,57 @@ impl CryptoSession {
         self.key_material.obfuscation_key.expose_secret()
     }
     
-    /// Encrypt plaintext data with the given nonce
+    /// Encrypt plaintext data using the configured algorithm
     /// 
-    /// This will be implemented when the crypto infrastructure layer is available.
-    /// For now, it provides the interface that crypto implementations will use.
-    pub fn encrypt(&self, _plaintext: &[u8], _nonce: &[u8]) -> DomainResult<Vec<u8>> {
-        todo!("Encryption will be implemented with crypto infrastructure layer")
+    /// This method encrypts the provided plaintext using the session's
+    /// configured algorithm and automatically manages nonce generation.
+    /// 
+    /// # Arguments
+    /// * `plaintext` - The data to encrypt
+    /// 
+    /// # Returns
+    /// An EncryptionResult containing the ciphertext and nonce
+    pub fn encrypt(&self, plaintext: &[u8]) -> DomainResult<crate::domain::services::EncryptionResult> {
+        use crate::infrastructure::crypto::factory::Algorithm;
+        use crate::domain::services::CryptographicAlgorithm;
+        
+        let algorithm = Algorithm::from_id(self.algorithm);
+        algorithm.encrypt(plaintext, &self.key_material)
     }
     
-    /// Decrypt ciphertext data with the given nonce
+    /// Decrypt ciphertext data using the configured algorithm
     /// 
-    /// This will be implemented when the crypto infrastructure layer is available.  
-    /// For now, it provides the interface that crypto implementations will use.
-    pub fn decrypt(&self, _ciphertext: &[u8], _nonce: &[u8]) -> DomainResult<Vec<u8>> {
-        todo!("Decryption will be implemented with crypto infrastructure layer")
+    /// This method decrypts the provided ciphertext using the session's
+    /// configured algorithm and the provided nonce.
+    /// 
+    /// # Arguments
+    /// * `ciphertext` - The encrypted data to decrypt
+    /// * `nonce` - The nonce used during encryption
+    /// 
+    /// # Returns
+    /// The decrypted plaintext data
+    pub fn decrypt(&self, ciphertext: &[u8], nonce: &[u8]) -> DomainResult<Vec<u8>> {
+        use crate::infrastructure::crypto::factory::Algorithm;
+        use crate::domain::services::CryptographicAlgorithm;
+        
+        let algorithm = Algorithm::from_id(self.algorithm);
+        algorithm.decrypt(ciphertext, nonce, &self.key_material)
     }
     
-    /// Simple key derivation function (placeholder implementation)
+    /// Secure key derivation using the configured algorithm
     /// 
-    /// This is a placeholder implementation that will be replaced with proper
-    /// PBKDF2 or Argon2 key derivation when the crypto infrastructure is available.
-    /// 
-    /// TODO: Replace with proper key derivation (PBKDF2/Argon2) in infrastructure layer
+    /// This method uses the algorithm's key derivation configuration to
+    /// securely derive key material from the password and salt.
     fn derive_master_key(password: &str, salt: &[u8; 32]) -> DomainResult<[u8; 32]> {
-        // This is a PLACEHOLDER implementation for testing.
-        // Production code MUST use proper key derivation (PBKDF2/Argon2)
+        use crate::infrastructure::crypto::factory::Algorithm;
+        use crate::domain::services::KeyDerivationConfig;
         
-        use std::collections::hash_map::DefaultHasher;
-        use std::hash::{Hash, Hasher};
+        // Use the default algorithm's key derivation configuration
+        let algorithm = Algorithm::default();
+        let key_material = algorithm.derive_key_material(password, salt)?;
         
-        let mut hasher = DefaultHasher::new();
-        password.hash(&mut hasher);
-        salt.hash(&mut hasher);
-        
-        let hash = hasher.finish();
-        let mut key = [0u8; 32];
-        
-        // Spread the hash across the key bytes with better distribution
-        for i in 0..32 {
-            let offset = (i * 8) % 64;
-            key[i] = ((hash >> offset) & 0xFF) as u8;
-            
-            // Add salt bytes for additional entropy
-            key[i] = key[i].wrapping_add(salt[i % 32]);
-        }
-        
-        Ok(key)
+        // Extract the raw master key
+        Ok(*key_material.master_key.expose_secret())
     }
     
     /// Generate a cryptographically secure salt for key derivation

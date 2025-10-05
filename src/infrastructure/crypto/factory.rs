@@ -20,11 +20,13 @@ pub enum Algorithm {
     Aes256Gcm(Aes256GcmConfig),
 }
 
-impl Algorithm {
-    /// Create the default algorithm (XChaCha20-Poly1305 with production parameters)
-    pub fn default() -> Self {
+impl Default for Algorithm {
+    fn default() -> Self {
         Self::XChaCha20Poly1305(XChaCha20Poly1305Config::production_config())
     }
+}
+
+impl Algorithm {
 
     /// Create algorithm by ID with production parameters
     pub fn from_id(id: AlgorithmId) -> Self {
