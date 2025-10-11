@@ -840,25 +840,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadow-application"
-version = "0.27.0"
-dependencies = [
- "shadow-domain",
- "thiserror",
-]
-
-[[package]]
-name = "shadow-cli"
-version = "0.27.0"
-dependencies = [
- "clap",
- "glob",
- "shadow-application",
- "shadow-domain",
- "thiserror",
-]
-
-[[package]]
 name = "shadow-crypt"
 version = "0.27.0"
 dependencies = [
@@ -880,51 +861,12 @@ dependencies = [
  "rpassword",
  "serde_json",
  "sha2",
- "shadow-application",
- "shadow-cli",
- "shadow-domain",
- "shadow-infrastructure",
  "subtle",
  "sysinfo",
  "tempfile",
  "thiserror",
  "uuid",
  "zeroize",
-]
-
-[[package]]
-name = "shadow-domain"
-version = "0.27.0"
-dependencies = [
- "base64",
- "getrandom 0.3.3",
- "hkdf",
- "hmac",
- "rand",
- "sha2",
- "subtle",
- "thiserror",
- "uuid",
- "zeroize",
-]
-
-[[package]]
-name = "shadow-infrastructure"
-version = "0.27.0"
-dependencies = [
- "aes-gcm",
- "argon2",
- "chacha20poly1305",
- "colored",
- "getrandom 0.3.3",
- "hkdf",
- "rayon",
- "rpassword",
- "shadow-application",
- "shadow-domain",
- "sysinfo",
- "tempfile",
- "thiserror",
 ]
 
 [[package]]

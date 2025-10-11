@@ -3,11 +3,11 @@
 > **High-level roadmap ordered by priority. When starting work on an item, create detailed implementation plan in `CURRENT_WORK.md`**
 
 ## 🎯 CURRENT WORK
-- **Architecture Specification Design**: Creating comprehensive 3-layered architecture specs with vertical slicing (see docs/CURRENT_CYCLE.md)
 
 ## 📋 PRIORITY ROADMAP
 
 ### High Priority (Core Quality & Stability)
+- Restructure the domian layer to vertical slices
 
 ### Medium Priority (User Experience)
 - **Progress System Integration**: Complete integration of enhanced progress system into CLI binaries (currently using old progress system)
