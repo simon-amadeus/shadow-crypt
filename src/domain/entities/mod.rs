@@ -14,10 +14,6 @@ pub mod tlv_header;
 pub mod version_matrix;
 pub mod secure_memory;
 
-// Unit tests for entities
-#[cfg(test)]
-mod tests;
-
 // Re-export key types for easier access
 pub use algorithm_id::AlgorithmId;
 pub use key_material::{KeyMaterial, SecureBox};

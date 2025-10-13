@@ -11,7 +11,7 @@
 //! - **Persists in file headers** for format compatibility
 //! - **Remains stable across releases** to ensure file accessibility
 //! - **Provides systematic allocation** to prevent ID conflicts
-//! - **Supports 65,535 algorithms** for long-term extensibility
+//! - **Supports 65,535 algorithms** for maximum future-proofing
 //!
 //! ## Adding New Algorithms
 //!
@@ -54,9 +54,23 @@ impl AlgorithmId {
         }
     }
 
+    /// Convert from u8 identifier (for compatibility with legacy code)
+    pub fn from_u8(id: u8) -> Result<Self, DomainError> {
+        Self::from_u16(id as u16)
+    }
+
     /// Convert to u16 identifier for serialization
     pub fn as_u16(self) -> u16 {
         self as u16
+    }
+
+    /// Convert to u8 identifier (for compatibility with legacy code)
+    pub fn as_u8(self) -> u8 {
+        let id = self as u16;
+        if id > 255 {
+            panic!("Algorithm ID {} too large for u8", id);
+        }
+        id as u8
     }
 
     /// Get human-readable algorithm name
