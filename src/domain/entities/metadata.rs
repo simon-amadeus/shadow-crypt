@@ -6,11 +6,16 @@
 use std::time::SystemTime;
 use std::path::Path;
 use std::fs;
+use super::memory::SecureBox;
 
 /// Represents file system metadata and attributes
-#[derive(Debug, Clone)]
+/// 
+/// Sensitive fields like the original filename are protected with SecureBox
+/// to prevent information leakage through memory dumps or swap files.
+#[derive(Debug)]
 pub struct FileMetadata {
-    pub original_filename: String,
+    /// Original filename - stored securely to prevent path disclosure
+    pub original_filename: SecureBox<String>,
     pub file_size: u64,
     pub modified_time: SystemTime,
     pub created_time: Option<SystemTime>,
@@ -48,7 +53,7 @@ impl FileMetadata {
             .to_string();
 
         Ok(Self {
-            original_filename,
+            original_filename: SecureBox::new(original_filename),
             file_size: metadata.len(),
             modified_time: metadata.modified()?,
             created_time: metadata.created().ok(),
@@ -64,4 +69,16 @@ pub enum FileType {
     Directory,
     Symlink,
     Other,
+}
+
+impl Clone for FileMetadata {
+    fn clone(&self) -> Self {
+        Self {
+            original_filename: self.original_filename.clone(),
+            file_size: self.file_size,
+            modified_time: self.modified_time,
+            created_time: self.created_time,
+            file_type: self.file_type.clone(),
+        }
+    }
 }

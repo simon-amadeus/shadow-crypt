@@ -5,22 +5,23 @@
 
 use std::path::{Path, PathBuf};
 use crate::domain::entities::metadata::FileMetadata;
+use crate::domain::entities::memory::SecureBox;
 use sha2::{Sha256, Digest};
 
 /// Immutable plaintext file entity for encryption workflows
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PlaintextFile {
     path: PathBuf,
-    content: Vec<u8>,
+    content: SecureBox<Vec<u8>>,
     metadata: FileMetadata,
     content_hash: [u8; 32],
 }
 
 impl PlaintextFile {
     /// Creates a new PlaintextFile from loaded data
-    pub fn new(path: PathBuf, content: Vec<u8>, metadata: FileMetadata) -> Self {
+    pub fn new(path: PathBuf, content: SecureBox<Vec<u8>>, metadata: FileMetadata) -> Self {
         let mut hasher = Sha256::new();
-        hasher.update(&content);
+        hasher.update(content.expose_secret());
         let content_hash: [u8; 32] = hasher.finalize().into();
 
         Self {
@@ -38,7 +39,7 @@ impl PlaintextFile {
 
     /// Returns the file size in bytes
     pub fn size(&self) -> usize {
-        self.content.len()
+        self.content.expose_secret().len()
     }
 
     /// Returns the original file path
@@ -52,13 +53,15 @@ impl PlaintextFile {
     }
 
     /// Returns the file content
+    /// 
+    /// This exposes sensitive plaintext content and should be handled carefully.
     pub fn content(&self) -> &[u8] {
-        &self.content
+        self.content.expose_secret()
     }
 
     /// Returns true if the file content is empty
     pub fn is_empty(&self) -> bool {
-        self.content.is_empty()
+        self.content.expose_secret().is_empty()
     }
 
     /// Returns the filename without path
@@ -74,7 +77,7 @@ impl PlaintextFile {
     /// Verifies content integrity against stored hash
     pub fn verify_integrity(&self) -> bool {
         let mut hasher = Sha256::new();
-        hasher.update(&self.content);
+        hasher.update(self.content.expose_secret());
         let computed_hash: [u8; 32] = hasher.finalize().into();
         computed_hash == self.content_hash
     }
@@ -90,5 +93,16 @@ impl PlaintextFile {
     /// Compares content equality via hash
     pub fn content_equals(&self, other: &Self) -> bool {
         self.content_hash == other.content_hash
+    }
+}
+
+impl Clone for PlaintextFile {
+    fn clone(&self) -> Self {
+        Self {
+            path: self.path.clone(),
+            content: self.content.clone(),
+            metadata: self.metadata.clone(),
+            content_hash: self.content_hash,
+        }
     }
 }
