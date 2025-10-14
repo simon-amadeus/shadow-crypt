@@ -572,3 +572,597 @@ pub enum HeaderError {
     #[error("Empty filename not allowed")]
     EmptyFilename,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // =============================================================================
+    // TlvFieldType Tests
+    // =============================================================================
+
+    #[test]
+    fn test_field_type_from_u8() {
+        assert_eq!(TlvFieldType::from(0x01), TlvFieldType::OriginalFilename);
+        assert_eq!(TlvFieldType::from(0x10), TlvFieldType::AlgorithmId);
+        assert_eq!(TlvFieldType::from(0x11), TlvFieldType::Nonce);
+        assert_eq!(TlvFieldType::from(0x30), TlvFieldType::ContentHash);
+        assert_eq!(TlvFieldType::from(0xFF), TlvFieldType::ExtensionMarker);
+        assert_eq!(TlvFieldType::from(0x99), TlvFieldType::ExtensionMarker); // Unknown type
+    }
+
+    #[test]
+    fn test_field_type_requires_validation() {
+        assert!(TlvFieldType::ContentHash.requires_validation());
+        assert!(TlvFieldType::HeaderIntegrity.requires_validation());
+        assert!(TlvFieldType::AlgorithmId.requires_validation());
+        assert!(!TlvFieldType::OriginalFilename.requires_validation());
+        assert!(!TlvFieldType::Nonce.requires_validation());
+    }
+
+    #[test]
+    fn test_field_type_expected_size() {
+        assert_eq!(TlvFieldType::ContentHash.expected_size(), Some(32));
+        assert_eq!(TlvFieldType::HeaderIntegrity.expected_size(), Some(32));
+        assert_eq!(TlvFieldType::AlgorithmId.expected_size(), Some(2));
+        assert_eq!(TlvFieldType::OriginalFilename.expected_size(), None);
+        assert_eq!(TlvFieldType::Nonce.expected_size(), None);
+    }
+
+    // =============================================================================
+    // TlvField Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_field_new_valid() {
+        let field = TlvField::new(TlvFieldType::OriginalFilename, b"test.txt".to_vec()).unwrap();
+        assert_eq!(field.field_type(), TlvFieldType::OriginalFilename);
+        assert_eq!(field.data(), b"test.txt");
+        assert_eq!(field.length(), 8);
+    }
+
+    #[test]
+    fn test_tlv_field_fixed_size_validation() {
+        // Valid fixed-size field
+        let hash = [0u8; 32];
+        let field = TlvField::new(TlvFieldType::ContentHash, hash.to_vec()).unwrap();
+        assert_eq!(field.data().len(), 32);
+
+        // Invalid fixed-size field
+        let result = TlvField::new(TlvFieldType::ContentHash, vec![0u8; 16]);
+        assert!(matches!(result, Err(HeaderError::InvalidFieldLength { .. })));
+    }
+
+    #[test]
+    fn test_tlv_field_utf8_validation() {
+        // Valid UTF-8
+        let field = TlvField::new(TlvFieldType::OriginalFilename, "test.txt".as_bytes().to_vec()).unwrap();
+        assert_eq!(field.data(), b"test.txt");
+
+        // Invalid UTF-8
+        let invalid_utf8 = vec![0xFF, 0xFE];
+        let result = TlvField::new(TlvFieldType::OriginalFilename, invalid_utf8);
+        assert!(matches!(result, Err(HeaderError::InvalidFilename(_))));
+    }
+
+    #[test]
+    fn test_tlv_field_algorithm_id() {
+        let field = TlvField::new(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec()).unwrap();
+        assert_eq!(field.data(), &0x1234u16.to_le_bytes());
+        assert_eq!(field.length(), 2);
+
+        // Invalid size for algorithm ID
+        let result = TlvField::new(TlvFieldType::AlgorithmId, vec![0x12]);
+        assert!(matches!(result, Err(HeaderError::InvalidFieldLength { .. })));
+    }
+
+    // =============================================================================
+    // TlvHeader Basic Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_header_default() {
+        let header = TlvHeader::default();
+        assert_eq!(header.magic_number(), &TlvHeader::MAGIC_NUMBER);
+        assert_eq!(header.version(), TlvHeader::VERSION);
+        assert!(header.is_valid_shadow_file());
+    }
+
+    #[test]
+    fn test_tlv_header_new_empty() {
+        let header = TlvHeader::new(HashMap::new(), None).unwrap();
+        assert_eq!(header.version(), TlvHeader::VERSION);
+        assert!(header.get_field(TlvFieldType::OriginalFilename).is_none());
+    }
+
+    #[test]
+    fn test_tlv_header_new_with_version() {
+        let header = TlvHeader::new(HashMap::new(), Some(2)).unwrap();
+        assert_eq!(header.version(), 2);
+    }
+
+    // =============================================================================
+    // TlvHeader Accessor Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_header_accessors() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        fields.insert(TlvFieldType::Nonce, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        fields.insert(TlvFieldType::ContentHash, [0xABu8; 32].to_vec());
+
+        let header = TlvHeader::new(fields, None).unwrap();
+
+        // Test basic accessors
+        assert_eq!(header.get_field(TlvFieldType::OriginalFilename).unwrap(), b"test.txt");
+        assert_eq!(header.algorithm_id().unwrap(), 0x1234);
+        assert_eq!(header.nonce().unwrap(), &[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        assert_eq!(header.original_filename().unwrap(), "test.txt");
+        assert_eq!(header.content_hash().unwrap(), [0xABu8; 32]);
+    }
+
+    #[test]
+    fn test_tlv_header_algorithm_id_invalid_size() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::AlgorithmId, vec![0x12]); // Wrong size
+
+        let header = TlvHeader::new(fields, None);
+        assert!(matches!(header, Err(HeaderError::InvalidFieldLength { .. })));
+    }
+
+    #[test]
+    fn test_tlv_header_original_filename_checked() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        let header = TlvHeader::new(fields, None).unwrap();
+
+        let filename = header.original_filename_checked().unwrap();
+        assert_eq!(filename, Some("test.txt".to_string()));
+
+        // Test with missing filename
+        let empty_header = TlvHeader::new(HashMap::new(), None).unwrap();
+        let filename = empty_header.original_filename_checked().unwrap();
+        assert_eq!(filename, None);
+    }
+
+    #[test]
+    fn test_tlv_header_content_hash_invalid_size() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::ContentHash, vec![0xAB; 16]); // Wrong size
+
+        let header = TlvHeader::new(fields, None);
+        assert!(matches!(header, Err(HeaderError::InvalidFieldLength { .. })));
+    }
+
+    // =============================================================================
+    // TlvHeader Validation Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_header_validate_too_many_fields() {
+        let mut fields = HashMap::new();
+        // This would be impractical to test with actual MAX_FIELD_COUNT
+        // Instead, we'll create a scenario where validation fails
+        for i in 0..300u8 {
+            fields.insert(TlvFieldType::from(i), vec![i]);
+        }
+
+        let result = TlvHeader::new(fields, None);
+        assert!(matches!(result, Err(HeaderError::TooManyFields(_))));
+    }
+
+    #[test]
+    fn test_tlv_header_validate_for_encryption() {
+        // Missing algorithm ID
+        let header = TlvHeader::new(HashMap::new(), None).unwrap();
+        let result = header.validate_for_encryption();
+        assert!(matches!(result, Err(HeaderError::MissingRequiredField(TlvFieldType::AlgorithmId))));
+
+        // Missing nonce
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        let header = TlvHeader::new(fields, None).unwrap();
+        let result = header.validate_for_encryption();
+        assert!(matches!(result, Err(HeaderError::MissingRequiredField(TlvFieldType::Nonce))));
+
+        // Valid for encryption
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        fields.insert(TlvFieldType::Nonce, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        let header = TlvHeader::new(fields, None).unwrap();
+        assert!(header.validate_for_encryption().is_ok());
+    }
+
+    // =============================================================================
+    // TlvHeader Serialization Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_header_serialized_size() {
+        let header = TlvHeader::new(HashMap::new(), None).unwrap();
+        let expected_size = 4 + // length prefix
+                           6 + // magic number
+                           2;  // version
+        assert_eq!(header.serialized_size(), expected_size);
+
+        // With fields
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        let header = TlvHeader::new(fields, None).unwrap();
+        
+        let expected_size = 4 + // length prefix
+                           6 + // magic number
+                           2 + // version
+                           1 + 4 + 8 + // filename field (type + length + data)
+                           1 + 4 + 2;  // algorithm field (type + length + data)
+        assert_eq!(header.serialized_size(), expected_size);
+    }
+
+    #[test]
+    fn test_tlv_header_to_bytes() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        let header = TlvHeader::new(fields, None).unwrap();
+
+        let bytes = header.to_bytes().unwrap();
+        assert!(!bytes.is_empty());
+        assert_eq!(bytes.len(), header.serialized_size());
+
+        // Verify it starts with length prefix
+        let length = u32::from_le_bytes([bytes[0], bytes[1], bytes[2], bytes[3]]);
+        assert_eq!(length as usize, bytes.len() - 4);
+    }
+
+    #[test]
+    fn test_tlv_header_content_for_integrity() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        fields.insert(TlvFieldType::HeaderIntegrity, [0xABu8; 32].to_vec());
+        let header = TlvHeader::new(fields, None).unwrap();
+
+        let content = header.content_for_integrity().unwrap();
+        
+        // Should contain filename but not header integrity
+        assert!(content.len() > 8); // At least magic + version
+        
+        // Verify integrity field is excluded by checking serialized content
+        let with_integrity = header.serialize_header_content().unwrap();
+        assert!(with_integrity.len() > content.len());
+    }
+
+    // =============================================================================
+    // TlvHeader Deserialization Tests
+    // =============================================================================
+
+    #[test]
+    fn test_tlv_header_roundtrip() {
+        let mut fields = HashMap::new();
+        fields.insert(TlvFieldType::OriginalFilename, b"test.txt".to_vec());
+        fields.insert(TlvFieldType::AlgorithmId, 0x1234u16.to_le_bytes().to_vec());
+        fields.insert(TlvFieldType::Nonce, vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        let original = TlvHeader::new(fields, None).unwrap();
+
+        let bytes = original.to_bytes().unwrap();
+        let deserialized = TlvHeader::from_bytes(&bytes).unwrap();
+
+        assert_eq!(deserialized.version(), original.version());
+        assert_eq!(deserialized.algorithm_id(), original.algorithm_id());
+        assert_eq!(deserialized.nonce(), original.nonce());
+        assert_eq!(deserialized.original_filename(), original.original_filename());
+    }
+
+    #[test]
+    fn test_tlv_header_from_bytes_truncated() {
+        // Too short for length prefix
+        let result = TlvHeader::from_bytes(&[1, 2]);
+        assert!(matches!(result, Err(HeaderError::TruncatedHeader)));
+
+        // Length prefix but not enough data
+        let mut bytes = vec![0u8; 4];
+        bytes.extend_from_slice(&100u32.to_le_bytes()); // Claims 100 bytes but we don't provide them
+        let result = TlvHeader::from_bytes(&bytes);
+        assert!(matches!(result, Err(HeaderError::TruncatedHeader)));
+    }
+
+    #[test]
+    fn test_tlv_header_from_bytes_invalid_magic() {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&14u32.to_le_bytes()); // length
+        buffer.extend_from_slice(b"BADMAG"); // wrong magic
+        buffer.extend_from_slice(&1u16.to_le_bytes()); // version
+
+        let result = TlvHeader::from_bytes(&buffer);
+        assert!(matches!(result, Err(HeaderError::InvalidMagicNumber)));
+    }
+
+    #[test]
+    fn test_tlv_header_from_bytes_unsupported_version() {
+        let mut buffer = Vec::new();
+        buffer.extend_from_slice(&8u32.to_le_bytes()); // length
+        buffer.extend_from_slice(b"SHADOW"); // magic
+        buffer.extend_from_slice(&99u16.to_le_bytes()); // unsupported version
+
+        let result = TlvHeader::from_bytes(&buffer);
+        assert!(matches!(result, Err(HeaderError::UnsupportedVersion(99))));
+    }
+
+    #[test]
+    fn test_tlv_header_from_bytes_field_too_large() {
+        let mut buffer = Vec::new();
+        let content_length = 8 + 1 + 4; // magic + version + type + length (no actual data)
+        buffer.extend_from_slice(&(content_length as u32).to_le_bytes());
+        buffer.extend_from_slice(b"SHADOW");
+        buffer.extend_from_slice(&1u16.to_le_bytes());
+        buffer.push(0x01); // field type
+        buffer.extend_from_slice(&(TlvHeader::MAX_FIELD_SIZE + 1).to_le_bytes()); // too large
+
+        let result = TlvHeader::from_bytes(&buffer);
+        assert!(matches!(result, Err(HeaderError::FieldTooLarge { .. })));
+    }
+
+    #[test]
+    fn test_tlv_header_from_bytes_header_too_large() {
+        let large_size = TlvHeader::MAX_HEADER_SIZE + 1;
+        let mut buffer = vec![0u8; 4];
+        buffer[0..4].copy_from_slice(&(large_size as u32).to_le_bytes());
+
+        let result = TlvHeader::from_bytes(&buffer);
+        assert!(matches!(result, Err(HeaderError::HeaderTooLarge { .. })));
+    }
+
+    // =============================================================================
+    // TlvHeaderBuilder Tests
+    // =============================================================================
+
+    #[test]
+    fn test_header_builder_new() {
+        let builder = TlvHeaderBuilder::new();
+        let header = builder.build().unwrap();
+        assert_eq!(header.version(), TlvHeader::VERSION);
+        assert!(header.get_field(TlvFieldType::OriginalFilename).is_none());
+    }
+
+    #[test]
+    fn test_header_builder_default() {
+        let builder = TlvHeaderBuilder::default();
+        let header = builder.build().unwrap();
+        assert_eq!(header.version(), TlvHeader::VERSION);
+    }
+
+    #[test]
+    fn test_header_builder_filename() {
+        let header = TlvHeaderBuilder::new()
+            .filename("test.txt")
+            .unwrap()
+            .build()
+            .unwrap();
+
+        assert_eq!(header.original_filename().unwrap(), "test.txt");
+    }
+
+    #[test]
+    fn test_header_builder_filename_empty() {
+        let result = TlvHeaderBuilder::new().filename("");
+        assert!(matches!(result, Err(HeaderError::EmptyFilename)));
+    }
+
+    #[test]
+    fn test_header_builder_algorithm_id() {
+        let header = TlvHeaderBuilder::new()
+            .algorithm_id(0x1234)
+            .unwrap()
+            .build()
+            .unwrap();
+
+        assert_eq!(header.algorithm_id().unwrap(), 0x1234);
+    }
+
+    #[test]
+    fn test_header_builder_nonce() {
+        let nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let header = TlvHeaderBuilder::new()
+            .nonce(nonce.clone())
+            .unwrap()
+            .build()
+            .unwrap();
+
+        assert_eq!(header.nonce().unwrap(), &nonce);
+    }
+
+    #[test]
+    fn test_header_builder_nonce_empty() {
+        let result = TlvHeaderBuilder::new().nonce(vec![]);
+        assert!(matches!(result, Err(HeaderError::EmptyNonce)));
+    }
+
+    #[test]
+    fn test_header_builder_content_hash() {
+        let hash = [0xABu8; 32];
+        let header = TlvHeaderBuilder::new()
+            .content_hash(hash)
+            .unwrap()
+            .build()
+            .unwrap();
+
+        assert_eq!(header.content_hash().unwrap(), hash);
+    }
+
+    #[test]
+    fn test_header_builder_version() {
+        let header = TlvHeaderBuilder::new()
+            .version(2)
+            .build()
+            .unwrap();
+
+        assert_eq!(header.version(), 2);
+    }
+
+    #[test]
+    fn test_header_builder_chaining() {
+        let nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let hash = [0xCDu8; 32];
+        
+        let header = TlvHeaderBuilder::new()
+            .filename("secret.txt").unwrap()
+            .algorithm_id(0x5678).unwrap()
+            .nonce(nonce.clone()).unwrap()
+            .content_hash(hash).unwrap()
+            .version(1)
+            .build()
+            .unwrap();
+
+        assert_eq!(header.original_filename().unwrap(), "secret.txt");
+        assert_eq!(header.algorithm_id().unwrap(), 0x5678);
+        assert_eq!(header.nonce().unwrap(), &nonce);
+        assert_eq!(header.content_hash().unwrap(), hash);
+        assert_eq!(header.version(), 1);
+    }
+
+    #[test]
+    fn test_header_builder_build_for_encryption() {
+        // Missing required fields
+        let result = TlvHeaderBuilder::new()
+            .filename("test.txt")
+            .unwrap()
+            .build_for_encryption();
+        assert!(matches!(result, Err(HeaderError::MissingRequiredField(_))));
+
+        // Valid for encryption
+        let nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+        let header = TlvHeaderBuilder::new()
+            .filename("test.txt").unwrap()
+            .algorithm_id(0x1234).unwrap()
+            .nonce(nonce).unwrap()
+            .build_for_encryption()
+            .unwrap();
+
+        assert!(header.validate_for_encryption().is_ok());
+    }
+
+    // =============================================================================
+    // Integration Tests
+    // =============================================================================
+
+    #[test]
+    fn test_full_encryption_header_workflow() {
+        // Create a header suitable for encryption
+        let nonce = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        let content_hash = [0xDEu8; 32];
+        
+        let header = TlvHeaderBuilder::new()
+            .filename("confidential.pdf").unwrap()
+            .algorithm_id(0x0001).unwrap() // ChaCha20Poly1305
+            .nonce(nonce.clone()).unwrap()
+            .content_hash(content_hash).unwrap()
+            .build_for_encryption()
+            .unwrap();
+
+        // Verify all expected fields are present
+        assert_eq!(header.original_filename().unwrap(), "confidential.pdf");
+        assert_eq!(header.algorithm_id().unwrap(), 0x0001);
+        assert_eq!(header.nonce().unwrap(), &nonce);
+        assert_eq!(header.content_hash().unwrap(), content_hash);
+        assert!(header.is_valid_shadow_file());
+
+        // Test serialization roundtrip
+        let serialized = header.to_bytes().unwrap();
+        let deserialized = TlvHeader::from_bytes(&serialized).unwrap();
+        
+        assert_eq!(deserialized.original_filename(), header.original_filename());
+        assert_eq!(deserialized.algorithm_id(), header.algorithm_id());
+        assert_eq!(deserialized.nonce(), header.nonce());
+        assert_eq!(deserialized.content_hash(), header.content_hash());
+    }
+
+    #[test]
+    fn test_deterministic_serialization() {
+        // Create the same header twice with fields added in different orders
+        let nonce = vec![1, 2, 3, 4];
+        
+        let header1 = TlvHeaderBuilder::new()
+            .filename("test.txt").unwrap()
+            .algorithm_id(0x1234).unwrap()
+            .nonce(nonce.clone()).unwrap()
+            .build()
+            .unwrap();
+
+        let header2 = TlvHeaderBuilder::new()
+            .nonce(nonce).unwrap()
+            .algorithm_id(0x1234).unwrap()
+            .filename("test.txt").unwrap()
+            .build()
+            .unwrap();
+
+        // Serialization should be identical due to field sorting
+        let bytes1 = header1.to_bytes().unwrap();
+        let bytes2 = header2.to_bytes().unwrap();
+        assert_eq!(bytes1, bytes2);
+    }
+
+    #[test]
+    fn test_backward_compatibility_unknown_fields() {
+        // Create a header with an unknown field type by manually constructing bytes
+        let mut buffer = Vec::new();
+        
+        // Header length will be calculated
+        let _content_start = buffer.len() + 4;
+        buffer.extend_from_slice(&0u32.to_le_bytes()); // placeholder for length
+        
+        // Magic and version
+        buffer.extend_from_slice(b"SHADOW");
+        buffer.extend_from_slice(&1u16.to_le_bytes());
+        
+        // Known field: filename
+        buffer.push(0x01); // OriginalFilename
+        buffer.extend_from_slice(&8u32.to_le_bytes()); // length
+        buffer.extend_from_slice(b"test.txt");
+        
+        // Unknown field type that should be handled gracefully
+        buffer.push(0x99); // Unknown type -> becomes ExtensionMarker
+        buffer.extend_from_slice(&4u32.to_le_bytes()); // length
+        buffer.extend_from_slice(&[0xDE, 0xAD, 0xBE, 0xEF]);
+        
+        // Update length
+        let content_length = buffer.len() - 4;
+        buffer[0..4].copy_from_slice(&(content_length as u32).to_le_bytes());
+        
+        // Should parse successfully, treating unknown field as ExtensionMarker
+        let header = TlvHeader::from_bytes(&buffer).unwrap();
+        assert_eq!(header.original_filename().unwrap(), "test.txt");
+        assert!(header.get_field(TlvFieldType::ExtensionMarker).is_some());
+    }
+
+    // =============================================================================
+    // Error Display Tests
+    // =============================================================================
+
+    #[test]
+    fn test_header_error_display() {
+        let errors = vec![
+            HeaderError::EmptyFilename,
+            HeaderError::EmptyNonce,
+            HeaderError::InvalidMagicNumber,
+            HeaderError::UnsupportedVersion(99),
+            HeaderError::TruncatedHeader,
+            HeaderError::FieldTooLarge { size: 2000000, max: 1000000 },
+            HeaderError::HeaderTooLarge { size: 3000000, max: 2000000 },
+            HeaderError::TooManyFields(300),
+            HeaderError::InvalidFieldLength { 
+                field_type: TlvFieldType::ContentHash, 
+                expected: 32, 
+                actual: 16 
+            },
+            HeaderError::MissingRequiredField(TlvFieldType::AlgorithmId),
+        ];
+
+        for error in errors {
+            let display = format!("{}", error);
+            assert!(!display.is_empty());
+            assert!(display.len() > 10); // Reasonable error message length
+        }
+    }
+}
