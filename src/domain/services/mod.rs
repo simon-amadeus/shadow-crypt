@@ -8,12 +8,8 @@ pub mod crypto_service;
 pub mod encryption_service;
 pub mod decryption_service;
 pub mod listing_service;
-pub mod migration_service;
-pub mod file_detector;
 pub mod file_handler;
 pub mod password_service;
-pub mod tlv_parser;
-pub mod header_analysis;
 
 // Re-export key traits from the new crypto service
 pub use crypto_service::{
@@ -25,17 +21,14 @@ pub use crypto_service::{
     DefaultConfigProvider
 };
 
-// Re-export file detection services
-pub use file_detector::{FileDetector, FileFormat};
-
 // Re-export file handler services
 pub use file_handler::{FileHandler, FileTransaction, FileResult, TransactionBuilder, FileOperation};
 
 // Re-export encryption services
-pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionResult as ServiceEncryptionResult, BatchResult};
+pub use encryption_service::{EncryptionService};
 
 // Re-export decryption services
-pub use decryption_service::{DecryptionService, DecryptionOptions, DecryptionResult};
+pub use decryption_service::{DecryptionOptions, DecryptionResult};
 
 // Re-export listing services
 pub use listing_service::{ListingService, DirectoryListing, EncryptedFileInfo};
@@ -45,7 +38,3 @@ pub use password_service::{PasswordVerificationService, PasswordVerificationErro
 
 // Legacy re-exports for compatibility during transition
 pub use crypto_algorithm::{CryptographicAlgorithm as LegacyCryptographicAlgorithm, KeyDerivationConfig as LegacyKeyDerivationConfig, EncryptionConfig as LegacyEncryptionConfig, EncryptionResult as LegacyEncryptionResult, CryptoResult};
-
-// Integration tests module
-#[cfg(test)]
-mod integration_tests;
