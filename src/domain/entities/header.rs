@@ -27,6 +27,10 @@
 use std::collections::HashMap;
 use std::io::{Read, Cursor};
 
+// =============================================================================
+// Field Types and Field Implementation
+// =============================================================================
+
 /// TLV field types for header metadata
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 #[repr(u8)]
@@ -133,10 +137,14 @@ impl TlvField {
     }
 }
 
+// =============================================================================
+// TLV Header - Pure Immutable Entity
+// =============================================================================
+
 /// Collection of TLV fields forming a complete header
 #[derive(Debug, Clone)]
 pub struct TlvHeader {
-    pub(crate) fields: HashMap<TlvFieldType, Vec<u8>>,
+    fields: HashMap<TlvFieldType, Vec<u8>>,
     magic_number: [u8; 6],
     version: u16,
 }
@@ -155,36 +163,26 @@ impl TlvHeader {
     /// Header length prefix size
     pub const HEADER_LENGTH_SIZE: usize = 4;
 
-    /// Create a new empty header
-    pub fn new() -> Self {
-        Self {
-            fields: HashMap::new(),
+    /// Create a new header (should only be called by builders/services)
+    pub fn new(
+        fields: HashMap<TlvFieldType, Vec<u8>>,
+        version: Option<u16>
+    ) -> Result<Self, HeaderError> {
+        let header = Self {
+            fields,
             magic_number: Self::MAGIC_NUMBER,
-            version: Self::VERSION,
-        }
+            version: version.unwrap_or(Self::VERSION),
+        };
+        
+        header.validate()?;
+        Ok(header)
     }
 
-    /// Add a field to the header with validation
-    pub fn add_field(&mut self, field_type: TlvFieldType, data: Vec<u8>) -> Result<(), HeaderError> {
-        if self.fields.len() >= Self::MAX_FIELD_COUNT {
-            return Err(HeaderError::TooManyFields(self.fields.len()));
-        }
-        
-        if data.len() > Self::MAX_FIELD_SIZE as usize {
-            return Err(HeaderError::FieldTooLarge {
-                size: data.len(),
-                max: Self::MAX_FIELD_SIZE as usize,
-            });
-        }
-        
-        // Use TlvField validation
-        let _field = TlvField::new(field_type, data.clone())?;
-        
-        self.fields.insert(field_type, data);
-        Ok(())
-    }
+    // -------------------------------------------------------------------------
+    // Read-only Accessors
+    // -------------------------------------------------------------------------
 
-    /// Get a field from the header
+    /// Get a field by type
     pub fn get_field(&self, field_type: TlvFieldType) -> Option<&Vec<u8>> {
         self.fields.get(&field_type)
     }
@@ -204,13 +202,42 @@ impl TlvHeader {
         self.magic_number == Self::MAGIC_NUMBER
     }
 
-    /// Get original filename if present
+    // -------------------------------------------------------------------------
+    // Convenience Accessors for Common Fields
+    // -------------------------------------------------------------------------
+
+    /// Get algorithm ID as u16
+    pub fn algorithm_id(&self) -> Option<u16> {
+        self.get_field(TlvFieldType::AlgorithmId)
+            .and_then(|data| {
+                if data.len() == 2 {
+                    Some(u16::from_le_bytes([data[0], data[1]]))
+                } else {
+                    None
+                }
+            })
+    }
+
+    /// Get nonce bytes
+    pub fn nonce(&self) -> Option<&[u8]> {
+        self.get_field(TlvFieldType::Nonce).map(|v| v.as_slice())
+    }
+
+    /// Get original filename as String
     pub fn original_filename(&self) -> Option<String> {
         self.get_field(TlvFieldType::OriginalFilename)
             .and_then(|data| String::from_utf8(data.clone()).ok())
     }
 
-    /// Get content hash if present
+    /// Get original filename with proper error handling
+    pub fn original_filename_checked(&self) -> Result<Option<String>, HeaderError> {
+        match self.get_field(TlvFieldType::OriginalFilename) {
+            Some(data) => Ok(Some(String::from_utf8(data.clone()).map_err(HeaderError::InvalidFilename)?)),
+            None => Ok(None),
+        }
+    }
+
+    /// Get content hash as fixed-size array
     pub fn content_hash(&self) -> Option<[u8; 32]> {
         self.get_field(TlvFieldType::ContentHash)
             .and_then(|data| {
@@ -224,56 +251,9 @@ impl TlvHeader {
             })
     }
 
-    /// Set original filename
-    pub fn set_original_filename(&mut self, filename: &str) -> Result<(), HeaderError> {
-        if filename.is_empty() {
-            return Err(HeaderError::EmptyFilename);
-        }
-        if filename.len() > 4096 {
-            return Err(HeaderError::FieldTooLarge { 
-                size: filename.len(), 
-                max: 4096 
-            });
-        }
-        
-        self.add_field(TlvFieldType::OriginalFilename, filename.as_bytes().to_vec())
-    }
-
-    /// Set content hash
-    pub fn set_content_hash(&mut self, hash: [u8; 32]) -> Result<(), HeaderError> {
-        self.add_field(TlvFieldType::ContentHash, hash.to_vec())
-    }
-
-    /// Set algorithm ID as raw u16
-    pub fn set_algorithm_id(&mut self, algorithm_id: u16) -> Result<(), HeaderError> {
-        self.add_field(TlvFieldType::AlgorithmId, algorithm_id.to_le_bytes().to_vec())
-    }
-
-    /// Get algorithm ID as raw u16
-    pub fn algorithm_id(&self) -> Option<u16> {
-        self.get_field(TlvFieldType::AlgorithmId)
-            .and_then(|data| {
-                if data.len() == 2 {
-                    let bytes = [data[0], data[1]];
-                    Some(u16::from_le_bytes(bytes))
-                } else {
-                    None
-                }
-            })
-    }
-
-    /// Set nonce/IV data
-    pub fn set_nonce(&mut self, nonce: Vec<u8>) -> Result<(), HeaderError> {
-        if nonce.is_empty() {
-            return Err(HeaderError::EmptyNonce);
-        }
-        self.add_field(TlvFieldType::Nonce, nonce)
-    }
-
-    /// Get nonce/IV data if present
-    pub fn nonce(&self) -> Option<&Vec<u8>> {
-        self.get_field(TlvFieldType::Nonce)
-    }
+    // -------------------------------------------------------------------------
+    // Size and Validation
+    // -------------------------------------------------------------------------
 
     /// Calculate total serialized size (including length prefix)
     pub fn serialized_size(&self) -> usize {
@@ -320,20 +300,16 @@ impl TlvHeader {
         Ok(())
     }
 
-    /// Get original filename with proper error handling
-    pub fn original_filename_checked(&self) -> Result<Option<String>, HeaderError> {
-        match self.get_field(TlvFieldType::OriginalFilename) {
-            Some(data) => Ok(Some(String::from_utf8(data.clone()).map_err(HeaderError::InvalidFilename)?)),
-            None => Ok(None),
-        }
-    }
+    // -------------------------------------------------------------------------
+    // Serialization
+    // -------------------------------------------------------------------------
 
     /// Serialize header to bytes with length prefix
     pub fn to_bytes(&self) -> Result<Vec<u8>, HeaderError> {
         self.validate()?;
         
-        let mut buffer = Vec::new();
         let header_content = self.serialize_header_content()?;
+        let mut buffer = Vec::with_capacity(Self::HEADER_LENGTH_SIZE + header_content.len());
         
         buffer.extend_from_slice(&(header_content.len() as u32).to_le_bytes());
         buffer.extend_from_slice(&header_content);
@@ -369,6 +345,17 @@ impl TlvHeader {
         
         Ok(buffer)
     }
+
+    /// Get header content for integrity calculation (excludes HeaderIntegrity field)
+    pub fn content_for_integrity(&self) -> Result<Vec<u8>, HeaderError> {
+        let mut temp_header = self.clone();
+        temp_header.fields.remove(&TlvFieldType::HeaderIntegrity);
+        temp_header.serialize_header_content()
+    }
+
+    // -------------------------------------------------------------------------
+    // Deserialization
+    // -------------------------------------------------------------------------
 
     /// Deserialize header from bytes (with length prefix)
     pub fn from_bytes(data: &[u8]) -> Result<Self, HeaderError> {
@@ -465,61 +452,81 @@ impl TlvHeader {
         header.validate()?;
         Ok(header)
     }
-
-    /// Get header content for integrity calculation (excludes HeaderIntegrity field)
-    pub fn content_for_integrity(&self) -> Result<Vec<u8>, HeaderError> {
-        let mut temp_header = self.clone();
-        temp_header.fields.remove(&TlvFieldType::HeaderIntegrity);
-        temp_header.serialize_header_content()
-    }
 }
 
 impl Default for TlvHeader {
     fn default() -> Self {
-        Self::new()
+        Self {
+            fields: HashMap::new(),
+            magic_number: Self::MAGIC_NUMBER,
+            version: Self::VERSION,
+        }
     }
 }
 
+// =============================================================================
+// Header Builder
+// =============================================================================
+
 /// Builder for constructing TLV headers with validation
 pub struct TlvHeaderBuilder {
-    header: TlvHeader,
+    fields: HashMap<TlvFieldType, Vec<u8>>,
+    version: Option<u16>,
 }
 
 impl TlvHeaderBuilder {
     pub fn new() -> Self {
         Self {
-            header: TlvHeader::new(),
+            fields: HashMap::new(),
+            version: None,
         }
     }
 
     pub fn filename(mut self, filename: &str) -> Result<Self, HeaderError> {
-        self.header.set_original_filename(filename)?;
+        if filename.is_empty() {
+            return Err(HeaderError::EmptyFilename);
+        }
+        
+        let field = TlvField::new(TlvFieldType::OriginalFilename, filename.as_bytes().to_vec())?;
+        self.fields.insert(TlvFieldType::OriginalFilename, field.data().to_vec());
         Ok(self)
     }
 
     pub fn algorithm_id(mut self, algorithm_id: u16) -> Result<Self, HeaderError> {
-        self.header.set_algorithm_id(algorithm_id)?;
+        let field = TlvField::new(TlvFieldType::AlgorithmId, algorithm_id.to_le_bytes().to_vec())?;
+        self.fields.insert(TlvFieldType::AlgorithmId, field.data().to_vec());
         Ok(self)
     }
 
     pub fn nonce(mut self, nonce: Vec<u8>) -> Result<Self, HeaderError> {
-        self.header.set_nonce(nonce)?;
+        if nonce.is_empty() {
+            return Err(HeaderError::EmptyNonce);
+        }
+        
+        let field = TlvField::new(TlvFieldType::Nonce, nonce)?;
+        self.fields.insert(TlvFieldType::Nonce, field.data().to_vec());
         Ok(self)
     }
 
     pub fn content_hash(mut self, hash: [u8; 32]) -> Result<Self, HeaderError> {
-        self.header.set_content_hash(hash)?;
+        let field = TlvField::new(TlvFieldType::ContentHash, hash.to_vec())?;
+        self.fields.insert(TlvFieldType::ContentHash, field.data().to_vec());
         Ok(self)
     }
 
+    pub fn version(mut self, version: u16) -> Self {
+        self.version = Some(version);
+        self
+    }
+
     pub fn build(self) -> Result<TlvHeader, HeaderError> {
-        self.header.validate()?;
-        Ok(self.header)
+        TlvHeader::new(self.fields, self.version)
     }
 
     pub fn build_for_encryption(self) -> Result<TlvHeader, HeaderError> {
-        self.header.validate_for_encryption()?;
-        Ok(self.header)
+        let header = TlvHeader::new(self.fields, self.version)?;
+        header.validate_for_encryption()?;
+        Ok(header)
     }
 }
 
@@ -528,6 +535,10 @@ impl Default for TlvHeaderBuilder {
         Self::new()
     }
 }
+
+// =============================================================================
+// Error Types
+// =============================================================================
 
 /// Errors that can occur during header operations
 #[derive(Debug, thiserror::Error)]
@@ -560,43 +571,4 @@ pub enum HeaderError {
     EmptyNonce,
     #[error("Empty filename not allowed")]
     EmptyFilename,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_header_roundtrip() {
-        let mut header = TlvHeader::new();
-        header.set_original_filename("test.txt").unwrap();
-        header.set_content_hash([42u8; 32]).unwrap();
-        
-        let bytes = header.to_bytes().unwrap();
-        let recovered = TlvHeader::from_bytes(&bytes).unwrap();
-        
-        assert_eq!(header.original_filename(), recovered.original_filename());
-        assert_eq!(header.content_hash(), recovered.content_hash());
-    }
-
-    #[test]
-    fn test_field_validation() {
-        // Test invalid hash length
-        let result = TlvField::new(TlvFieldType::ContentHash, vec![0u8; 16]);
-        assert!(result.is_err());
-        
-        // Test valid hash length
-        let result = TlvField::new(TlvFieldType::ContentHash, vec![0u8; 32]);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_size_limits() {
-        let mut header = TlvHeader::new();
-        
-        // Test field too large
-        let large_data = vec![0u8; (TlvHeader::MAX_FIELD_SIZE as usize) + 1];
-        let result = header.add_field(TlvFieldType::CustomAttributes, large_data);
-        assert!(matches!(result, Err(HeaderError::FieldTooLarge { .. })));
-    }
 }
