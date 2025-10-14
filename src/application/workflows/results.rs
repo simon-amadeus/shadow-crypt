@@ -4,8 +4,8 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
+use crate::domain::entities::plaintext_file::ContentHash;
 use crate::domain::entities::AlgorithmId;
-use crate::domain::utilities::content_hash::ContentHash;
 
 /// Unified result type for all workflow operations
 #[derive(Debug)]

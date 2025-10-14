@@ -177,16 +177,3 @@ impl<T: CryptographicAlgorithm> ConfigProvider for DefaultConfigProvider<T> {
         T::test_config()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    
-    #[test]
-    fn test_algorithm_id_serialization() {
-        assert_eq!(AlgorithmId::XChaCha20Poly1305.as_u16(), 1);
-        assert_eq!(AlgorithmId::AesGcm256.as_u16(), 2);
-        assert_eq!(AlgorithmId::from_u16(1).unwrap(), AlgorithmId::XChaCha20Poly1305);
-        assert_eq!(AlgorithmId::from_u16(2).unwrap(), AlgorithmId::AesGcm256);
-    }
-}

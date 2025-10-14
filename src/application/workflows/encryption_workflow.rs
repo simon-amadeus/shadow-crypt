@@ -4,17 +4,17 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::services::password_service::{PasswordVerificationService, PasswordVerificationError};
-use crate::domain::services::EncryptionService;
+use crate::domain::services::{EncryptionService, FileHandler};
 use crate::domain::repositories::{
     password_repository::PasswordRepository,
-    file_handler::FileHandler,
 };
-use crate::domain::entities::AlgorithmId;
+use crate::domain::entities::{AlgorithmId, plaintext_file::ContentHash};
+use crate::domain::errors::DomainError;
 
 use crate::infrastructure::crypto::factory::Algorithm;
-use crate::application::workflows::results::{WorkflowResult, BatchResult, EncryptionResult};
+use crate::application::workflows::results::{WorkflowResult, EncryptionResult, BatchResult};
 use std::path::{Path, PathBuf};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 /// Result type for encryption workflow operations
 pub type EncryptionWorkflowResult<T> = Result<T, EncryptionWorkflowError>;
@@ -67,6 +67,23 @@ pub struct EncryptionOptions {
     pub remove_source: bool,
     pub check_duplicates: bool,
 }
+
+#[derive(Debug)]
+pub struct EncryptionResult {
+    pub input_path: PathBuf,
+    pub output_path: PathBuf,
+    pub content_hash: ContentHash,
+    pub algorithm: AlgorithmId,
+    pub duration: Duration,
+}
+
+#[derive(Debug)]
+pub struct BatchResult<T> {
+    pub successful: Vec<T>,
+    pub failed: Vec<(PathBuf, DomainError)>,
+    pub total_duration: Duration,
+}
+
 
 impl Default for EncryptionOptions {
     fn default() -> Self {

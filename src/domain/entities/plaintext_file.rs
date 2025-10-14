@@ -5,8 +5,8 @@
 use std::path::{Path, PathBuf};
 use crate::domain::entities::metadata::{FileMetadata, FileType};
 use crate::domain::entities::memory::SecureBox;
+use crate::domain::entities::hash::{ContentHash, ContentHasher};
 use crate::domain::errors::{DomainError, InputValidationError};
-use sha2::{Sha256, Digest};
 
 /// Plaintext file entity for encryption workflows.
 #[derive(Debug)]
@@ -14,7 +14,7 @@ pub struct PlaintextFile {
     path: PathBuf,
     content: SecureBox<Vec<u8>>,
     metadata: FileMetadata,
-    content_hash: [u8; 32],
+    content_hash: ContentHash,
 }
 
 impl PlaintextFile {
@@ -44,9 +44,7 @@ impl PlaintextFile {
             ));
         }
 
-        let mut hasher = Sha256::new();
-        hasher.update(content.expose_secret());
-        let content_hash: [u8; 32] = hasher.finalize().into();
+        let content_hash = ContentHasher::hash(content.expose_secret());
 
         Ok(Self {
             path,
@@ -57,7 +55,7 @@ impl PlaintextFile {
     }
 
     /// Get the content hash.
-    pub fn content_hash(&self) -> &[u8; 32] {
+    pub fn content_hash(&self) -> &ContentHash {
         &self.content_hash
     }
 
@@ -100,18 +98,13 @@ impl PlaintextFile {
 
     /// Verify content integrity against stored hash.
     pub fn verify_integrity(&self) -> bool {
-        let mut hasher = Sha256::new();
-        hasher.update(self.content.expose_secret());
-        let computed_hash: [u8; 32] = hasher.finalize().into();
+        let computed_hash = ContentHasher::hash(self.content.expose_secret());
         computed_hash == self.content_hash
     }
 
     /// Get content hash as hex string.
     pub fn content_hash_hex(&self) -> String {
-        self.content_hash
-            .iter()
-            .map(|byte| format!("{:02x}", byte))
-            .collect()
+        ContentHasher::to_hex(&self.content_hash)
     }
 
     /// Compare content equality via hash.
