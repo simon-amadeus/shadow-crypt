@@ -6,7 +6,7 @@
 use std::path::{Path, PathBuf};
 use std::fs;
 use crate::domain::errors::{DomainError, DomainResult};
-use crate::domain::entities::file_metadata::FileMetadata;
+use crate::domain::entities::metadata::FileMetadata;
 use sha2::{Sha256, Digest};
 
 /// Represents a plaintext file ready for encryption

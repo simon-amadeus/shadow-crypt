@@ -32,45 +32,37 @@
 //! - Hybrid algorithms as single enum variants
 
 use crate::domain::errors::DomainError;
+use std::fmt;
 
 /// Algorithm identifier for cryptographic operations
 /// 
 /// Represents the business concept of algorithm selection, containing all domain logic
 /// related to algorithm properties and capabilities.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(u16)]
 pub enum AlgorithmId {
-    XChaCha20Poly1305 = 1,
-    AesGcm256 = 2,
+    AesGcm256 = 1,         // Legacy algorithm
+    XChaCha20Poly1305 = 2, // Current recommended algorithm
 }
 
 impl AlgorithmId {
+    /// Get the current recommended algorithm
+    pub fn recommended() -> Self {
+        AlgorithmId::XChaCha20Poly1305
+    }
+
     /// Convert from u16 identifier
     pub fn from_u16(id: u16) -> Result<Self, DomainError> {
         match id {
-            1 => Ok(AlgorithmId::XChaCha20Poly1305),
-            2 => Ok(AlgorithmId::AesGcm256),
+            1 => Ok(AlgorithmId::AesGcm256),
+            2 => Ok(AlgorithmId::XChaCha20Poly1305),
             _ => Err(DomainError::unsupported_algorithm(id)),
         }
-    }
-
-    /// Convert from u8 identifier (for compatibility with legacy code)
-    pub fn from_u8(id: u8) -> Result<Self, DomainError> {
-        Self::from_u16(id as u16)
     }
 
     /// Convert to u16 identifier for serialization
     pub fn as_u16(self) -> u16 {
         self as u16
-    }
-
-    /// Convert to u8 identifier (for compatibility with legacy code)
-    pub fn as_u8(self) -> u8 {
-        let id = self as u16;
-        if id > 255 {
-            panic!("Algorithm ID {} too large for u8", id);
-        }
-        id as u8
     }
 
     /// Get human-readable algorithm name
@@ -95,5 +87,45 @@ impl AlgorithmId {
             AlgorithmId::XChaCha20Poly1305 => 24, // 192 bits
             AlgorithmId::AesGcm256 => 12,         // 96 bits
         }
+    }
+
+    /// Get authentication tag size in bytes
+    pub fn tag_size(self) -> usize {
+        match self {
+            AlgorithmId::XChaCha20Poly1305 => 16, // Poly1305 tag
+            AlgorithmId::AesGcm256 => 16,         // GCM tag
+        }
+    }
+
+    /// Check if algorithm supports streaming encryption
+    pub fn supports_streaming(self) -> bool {
+        match self {
+            AlgorithmId::XChaCha20Poly1305 => true,
+            AlgorithmId::AesGcm256 => true,
+        }
+    }
+
+    /// Check if algorithm supports associated data
+    pub fn supports_aad(self) -> bool {
+        match self {
+            AlgorithmId::XChaCha20Poly1305 => true,
+            AlgorithmId::AesGcm256 => true,
+        }
+    }
+
+    /// Get maximum plaintext size supported by algorithm
+    pub fn max_plaintext_size(self) -> Option<u64> {
+        match self {
+            // ChaCha20 can encrypt up to 2^38 bytes per key/nonce pair
+            AlgorithmId::XChaCha20Poly1305 => Some(274_877_906_944), // ~256 GB
+            // AES-GCM can encrypt up to 2^36 bytes per key/nonce pair  
+            AlgorithmId::AesGcm256 => Some(68_719_476_736),          // ~64 GB
+        }
+    }
+}
+
+impl fmt::Display for AlgorithmId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.name())
     }
 }

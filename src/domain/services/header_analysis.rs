@@ -2,7 +2,7 @@
 //! This demonstrates the architectural improvement achieved by the refactoring.
 
 use crate::domain::services::tlv_parser::{TlvParser, TlvParsingError};
-use crate::domain::entities::tlv_header::TlvHeader;
+use crate::domain::entities::header::TlvHeader;
 
 /// Generic domain service that can work with any TLV parser implementation
 pub struct HeaderAnalysisService;
@@ -58,7 +58,7 @@ pub struct HeaderAnalysis {
 mod tests {
     use super::*;
     use crate::infrastructure::tlv_serialization::TlvSerializer;
-    use crate::domain::entities::tlv_header::TlvHeader;
+    use crate::domain::entities::header::TlvHeader;
     
     #[test]
     fn test_generic_header_analysis() {

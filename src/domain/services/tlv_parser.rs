@@ -4,7 +4,7 @@
 //! The domain defines WHAT parsing means (business rules, validation, semantics)
 //! while infrastructure implementations define HOW it's done (binary format, I/O).
 
-use crate::domain::entities::tlv_header::TlvHeader;
+use crate::domain::entities::header::TlvHeader;
 
 /// Domain errors for TLV parsing operations
 #[derive(Debug, Clone, PartialEq)]

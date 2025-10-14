@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-use crate::domain::entities::{duplicate_detector::DuplicateDetector, tlv_header::{TlvHeader, TlvFieldType}, AlgorithmId};
+use crate::domain::entities::{duplicate_detector::DuplicateDetector, header::{TlvHeader, TlvFieldType}, AlgorithmId};
 use crate::domain::errors::{DomainError, DomainResult, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::utilities::content_hash::{ContentHash, calculate_content_hash};

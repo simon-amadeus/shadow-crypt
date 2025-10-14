@@ -7,7 +7,7 @@ use std::path::Path;
 use std::fs::File;
 use std::io::{BufReader, Read, Seek, SeekFrom};
 
-use crate::domain::entities::{AlgorithmId, tlv_header::TlvHeader};
+use crate::domain::entities::{AlgorithmId, header::TlvHeader};
 use crate::domain::errors::{DomainError, DomainResult};
 
 /// Supported file format detection results

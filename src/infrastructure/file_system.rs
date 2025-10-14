@@ -3,11 +3,10 @@
 //! File system operations and repository implementations.
 
 use crate::domain::entities::encrypted_file::EncryptedFileError;
-use crate::domain::entities::tlv_header::TlvHeader;
+use crate::domain::entities::header::TlvHeader;
 use crate::domain::repositories::file_repository::{
     FileRepository, FileMetadata, FileType, CryptoResult
 };
-use crate::infrastructure::tlv_serialization::TlvSerializer;
 use std::fs::{File, OpenOptions};
 use std::io::{Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};

@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 use std::time::{Duration, Instant};
-use crate::domain::entities::{AlgorithmId, tlv_header::TlvFieldType};
+use crate::domain::entities::{AlgorithmId, header::TlvFieldType};
 use crate::domain::errors::{DomainResult, DomainError, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::services::crypto_service::KeyDerivationConfig;

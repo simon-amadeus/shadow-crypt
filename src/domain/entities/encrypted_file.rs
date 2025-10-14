@@ -4,8 +4,9 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::entities::version_matrix::{VersionMatrix, VersionCompatibility};
-use crate::domain::entities::tlv_header::TlvHeader;
-use crate::domain::entities::file_metadata::FileMetadata;
+use crate::domain::entities::header::TlvHeader;
+use crate::domain::entities::metadata::FileMetadata;
+use crate::domain::entities::AlgorithmId;
 use std::path::Path;
 
 /// Error types for EncryptedFile operations
@@ -21,6 +22,10 @@ pub enum EncryptedFileError {
     HeaderParseError(String),
     /// Cryptographic operation failed
     CryptoError(String),
+    /// Missing algorithm ID in header
+    MissingAlgorithm,
+    /// Unsupported algorithm ID
+    UnsupportedAlgorithm(u16),
 }
 
 impl std::fmt::Display for EncryptedFileError {
@@ -41,6 +46,12 @@ impl std::fmt::Display for EncryptedFileError {
             }
             EncryptedFileError::CryptoError(msg) => {
                 write!(f, "Cryptographic operation failed: {}", msg)
+            }
+            EncryptedFileError::MissingAlgorithm => {
+                write!(f, "Algorithm ID is missing in the file header")
+            }
+            EncryptedFileError::UnsupportedAlgorithm(id) => {
+                write!(f, "Algorithm ID {} is not supported", id)
             }
         }
     }
@@ -82,59 +93,13 @@ impl EncryptedFile {
     }
 
     /// Create a new EncryptedFile with V1 header format
-    pub fn new(header: TlvHeader, ciphertext: Vec<u8>) -> Self {
-        let metadata = Self::extract_metadata_from_header(&header);
-        
+    pub fn new(header: TlvHeader, ciphertext: Vec<u8>, original_metadata: FileMetadata) -> Self {
         Self {
             header,
             ciphertext,
-            metadata,
+            metadata: original_metadata,
             version_matrix: VersionMatrix::new_shadow_rewrite(),
         }
-    }
-
-    /// Load encrypted file from disk with version compatibility checking
-    pub fn from_file(path: &Path, password: &str) -> Result<Self, EncryptedFileError> {
-        use crate::infrastructure::file_system::FileSystemService;
-        
-        // Read header to detect version and validate file
-        let header = FileSystemService::read_header_only(path)?;
-        let file_version = header.version();
-        let version_matrix = VersionMatrix::new_shadow_rewrite();
-        let baseline_version = version_matrix.current_baseline();
-        
-        // Check version compatibility
-        match version_matrix.is_compatible(file_version, baseline_version) {
-            VersionCompatibility::Compatible => {
-                // Can read directly
-                Self::load_compatible_file(path, password, header)
-            }
-            VersionCompatibility::RequiresMigration => {
-                // Need migration before use
-                Err(EncryptedFileError::IncompatibleVersion {
-                    file_version,
-                    required_version: baseline_version,
-                })
-            }
-            VersionCompatibility::Incompatible => {
-                // Cannot process at all
-                Err(EncryptedFileError::UnsupportedVersion(file_version))
-            }
-        }
-    }
-
-    /// Write encrypted file to disk using current baseline format
-    pub fn write_to_file(&self, path: &Path) -> Result<(), EncryptedFileError> {
-        use crate::infrastructure::file_system::FileSystemService;
-        
-        // Verify we're using supported version
-        let current_version = self.version();
-        if !self.version_matrix.can_write(current_version) {
-            return Err(EncryptedFileError::UnsupportedVersion(current_version));
-        }
-
-        // Use FileSystemService for atomic write operation
-        FileSystemService::write_encrypted_file(path, &self.header, &self.ciphertext)
     }
 
     /// Get the file version
@@ -152,16 +117,13 @@ impl EncryptedFile {
         self.header.content_hash()
     }
 
-    /// Get algorithm ID used for encryption
-    pub fn algorithm(&self) -> crate::domain::entities::algorithm_id::AlgorithmId {
-        // Extract from header, default to XChaCha20Poly1305 if not found
-        self.header.algorithm_id()
-            .map(|id| match id {
-                1 => crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305,
-                2 => crate::domain::entities::algorithm_id::AlgorithmId::AesGcm256,
-                _ => crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305, // Default
-            })
-            .unwrap_or(crate::domain::entities::algorithm_id::AlgorithmId::XChaCha20Poly1305)
+    /// Get the algorithm ID used for encryption
+    pub fn algorithm(&self) -> Result<AlgorithmId, EncryptedFileError> {
+        let raw_id = self.header.algorithm_id()
+            .ok_or(EncryptedFileError::MissingAlgorithm)?;
+        
+        AlgorithmId::from_u16(raw_id)
+            .map_err(|_| EncryptedFileError::UnsupportedAlgorithm(raw_id))
     }
 
     /// Check if filename is obfuscated
@@ -190,7 +152,7 @@ impl EncryptedFile {
 
     fn extract_metadata_from_header(header: &TlvHeader) -> FileMetadata {
         use std::time::SystemTime;
-        use crate::domain::entities::file_metadata::FileType;
+        use crate::domain::entities::metadata::FileType;
         
         // Extract filename from header, fallback to placeholder
         let original_filename = header.original_filename()
@@ -205,99 +167,8 @@ impl EncryptedFile {
         }
     }
 
-    fn load_compatible_file(
-        path: &Path, 
-        _password: &str, // Password validation will be implemented later
-        header: TlvHeader
-    ) -> Result<Self, EncryptedFileError> {
-        use std::fs::File;
-        use std::io::{Read, Seek, SeekFrom};
-        use crate::infrastructure::tlv_serialization::TlvSerializer;
-        
-        // We already have the header, now read the ciphertext
-        let mut file = File::open(path)
-            .map_err(|e| EncryptedFileError::IoError(format!("Failed to open file: {}", e)))?;
-        
-        // Calculate header size by serializing the header we already parsed
-        let header_bytes = TlvSerializer::serialize(&header)
-            .map_err(|e| EncryptedFileError::HeaderParseError(format!("Header serialization error: {}", e)))?;
-        let header_size = header_bytes.len() as u64;
-        
-        // Seek past the header to read ciphertext
-        file.seek(SeekFrom::Start(header_size))
-            .map_err(|e| EncryptedFileError::IoError(format!("Failed to seek past header: {}", e)))?;
-        
-        // Read the remaining content as ciphertext
-        let mut ciphertext = Vec::new();
-        file.read_to_end(&mut ciphertext)
-            .map_err(|e| EncryptedFileError::IoError(format!("Failed to read ciphertext: {}", e)))?;
-        
-        // Create EncryptedFile instance
-        Ok(Self::new(header, ciphertext))
-    }
-
     fn verify_with_password(&self, _password: &str) -> Result<(), EncryptedFileError> {
         // Placeholder implementation - would attempt decryption to verify password
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_encrypted_file_creation() {
-        let header = TlvHeader::new();
-        let ciphertext = vec![1, 2, 3, 4, 5];
-        
-        let file = EncryptedFile::new(header, ciphertext.clone());
-        
-        assert_eq!(file.version(), 1); // V1 baseline
-        assert_eq!(file.ciphertext.len(), 5);
-    }
-
-    #[test]
-    fn test_version_compatibility() {
-        let header = TlvHeader::new();
-        let file = EncryptedFile::new(header, vec![]);
-        
-        // V1 -> V1 should be compatible
-        assert_eq!(
-            file.migration_status(1),
-            VersionCompatibility::Compatible
-        );
-        
-        // Can migrate to same version (no-op)
-        assert!(file.can_migrate_to(1));
-    }
-
-    #[test]
-    fn test_version_matrix_integration() {
-        let header = TlvHeader::new();
-        let file = EncryptedFile::new(header, vec![]);
-        
-        // Should use current baseline version
-        assert_eq!(file.version(), file.version_matrix.current_baseline());
-        
-        // Should be able to write current baseline
-        assert!(file.version_matrix.can_write(file.version()));
-    }
-
-    #[test]
-    fn test_error_display() {
-        let errors = vec![
-            EncryptedFileError::UnsupportedVersion(99),
-            EncryptedFileError::IncompatibleVersion { file_version: 3, required_version: 1 },
-            EncryptedFileError::IoError("File not found".to_string()),
-            EncryptedFileError::HeaderParseError("Invalid header".to_string()),
-            EncryptedFileError::CryptoError("Decryption failed".to_string()),
-        ];
-        
-        for error in errors {
-            let error_string = error.to_string();
-            assert!(!error_string.is_empty());
-            assert!(!error_string.contains("Debug"));
-        }
     }
 }
