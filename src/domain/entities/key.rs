@@ -24,6 +24,34 @@ pub struct KeyDerivationParams {
 }
 
 impl KeyDerivationParams {
+    // Security parameter constants
+    
+    /// Minimum memory cost for production use (1 GiB in KiB)
+    pub const MIN_MEMORY_COST_PRODUCTION: u32 = 1_048_576; // 1 GiB
+    
+    /// Minimum memory cost for general use (256 MiB in KiB) 
+    pub const MIN_MEMORY_COST_GENERAL: u32 = 262_144; // 256 MiB
+    
+    /// Minimum time cost for production use
+    pub const MIN_TIME_COST_PRODUCTION: u32 = 5;
+    
+    /// Minimum time cost for general use
+    pub const MIN_TIME_COST_GENERAL: u32 = 3;
+    
+    /// Maximum parallelism (thread count)
+    pub const MAX_PARALLELISM: u32 = 16;
+    
+    /// Minimum output length in bytes
+    pub const MIN_OUTPUT_LENGTH: usize = 16;
+    
+    /// Maximum output length in bytes  
+    pub const MAX_OUTPUT_LENGTH: usize = 64;
+    
+    /// Recommended output length for production (256-bit keys)
+    pub const RECOMMENDED_OUTPUT_LENGTH: usize = 32;
+}
+
+impl KeyDerivationParams {
     /// Create test parameters optimized for speed over security
     /// 
     /// These parameters should ONLY be used in test environments where
@@ -59,10 +87,10 @@ impl KeyDerivationParams {
     /// security for file encryption where strong protection is essential.
     pub fn production_argon2() -> Self {
         Self {
-            memory_cost: 1048576, // 1 GiB - maximum practical security
-            time_cost: 5,         // 5 iterations - high security level
-            parallelism: 4,       // 4 threads - efficient on modern CPUs
-            output_length: 32,    // 32 bytes - supports 256-bit algorithms
+            memory_cost: Self::MIN_MEMORY_COST_PRODUCTION,
+            time_cost: Self::MIN_TIME_COST_PRODUCTION,
+            parallelism: 4,
+            output_length: Self::RECOMMENDED_OUTPUT_LENGTH,
         }
     }
 
@@ -86,16 +114,16 @@ impl KeyDerivationParams {
         output_length: usize,
     ) -> Result<Self, &'static str> {
         // Validate minimum security requirements
-        if memory_cost < 262144 {
-            return Err("Memory cost must be at least 256 MiB (262144 KiB) for production use");
+        if memory_cost < Self::MIN_MEMORY_COST_GENERAL {
+            return Err("Memory cost must be at least 256 MiB (262144 KiB) for general use");
         }
-        if time_cost < 3 {
-            return Err("Time cost must be at least 3 iterations for production use");
+        if time_cost < Self::MIN_TIME_COST_GENERAL {
+            return Err("Time cost must be at least 3 iterations for general use");
         }
-        if parallelism == 0 || parallelism > 16 {
+        if parallelism == 0 || parallelism > Self::MAX_PARALLELISM {
             return Err("Parallelism must be between 1 and 16 threads");
         }
-        if output_length < 16 || output_length > 64 {
+        if output_length < Self::MIN_OUTPUT_LENGTH || output_length > Self::MAX_OUTPUT_LENGTH {
             return Err("Output length must be between 16 and 64 bytes");
         }
 
@@ -112,10 +140,10 @@ impl KeyDerivationParams {
     /// Returns true if the parameters provide adequate security for production
     /// use based on current cryptographic best practices (2024+ standards).
     pub fn is_production_secure(&self) -> bool {
-        self.memory_cost >= 1048576 &&  // At least 1 GiB (maximum security)
-        self.time_cost >= 5 &&          // At least 5 iterations
-        self.parallelism >= 1 &&        // At least 1 thread
-        self.output_length >= 32        // At least 256-bit output
+        self.memory_cost >= Self::MIN_MEMORY_COST_PRODUCTION &&  // At least 1 GiB (maximum security)
+        self.time_cost >= Self::MIN_TIME_COST_PRODUCTION &&      // At least 5 iterations
+        self.parallelism >= 1 &&                                // At least 1 thread
+        self.output_length >= Self::RECOMMENDED_OUTPUT_LENGTH    // At least 256-bit output
     }
 
     /// Get estimated derivation time in milliseconds

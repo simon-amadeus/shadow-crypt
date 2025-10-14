@@ -6,30 +6,8 @@
 use crate::domain::entities::header::TlvHeader;
 use crate::domain::entities::AlgorithmId;
 use crate::domain::entities::memory::SecureBox;
+use crate::domain::errors::{DomainError, FormatError};
 use uuid::Uuid;
-
-/// Errors that can occur during EncryptedFile operations
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum EncryptedFileError {
-    /// Missing algorithm ID in header
-    MissingAlgorithm,
-    /// Unsupported algorithm ID
-    UnsupportedAlgorithm(u16),
-    /// Missing original filename in header
-    MissingOriginalFilename,
-}
-
-impl std::fmt::Display for EncryptedFileError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MissingAlgorithm => write!(f, "Algorithm ID missing in file header"),
-            Self::UnsupportedAlgorithm(id) => write!(f, "Algorithm ID {} not supported", id),
-            Self::MissingOriginalFilename => write!(f, "Original filename missing in file header"),
-        }
-    }
-}
-
-impl std::error::Error for EncryptedFileError {}
 
 /// Immutable encrypted file entity
 /// 
@@ -98,12 +76,14 @@ impl EncryptedFile {
 
 
     /// Returns encryption algorithm used for this file
-    pub fn algorithm(&self) -> Result<AlgorithmId, EncryptedFileError> {
+    pub fn algorithm(&self) -> Result<AlgorithmId, DomainError> {
         let raw_id = self.header.algorithm_id()
-            .ok_or(EncryptedFileError::MissingAlgorithm)?;
+            .ok_or_else(|| DomainError::FormatError(FormatError::MissingRequiredField { 
+                field: "algorithm_id".to_string() 
+            }))?;
         
         AlgorithmId::from_u16(raw_id)
-            .map_err(|_| EncryptedFileError::UnsupportedAlgorithm(raw_id))
+            .map_err(|_| DomainError::unsupported_algorithm(raw_id))
     }
 }
 

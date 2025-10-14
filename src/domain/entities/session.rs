@@ -20,29 +20,24 @@ pub struct CryptoSession {
 }
 
 impl CryptoSession {
-    /// Create a new CryptoSession with derived key material
+    /// Create a new CryptoSession with pre-derived key material
     /// 
-    /// This method takes a password and salt, derives the necessary key material
-    /// using secure key derivation, and creates a session ready for cryptographic operations.
+    /// This method accepts already-derived key material from a domain service.
+    /// The entity itself should not perform cryptographic operations.
     /// 
     /// # Arguments
-    /// * `password` - The password to derive keys from
-    /// * `salt` - Cryptographic salt for key derivation  
+    /// * `key_material` - Pre-derived key material from a key derivation service
+    /// * `salt` - The salt used for key derivation (for storage/serialization)
     /// * `algorithm` - The encryption algorithm to use
     /// 
     /// # Returns
-    /// A new CryptoSession with securely derived key material
-    pub fn new(password: &str, salt: [u8; 32], algorithm: AlgorithmId) -> DomainResult<Self> {
-        // For now, use simple key derivation. This will be replaced with proper
-        // PBKDF2 or Argon2 when the crypto infrastructure layer is implemented.
-        let master_key = Self::derive_master_key(password, &salt)?;
-        let key_material = KeyMaterial::from_master_key(master_key);
-        
-        Ok(Self {
+    /// A new CryptoSession with the provided key material
+    pub fn new(key_material: KeyMaterial, salt: [u8; 32], algorithm: AlgorithmId) -> Self {
+        Self {
             key_material,
             algorithm,
             salt,
-        })
+        }
     }
     
     /// Get the algorithm used by this session
@@ -71,57 +66,16 @@ impl CryptoSession {
         self.key_material.obfuscation_key.expose_secret()
     }
     
-    /// Encrypt plaintext data using the configured algorithm
+    /// Get reference to the key material
     /// 
-    /// This method encrypts the provided plaintext using the session's
-    /// configured algorithm and automatically manages nonce generation.
+    /// This exposes the complete key material for use by crypto services.
+    /// Handle with care as this provides access to sensitive cryptographic material.
     /// 
-    /// # Arguments
-    /// * `plaintext` - The data to encrypt
-    /// 
-    /// # Returns
-    /// An EncryptionResult containing the ciphertext and nonce
-    pub fn encrypt(&self, plaintext: &[u8]) -> DomainResult<crate::domain::services::EncryptionResult> {
-        use crate::infrastructure::crypto::factory::Algorithm;
-        use crate::domain::services::CryptographicAlgorithm;
-        
-        let algorithm = Algorithm::from_id(self.algorithm);
-        algorithm.encrypt(plaintext, &self.key_material)
-    }
-    
-    /// Decrypt ciphertext data using the configured algorithm
-    /// 
-    /// This method decrypts the provided ciphertext using the session's
-    /// configured algorithm and the provided nonce.
-    /// 
-    /// # Arguments
-    /// * `ciphertext` - The encrypted data to decrypt
-    /// * `nonce` - The nonce used during encryption
-    /// 
-    /// # Returns
-    /// The decrypted plaintext data
-    pub fn decrypt(&self, ciphertext: &[u8], nonce: &[u8]) -> DomainResult<Vec<u8>> {
-        use crate::infrastructure::crypto::factory::Algorithm;
-        use crate::domain::services::CryptographicAlgorithm;
-        
-        let algorithm = Algorithm::from_id(self.algorithm);
-        algorithm.decrypt(ciphertext, nonce, &self.key_material)
-    }
-    
-    /// Secure key derivation using the configured algorithm
-    /// 
-    /// This method uses the algorithm's key derivation configuration to
-    /// securely derive key material from the password and salt.
-    fn derive_master_key(password: &str, salt: &[u8; 32]) -> DomainResult<[u8; 32]> {
-        use crate::infrastructure::crypto::factory::Algorithm;
-        use crate::domain::services::KeyDerivationConfig;
-        
-        // Use the default algorithm's key derivation configuration
-        let algorithm = Algorithm::default();
-        let key_material = algorithm.derive_key_material(password, salt)?;
-        
-        // Extract the raw master key
-        Ok(*key_material.master_key.expose_secret())
+    /// # Security Note
+    /// This method should only be called by domain services that perform 
+    /// cryptographic operations. The entity itself should not contain business logic.
+    pub fn key_material(&self) -> &KeyMaterial {
+        &self.key_material
     }
     
     /// Generate a cryptographically secure salt for key derivation
@@ -154,13 +108,30 @@ impl Drop for CryptoSession {
 mod tests {
     use super::*;
     
+    // Helper function for tests to create a simple master key from password
+    // This is just for testing - real key derivation should use Argon2 in domain services
+    fn create_test_master_key(password: &str, salt: &[u8; 32]) -> [u8; 32] {
+        use sha2::{Sha256, Digest};
+        
+        let mut hasher = Sha256::new();
+        hasher.update(password.as_bytes());
+        hasher.update(salt);
+        let hash = hasher.finalize();
+        
+        let mut key = [0u8; 32];
+        key.copy_from_slice(&hash[..32]);
+        key
+    }
+    
     #[test]
     fn crypto_session_creation() {
         let password = "test_password_123";
         let salt = [0x42; 32];
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session = CryptoSession::new(password, salt, algorithm).unwrap();
+        let master_key = create_test_master_key(password, &salt);
+        let key_material = KeyMaterial::from_master_key(master_key);
+        let session = CryptoSession::new(key_material, salt, algorithm);
         
         assert_eq!(session.algorithm(), algorithm);
         assert_eq!(session.salt(), &salt);
@@ -192,8 +163,12 @@ mod tests {
         let salt = [0x33; 32];
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session1 = CryptoSession::new(password, salt, algorithm).unwrap();
-        let session2 = CryptoSession::new(password, salt, algorithm).unwrap();
+        let master_key1 = create_test_master_key(password, &salt);
+        let master_key2 = create_test_master_key(password, &salt);
+        let key_material1 = KeyMaterial::from_master_key(master_key1);
+        let key_material2 = KeyMaterial::from_master_key(master_key2);
+        let session1 = CryptoSession::new(key_material1, salt, algorithm);
+        let session2 = CryptoSession::new(key_material2, salt, algorithm);
         
         // Same password + salt should produce same keys
         assert_eq!(session1.encryption_key(), session2.encryption_key());
@@ -205,8 +180,12 @@ mod tests {
         let salt = [0x44; 32];
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session1 = CryptoSession::new("password1", salt, algorithm).unwrap();
-        let session2 = CryptoSession::new("password2", salt, algorithm).unwrap();
+        let master_key1 = create_test_master_key("password1", &salt);
+        let master_key2 = create_test_master_key("password2", &salt);
+        let key_material1 = KeyMaterial::from_master_key(master_key1);
+        let key_material2 = KeyMaterial::from_master_key(master_key2);
+        let session1 = CryptoSession::new(key_material1, salt, algorithm);
+        let session2 = CryptoSession::new(key_material2, salt, algorithm);
         
         // Different passwords should produce different keys
         assert_ne!(session1.encryption_key(), session2.encryption_key());
@@ -218,8 +197,14 @@ mod tests {
         let password = "same_password";
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session1 = CryptoSession::new(password, [0x55; 32], algorithm).unwrap();
-        let session2 = CryptoSession::new(password, [0x66; 32], algorithm).unwrap();
+        let salt1 = [0x55; 32];
+        let salt2 = [0x66; 32];
+        let master_key1 = create_test_master_key(password, &salt1);
+        let master_key2 = create_test_master_key(password, &salt2);
+        let key_material1 = KeyMaterial::from_master_key(master_key1);
+        let key_material2 = KeyMaterial::from_master_key(master_key2);
+        let session1 = CryptoSession::new(key_material1, salt1, algorithm);
+        let session2 = CryptoSession::new(key_material2, salt2, algorithm);
         
         // Different salts should produce different keys
         assert_ne!(session1.encryption_key(), session2.encryption_key());
@@ -232,7 +217,9 @@ mod tests {
         let salt = [0x77; 32];
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session = CryptoSession::new(password, salt, algorithm).unwrap();
+        let master_key = create_test_master_key(password, &salt);
+        let key_material = KeyMaterial::from_master_key(master_key);
+        let session = CryptoSession::new(key_material, salt, algorithm);
         let debug_output = format!("{:?}", session);
         
         // Debug output should not contain the password
@@ -274,7 +261,9 @@ mod tests {
         let salt = CryptoSession::generate_salt().unwrap();
         let algorithm = AlgorithmId::XChaCha20Poly1305;
         
-        let session = CryptoSession::new(password, salt, algorithm).unwrap();
+        let master_key = create_test_master_key(password, &salt);
+        let key_material = KeyMaterial::from_master_key(master_key);
+        let session = CryptoSession::new(key_material, salt, algorithm);
         
         assert_eq!(session.algorithm(), algorithm);
         assert_eq!(session.salt(), &salt);
