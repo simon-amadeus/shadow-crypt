@@ -7,6 +7,7 @@ use std::time::SystemTime;
 use std::path::Path;
 use std::fs;
 use super::memory::SecureBox;
+use crate::domain::errors::{DomainError, FileSystemError};
 
 /// File system metadata and attributes.
 /// 
@@ -24,8 +25,12 @@ pub struct FileMetadata {
 
 impl FileMetadata {
     /// Extract metadata from a file path.
-    pub fn from_path(path: &Path) -> Result<Self, std::io::Error> {
-        let metadata = fs::metadata(path)?;
+    pub fn from_path(path: &Path) -> Result<Self, DomainError> {
+        let metadata = fs::metadata(path)
+            .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
+                operation: "read file metadata".to_string(),
+                reason: e.to_string() 
+            }))?;
         let file_type = if metadata.is_dir() {
             FileType::Directory
         } else if metadata.is_file() {
@@ -55,7 +60,11 @@ impl FileMetadata {
         Ok(Self {
             original_filename: SecureBox::new(original_filename),
             file_size: metadata.len(),
-            modified_time: metadata.modified()?,
+            modified_time: metadata.modified()
+                .map_err(|e| DomainError::FileSystemError(FileSystemError::IoOperationFailed { 
+                    operation: "read file modification time".to_string(),
+                    reason: e.to_string() 
+                }))?,
             created_time: metadata.created().ok(),
             file_type,
         })
