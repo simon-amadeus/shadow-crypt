@@ -6,10 +6,10 @@
 use std::path::Path;
 
 use crate::domain::shared::{
-    plaintext_file::PlaintextFile,
-    encrypted_file::EncryptedFile,
-    path::{PlaintextFilePath, EncryptedFilePath, TypedFilePath},
-    metadata::FileMetadata,
+    PlaintextFile,
+    EncryptedFile,
+    PlaintextFilePath, EncryptedFilePath, TypedFilePath,
+    FileMetadata,
 };
 use crate::domain::errors::DomainError;
 

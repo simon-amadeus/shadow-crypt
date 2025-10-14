@@ -5,11 +5,10 @@
 //! NOTE: This implementation needs to be updated to match the new FileHandler 
 //! trait interface located in domain::services::file_handler.
 
-use crate::domain::shared::encrypted_file::EncryptedFileError;
-use crate::domain::shared::header::TlvHeader;
+use crate::domain::shared::TlvHeader;
 // TODO: Update implementation to match new FileHandler trait
 // use crate::domain::services::file_handler::{FileHandler, FileResult};
-use crate::domain::shared::metadata::{FileMetadata, FileType};
+use crate::domain::shared::{FileMetadata, FileType};
 use std::fs::{File, OpenOptions};
 use std::io::{Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};

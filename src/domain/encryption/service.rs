@@ -5,8 +5,8 @@
 
 use crate::domain::shared::{
     AlgorithmId,
-    plaintext_file::PlaintextFile,
-    encrypted_file::EncryptedFile,
+    PlaintextFile,
+    EncryptedFile,
 };
 use crate::domain::errors::DomainError;
 

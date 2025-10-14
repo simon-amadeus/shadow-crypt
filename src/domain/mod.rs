@@ -29,7 +29,6 @@
 pub mod encryption;
 pub mod decryption; 
 pub mod listing;
-pub mod file_operations;
 
 // ============================================================================
 // SHARED FOUNDATION
@@ -70,21 +69,23 @@ pub mod list {
 
 /// File I/O operations capability
 pub mod files {
-    pub use crate::domain::file_operations::{
+    pub use crate::domain::shared::{
         FileHandler, FileTransaction, TransactionBuilder, FileOperation
     };
 }
 
-/// Shared domain types and entities
+/// Shared domain types and entities - organized by topic
 pub mod types {
     pub use crate::domain::shared::{
+        // Algorithm identification
         AlgorithmId,
-        plaintext_file::PlaintextFile,
-        encrypted_file::EncryptedFile,
-        path::{PlaintextFilePath, EncryptedFilePath, TypedFilePath},
-        metadata::FileMetadata,
-        hash::ContentHash,
-        header::TlvHeader,
+        // File entities and operations
+        PlaintextFile, EncryptedFile,
+        PlaintextFilePath, EncryptedFilePath, TypedFilePath,
+        FileMetadata, FileType,
+        FileHandler, FileTransaction, TransactionBuilder, FileOperation,
+        // Crypto primitives
+        KeyMaterial, ContentHash, TlvHeader, CryptoSession,
     };
 }
 
@@ -99,7 +100,7 @@ pub use errors::{DomainError, DomainResult};
 pub use encryption::EncryptionService;
 pub use decryption::DecryptionService; 
 pub use listing::ListingService;
-pub use file_operations::FileHandler;
+pub use shared::FileHandler;
 
 // Most commonly used data types
-pub use shared::{AlgorithmId, plaintext_file::PlaintextFile, encrypted_file::EncryptedFile};
+pub use shared::{AlgorithmId, PlaintextFile, EncryptedFile};

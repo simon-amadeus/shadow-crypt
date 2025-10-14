@@ -24,9 +24,9 @@ use std::time::Duration;
 
 use crate::domain::shared::{
     AlgorithmId, 
-    plaintext_file::PlaintextFile,
-    encrypted_file::EncryptedFile,
-    path::{PlaintextFilePath, EncryptedFilePath},
+    PlaintextFile,
+    EncryptedFile,
+    PlaintextFilePath, EncryptedFilePath,
 };
 use crate::domain::errors::DomainError;
 

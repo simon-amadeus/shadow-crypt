@@ -8,7 +8,7 @@ use std::time::{Duration, SystemTime};
 
 use crate::domain::shared::{
     AlgorithmId,
-    path::EncryptedFilePath,
+    EncryptedFilePath,
 };
 use crate::domain::errors::DomainError;
 

@@ -8,7 +8,7 @@ use crate::domain::services::{EncryptionService, FileHandler};
 use crate::domain::repositories::{
     password_repository::PasswordRepository,
 };
-use crate::domain::shared::{AlgorithmId, plaintext_file::ContentHash};
+use crate::domain::shared::{AlgorithmId, ContentHash};
 use crate::domain::errors::DomainError;
 
 use crate::infrastructure::crypto::factory::Algorithm;

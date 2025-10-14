@@ -17,7 +17,7 @@
 use std::path::Path;
 
 use crate::domain::shared::{
-    plaintext_file::PlaintextFile, encrypted_file::EncryptedFile,
+    PlaintextFile, EncryptedFile,
     FileMetadata,
     PlaintextFilePath, EncryptedFilePath,
 };
