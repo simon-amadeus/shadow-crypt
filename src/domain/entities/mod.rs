@@ -3,7 +3,7 @@
 //! Core business entities representing the fundamental concepts
 //! in the Shadow file encryption domain.
 
-pub mod algorithm_id;
+pub mod algorithm;
 pub mod key_material;
 pub mod encrypted_file;
 pub mod plaintext_file;
@@ -15,7 +15,7 @@ pub mod version_matrix;
 pub mod memory;
 
 // Re-export key types for easier access
-pub use algorithm_id::AlgorithmId;
+pub use algorithm::AlgorithmId;
 pub use key_material::KeyMaterial;
 pub use memory::SecureBox;
 pub use crypto_session::CryptoSession;

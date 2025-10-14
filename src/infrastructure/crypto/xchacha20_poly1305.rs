@@ -95,7 +95,7 @@ impl KeyDerivationConfig for XChaCha20Poly1305Config {
     }
 
     fn salt_length(&self) -> usize {
-        16 // 128-bit salt recommended for Argon2
+        self.algorithm_id().salt_size()
     }
 
     fn name(&self) -> &'static str {
@@ -105,11 +105,11 @@ impl KeyDerivationConfig for XChaCha20Poly1305Config {
 
 impl EncryptionConfig for XChaCha20Poly1305Config {
     fn key_size(&self) -> usize {
-        32 // 256-bit key for XChaCha20
+        self.algorithm_id().key_size()
     }
 
     fn nonce_size(&self) -> usize {
-        24 // 192-bit nonce for XChaCha20 (extended nonce)
+        self.algorithm_id().nonce_size()
     }
 
     fn algorithm_id(&self) -> AlgorithmId {

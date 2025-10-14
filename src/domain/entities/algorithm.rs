@@ -84,8 +84,16 @@ impl AlgorithmId {
     /// Get algorithm-specific nonce size in bytes
     pub fn nonce_size(self) -> usize {
         match self {
-            AlgorithmId::XChaCha20Poly1305 => 24, // 192 bits
-            AlgorithmId::AesGcm256 => 12,         // 96 bits
+            AlgorithmId::XChaCha20Poly1305 => 24, // 192 bits (extended nonce)
+            AlgorithmId::AesGcm256 => 12,         // 96 bits (standard GCM)
+        }
+    }
+
+    /// Get recommended salt size for key derivation
+    pub fn salt_size(self) -> usize {
+        match self {
+            AlgorithmId::XChaCha20Poly1305 => 16, // 128-bit salt for Argon2id
+            AlgorithmId::AesGcm256 => 16,         // 128-bit salt for Argon2id
         }
     }
 
