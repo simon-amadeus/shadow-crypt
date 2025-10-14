@@ -11,7 +11,7 @@ use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::services::crypto_service::KeyDerivationConfig;
 use crate::domain::services::encryption_service::BatchResult;
 use crate::infrastructure::{ProgressReporter, ProgressStyle};
-use crate::domain::utilities::filename_obfuscation::FilenameObfuscator;
+
 use crate::infrastructure::crypto::factory::Algorithm;
 use crate::infrastructure::tlv_serialization::TlvSerializer;
 

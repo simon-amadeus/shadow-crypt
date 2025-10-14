@@ -10,7 +10,7 @@ use crate::domain::repositories::{
     file_repository::FileRepository,
 };
 use crate::domain::entities::AlgorithmId;
-use crate::domain::utilities::filename_obfuscation::FilenameObfuscator;
+
 use crate::infrastructure::crypto::factory::Algorithm;
 use crate::application::workflows::results::{WorkflowResult, BatchResult, EncryptionResult};
 use std::path::{Path, PathBuf};

@@ -9,7 +9,6 @@ use crate::domain::entities::{duplicate_detector::DuplicateDetector, header::{Tl
 use crate::domain::errors::{DomainError, DomainResult, FileSystemError};
 use crate::domain::services::{FileDetector, CryptographicAlgorithm};
 use crate::domain::utilities::content_hash::{ContentHash, calculate_content_hash};
-use crate::domain::utilities::filename_obfuscation::{FilenameObfuscator, ObfuscatedFilename};
 use crate::infrastructure::tlv_serialization::TlvSerializer;
 use crate::infrastructure::{ProgressReporter, ProgressContext, ProgressStyle};
 

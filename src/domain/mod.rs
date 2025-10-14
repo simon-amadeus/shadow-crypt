@@ -7,8 +7,6 @@
 pub mod entities;
 pub mod services;
 pub mod repositories;
-pub mod utilities;
 pub mod errors;
 
 pub use errors::{DomainError, DomainResult};
-pub use utilities::{ContentHash, calculate_content_hash};
