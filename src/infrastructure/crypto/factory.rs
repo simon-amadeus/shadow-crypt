@@ -109,7 +109,7 @@ impl Algorithm {
 
     /// Check if an algorithm ID is supported
     pub fn is_supported(id: AlgorithmId) -> bool {
-        Self::supported_algorithms().contains(&id)
+        matches!(id, AlgorithmId::XChaCha20Poly1305 | AlgorithmId::AesGcm256)
     }
 }
 
@@ -138,11 +138,14 @@ impl CryptographicAlgorithm for Algorithm {
     }
 
     fn test_config() -> Self {
-        Self::default() // Use default for this static method
+        // Return the recommended algorithm with test config
+        // This maintains interface compatibility while providing sensible defaults
+        Algorithm::test_from_id(AlgorithmId::recommended())
     }
 
     fn production_config() -> Self {
-        Self::default()
+        // Return the recommended algorithm with production config
+        Algorithm::from_id(AlgorithmId::recommended())
     }
 }
 
@@ -158,6 +161,13 @@ impl super::KeyDerivationConfig for Algorithm {
         match self {
             Algorithm::XChaCha20Poly1305(config) => config.salt_length(),
             Algorithm::Aes256Gcm(config) => config.salt_length(),
+        }
+    }
+
+    fn generate_salt(&self) -> Result<Vec<u8>, DomainError> {
+        match self {
+            Algorithm::XChaCha20Poly1305(config) => config.generate_salt(),
+            Algorithm::Aes256Gcm(config) => config.generate_salt(),
         }
     }
 

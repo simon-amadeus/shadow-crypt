@@ -12,10 +12,10 @@ pub mod duplicate_detector;
 pub mod metadata;
 pub mod header;
 pub mod version_matrix;
-pub mod secure_memory;
+pub mod memory;
 
 // Re-export key types for easier access
 pub use algorithm_id::AlgorithmId;
-pub use key_material::{KeyMaterial, SecureBox};
-pub use secure_memory::SecureBox as LegacySecureBox;
+pub use key_material::KeyMaterial;
+pub use memory::SecureBox;
 pub use crypto_session::CryptoSession;
