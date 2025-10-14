@@ -29,6 +29,7 @@ impl PlaintextFile {
                 FileType::Directory => "directory",
                 FileType::Symlink => "symbolic link", 
                 FileType::Other => "special file",
+                FileType::EncryptedShadow => "encrypted file", 
                 FileType::Regular => unreachable!(), // We already checked this
             };
             
@@ -137,7 +138,7 @@ mod tests {
 
     fn create_test_metadata(file_type: FileType) -> FileMetadata {
         FileMetadata {
-            original_filename: SecureBox::new("test.txt".to_string()),
+            filename: "test.txt".to_string(),
             file_size: 100,
             modified_time: SystemTime::now(),
             created_time: Some(SystemTime::now()),

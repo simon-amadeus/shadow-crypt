@@ -1,6 +1,7 @@
 //! File system operations abstraction.
 //!
 //! Provides testable file operations with atomic writes and secure deletion.
+//! Uses type-safe file paths to prevent invalid operations at compile time.
 //!
 //! # Transaction Example
 //!
@@ -15,8 +16,14 @@
 
 use std::path::Path;
 
-use crate::domain::{entities::{encrypted_file::EncryptedFile, header::TlvHeader, metadata::FileMetadata, plaintext_file::PlaintextFile}, DomainError};
+use crate::domain::entities::{
+    plaintext_file::PlaintextFile, encrypted_file::EncryptedFile,
+    FileMetadata,
+    PlaintextFilePath, EncryptedFilePath,
+};
+use crate::domain::errors::DomainError;
 
+/// Result type for file operations.
 pub type FileResult<T> = Result<T, DomainError>;
 
 /// Transaction handle for atomic multi-file operations.
@@ -25,7 +32,7 @@ pub trait FileTransaction {
     fn rollback(self) -> FileResult<()>;
 }
 
-/// File system operations with atomic writes and secure deletion.
+/// File system operations with type-safe paths and atomic writes.
 pub trait FileHandler: Send + Sync {
     fn begin_transaction(&self) -> FileResult<Box<dyn FileTransaction>>;
 
@@ -34,31 +41,36 @@ pub trait FileHandler: Send + Sync {
         TransactionBuilder::new()
     }
 
-    // Read operations
-    fn read_plaintext_file(&self, path: &Path) -> FileResult<PlaintextFile>;
-    fn read_encrypted_file(&self, path: &Path) -> FileResult<EncryptedFile>;
-    /// Read header only for efficient metadata extraction.
-    fn read_encrypted_header(&self, path: &Path) -> FileResult<TlvHeader>;
-    fn is_encrypted_file(&self, path: &Path) -> FileResult<bool>;
+    // === Core Operations ===
+    
+    /// Get metadata for any file type (filesystem metadata only).
+    /// 
+    /// Note: Use TypedFilePath::from_path() for file type detection and typed paths.
     fn get_metadata(&self, path: &Path) -> FileResult<FileMetadata>;
 
-    // Write operations
+    /// Read plaintext file - compile-time guarantee that path contains plaintext.
+    fn read_plaintext_file(&self, path: &PlaintextFilePath) -> FileResult<PlaintextFile>;
+    
+    /// Read encrypted file - compile-time guarantee that path contains encrypted data.
+    fn read_encrypted_file(&self, path: &EncryptedFilePath) -> FileResult<EncryptedFile>;
+
+    // === Write Operations ===
+    
     fn write_plaintext_file(&self, file: &PlaintextFile) -> FileResult<()>;
     fn write_encrypted_file(&self, file: &EncryptedFile) -> FileResult<()>;
     fn write_encrypted_file_with_backup(&self, file: &EncryptedFile, backup_suffix: &str) -> FileResult<()>;
 
-    // Batch operations
-    /// Read multiple encrypted headers efficiently.
-    fn read_encrypted_headers_batch(&self, paths: &[&Path]) -> FileResult<Vec<(String, TlvHeader)>>;
+    // === Batch Operations ===
+    
     fn write_encrypted_files_batch(&self, files: &[&EncryptedFile]) -> FileResult<()>;
 
-    // Delete operations
+    // === File Management ===
+    
     fn delete_file_secure(&self, path: &Path) -> FileResult<()>;
     fn delete_file(&self, path: &Path) -> FileResult<()>;
 
-    // Validation operations
-    fn verify_file_integrity(&self, path: &Path) -> FileResult<bool>;
-    fn detect_double_encryption_risk(&self, path: &Path) -> FileResult<bool>;
+    /// Verify file integrity (type-safe for encrypted files only).
+    fn verify_file_integrity(&self, path: &EncryptedFilePath) -> FileResult<bool>;
 }
 
 /// File operation types for logging and testing.
@@ -78,7 +90,7 @@ pub enum FileOperation {
     RollbackTransaction,
 }
 
-/// Builder for constructing atomic transactions.
+/// Builder for constructing atomic transactions with type safety.
 pub struct TransactionBuilder {
     operations: Vec<FileOperation>,
 }
@@ -90,8 +102,21 @@ impl TransactionBuilder {
         }
     }
 
-    pub fn read_file(mut self, path: &str) -> Self {
-        self.operations.push(FileOperation::Read(path.to_string()));
+    /// Get metadata operation (replaces detect_file_type).
+    pub fn get_metadata(mut self, path: &str) -> Self {
+        self.operations.push(FileOperation::GetMetadata(path.to_string()));
+        self
+    }
+
+    /// Read plaintext file operation.
+    pub fn read_plaintext_file(mut self, path: &PlaintextFilePath) -> Self {
+        self.operations.push(FileOperation::Read(path.path().display().to_string()));
+        self
+    }
+
+    /// Read encrypted file operation.
+    pub fn read_encrypted_file(mut self, path: &EncryptedFilePath) -> Self {
+        self.operations.push(FileOperation::Read(path.path().display().to_string()));
         self
     }
 
@@ -110,8 +135,9 @@ impl TransactionBuilder {
         self
     }
 
-    pub fn verify_integrity(mut self, path: &str) -> Self {
-        self.operations.push(FileOperation::VerifyIntegrity(path.to_string()));
+    /// Verify integrity of encrypted file.
+    pub fn verify_integrity(mut self, path: &EncryptedFilePath) -> Self {
+        self.operations.push(FileOperation::VerifyIntegrity(path.path().display().to_string()));
         self
     }
 

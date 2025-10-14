@@ -11,9 +11,12 @@ pub mod session;
 pub mod metadata;
 pub mod header;
 pub mod memory;
+pub mod path;
 
 // Re-export key types for easier access
 pub use algorithm::AlgorithmId;
 pub use key::{KeyMaterial, KeyDerivationParams};
 pub use memory::SecureBox;
 pub use session::CryptoSession;
+pub use path::{TypedFilePath, PlaintextFilePath, EncryptedFilePath};
+pub use metadata::{FileMetadata, FileType};

@@ -163,6 +163,52 @@ impl TlvHeader {
     /// Header length prefix size
     pub const HEADER_LENGTH_SIZE: usize = 4;
 
+    /// Detect if a file appears to be an encrypted Shadow file.
+    /// 
+    /// This is the authoritative method for Shadow file detection.
+    pub fn is_shadow_file(path: &std::path::Path) -> bool {
+        Self::has_shadow_magic_bytes(path)
+    }
+
+    /// Check if file starts with Shadow magic bytes.
+    /// 
+    /// This is the authoritative check for Shadow files - don't rely on extensions.
+    pub fn has_shadow_magic_bytes(path: &std::path::Path) -> bool {
+        use std::io::Read;
+
+        let mut file = match std::fs::File::open(path) {
+            Ok(f) => f,
+            Err(_) => return false,
+        };
+
+        let mut magic_buffer = [0u8; 6];
+        match file.read_exact(&mut magic_buffer) {
+            Ok(()) => magic_buffer == Self::MAGIC_NUMBER,
+            Err(_) => false,
+        }
+    }
+
+    /// Read TLV header from a Shadow file.
+    pub fn from_file(path: &std::path::Path) -> Result<Self, HeaderError> {
+        use std::io::Read;
+        
+        let mut file = std::fs::File::open(path)
+            .map_err(|e| HeaderError::Io(e))?;
+            
+        // Read header length first
+        let mut length_bytes = [0u8; 4];
+        file.read_exact(&mut length_bytes)
+            .map_err(HeaderError::Io)?;
+        let header_length = u32::from_be_bytes(length_bytes) as usize;
+        
+        // Read the full header
+        let mut header_data = vec![0u8; header_length];
+        file.read_exact(&mut header_data)
+            .map_err(HeaderError::Io)?;
+            
+        Self::from_bytes(&header_data)
+    }
+
     /// Create a new header (should only be called by builders/services)
     pub fn new(
         fields: HashMap<TlvFieldType, Vec<u8>>,
