@@ -1,16 +1,14 @@
-//! # Secure Key Material Entity
+//! Cryptographic key material and derivation parameters.
 //!
-//! Domain entity representing cryptographic key material and key derivation parameters
-//! with secure memory management. This is a core security primitive that belongs in the
-//! domain layer.
+//! Secure containers for key material with automatic zeroization
+//! and configurable key derivation parameters.
 
 use super::memory::SecureBox;
 
-/// Key derivation function parameters for password-based key derivation
+/// Key derivation parameters for password-based key derivation.
 /// 
-/// KeyDerivationParams encapsulates the security parameters used for deriving
-/// cryptographic keys from passwords. These parameters represent business rules
-/// about acceptable security levels rather than implementation details.
+/// Security parameters for deriving cryptographic keys from passwords
+/// using Argon2id algorithm.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyDerivationParams {
     /// Memory cost in KiB (affects memory usage during derivation)
@@ -26,40 +24,36 @@ pub struct KeyDerivationParams {
 impl KeyDerivationParams {
     // Security parameter constants
     
-    /// Minimum memory cost for production use (1 GiB in KiB)
+    /// Minimum memory cost for production use (1 GiB in KiB).
     pub const MIN_MEMORY_COST_PRODUCTION: u32 = 1_048_576; // 1 GiB
     
-    /// Minimum memory cost for general use (256 MiB in KiB) 
+    /// Minimum memory cost for general use (256 MiB in KiB).
     pub const MIN_MEMORY_COST_GENERAL: u32 = 262_144; // 256 MiB
     
-    /// Minimum time cost for production use
+    /// Minimum time cost for production use.
     pub const MIN_TIME_COST_PRODUCTION: u32 = 5;
     
-    /// Minimum time cost for general use
+    /// Minimum time cost for general use.
     pub const MIN_TIME_COST_GENERAL: u32 = 3;
     
-    /// Maximum parallelism (thread count)
+    /// Maximum parallelism (thread count).
     pub const MAX_PARALLELISM: u32 = 16;
     
-    /// Minimum output length in bytes
+    /// Minimum output length in bytes.
     pub const MIN_OUTPUT_LENGTH: usize = 16;
     
-    /// Maximum output length in bytes  
+    /// Maximum output length in bytes.  
     pub const MAX_OUTPUT_LENGTH: usize = 64;
     
-    /// Recommended output length for production (256-bit keys)
+    /// Recommended output length for production (256-bit keys).
     pub const RECOMMENDED_OUTPUT_LENGTH: usize = 32;
 }
 
 impl KeyDerivationParams {
-    /// Create test parameters optimized for speed over security
+    /// Create test parameters optimized for speed.
     /// 
-    /// These parameters should ONLY be used in test environments where
-    /// cryptographic security is less important than execution speed.
-    /// 
-    /// # Security Warning
-    /// These parameters provide minimal security and should never be used
-    /// in production environments.
+    /// These parameters should ONLY be used in test environments.
+    /// Provides minimal security in favor of execution speed.
     pub fn test_argon2() -> Self {
         Self {
             memory_cost: 64,      // 64 KiB - minimal memory usage
@@ -69,22 +63,10 @@ impl KeyDerivationParams {
         }
     }
 
-    /// Create production parameters optimized for security
+    /// Create production parameters optimized for security.
     /// 
-    /// These parameters follow current security best practices for Argon2id
-    /// and provide strong resistance against brute-force attacks while
+    /// Provides strong resistance against brute-force attacks while
     /// maintaining reasonable performance on modern hardware.
-    /// 
-    /// # Security Properties
-    /// - Memory cost: 1 GiB - maximum resistance against ASIC/GPU attacks
-    /// - Time cost: 5 iterations - high security with acceptable performance
-    /// - Parallelism: 4 threads - leverages multi-core processors efficiently
-    /// - Output: 32 bytes - sufficient for 256-bit cryptographic keys
-    /// 
-    /// # Performance Note
-    /// These parameters will consume ~1 GiB of RAM during key derivation
-    /// and take 3-8 seconds on modern hardware. This provides maximum
-    /// security for file encryption where strong protection is essential.
     pub fn production_argon2() -> Self {
         Self {
             memory_cost: Self::MIN_MEMORY_COST_PRODUCTION,
@@ -94,19 +76,15 @@ impl KeyDerivationParams {
         }
     }
 
-    /// Create custom parameters with validation
+    /// Create custom parameters with validation.
     /// 
-    /// Validates that the provided parameters meet minimum security requirements
-    /// for production use. This prevents accidentally creating weak configurations.
+    /// Validates that parameters meet minimum security requirements.
     /// 
     /// # Arguments
-    /// * `memory_cost` - Memory usage in KiB (minimum 1024 for production)
-    /// * `time_cost` - Iteration count (minimum 2 for production)
+    /// * `memory_cost` - Memory usage in KiB (minimum 1024)
+    /// * `time_cost` - Iteration count (minimum 2)
     /// * `parallelism` - Thread count (minimum 1, maximum 16)
     /// * `output_length` - Output size in bytes (minimum 16, maximum 64)
-    /// 
-    /// # Errors
-    /// Returns error if any parameter is outside acceptable ranges
     pub fn custom(
         memory_cost: u32,
         time_cost: u32,
@@ -135,10 +113,7 @@ impl KeyDerivationParams {
         })
     }
 
-    /// Check if parameters meet production security standards
-    /// 
-    /// Returns true if the parameters provide adequate security for production
-    /// use based on current cryptographic best practices (2024+ standards).
+    /// Check if parameters meet production security standards.
     pub fn is_production_secure(&self) -> bool {
         self.memory_cost >= Self::MIN_MEMORY_COST_PRODUCTION &&  // At least 1 GiB (maximum security)
         self.time_cost >= Self::MIN_TIME_COST_PRODUCTION &&      // At least 5 iterations
@@ -146,14 +121,9 @@ impl KeyDerivationParams {
         self.output_length >= Self::RECOMMENDED_OUTPUT_LENGTH    // At least 256-bit output
     }
 
-    /// Get estimated derivation time in milliseconds
+    /// Get estimated derivation time in milliseconds.
     /// 
-    /// Provides a rough estimate of key derivation time based on the
-    /// configured parameters. Actual time will vary based on hardware.
-    /// 
-    /// # Note
-    /// This is an approximation based on typical modern hardware and
-    /// should only be used for user experience planning, not security analysis.
+    /// Rough estimate based on typical hardware. Actual time varies.
     pub fn estimated_derivation_time_ms(&self) -> u64 {
         // Rough estimation based on empirical measurements
         // Memory cost has the largest impact on derivation time
@@ -165,11 +135,10 @@ impl KeyDerivationParams {
     }
 }
 
-/// Key material container with automatic zeroization
+/// Key material container with automatic zeroization.
 /// 
-/// KeyMaterial provides a secure container for cryptographic key data
-/// that automatically zeroizes the key bytes when dropped. This follows
-/// the patterns proven in the legacy implementation.
+/// Secure container for cryptographic key data that automatically
+/// zeroizes key bytes when dropped.
 #[derive(Debug)]
 pub struct KeyMaterial {
     /// Master key derived from password and salt
@@ -193,9 +162,9 @@ impl PartialEq for KeyMaterial {
 impl Eq for KeyMaterial {}
 
 impl KeyMaterial {
-    /// Create new key material from derived keys
+    /// Create new key material from derived keys.
     /// 
-    /// All provided keys will be moved into SecureBoxes and automatically
+    /// All keys are moved into SecureBoxes and automatically
     /// zeroized when the KeyMaterial is dropped.
     pub fn new(
         master_key: [u8; 32],
@@ -209,10 +178,9 @@ impl KeyMaterial {
         }
     }
 
-    /// Create key material from master key using key derivation
+    /// Create key material from master key using key derivation.
     /// 
-    /// Derives encryption and obfuscation keys from the master key using
-    /// secure key derivation function (KDF).
+    /// Derives encryption and obfuscation keys from the master key.
     pub fn from_master_key(master_key: [u8; 32]) -> Self {
         // Use HKDF to derive separate keys from master key
         use sha2::Sha256;
@@ -231,19 +199,13 @@ impl KeyMaterial {
         Self::new(master_key, encryption_key, obfuscation_key)
     }
 
-    /// Get total key material length (for compatibility with tests)
-    /// 
-    /// Returns the total number of bytes in all contained keys.
+    /// Get total key material length.
     pub fn len(&self) -> usize {
         // 32 bytes each for master_key, encryption_key, obfuscation_key
         96
     }
 
-    /// Get encryption key bytes for cipher initialization
-    /// 
-    /// Returns a reference to the encryption key bytes. This method provides
-    /// minimal necessary access to key material for cryptographic operations
-    /// while maintaining security through SecureBox protection.
+    /// Get encryption key bytes for cipher initialization.
     pub fn as_bytes(&self) -> &[u8; 32] {
         self.encryption_key.expose_secret()
     }

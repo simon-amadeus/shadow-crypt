@@ -1,20 +1,20 @@
-//! # FileMetadata Entity
+//! File metadata entity.
 //!
-//! Represents file system metadata and attributes.
-//! Based on specs/DOMAIN_ARCHITECTURE.md
+//! Represents file system metadata and attributes with secure
+//! handling of sensitive information.
 
 use std::time::SystemTime;
 use std::path::Path;
 use std::fs;
 use super::memory::SecureBox;
 
-/// Represents file system metadata and attributes
+/// File system metadata and attributes.
 /// 
-/// Sensitive fields like the original filename are protected with SecureBox
-/// to prevent information leakage through memory dumps or swap files.
+/// Contains file metadata with secure storage of the original filename
+/// to prevent information disclosure.
 #[derive(Debug)]
 pub struct FileMetadata {
-    /// Original filename - stored securely to prevent path disclosure
+    /// Original filename - stored securely
     pub original_filename: SecureBox<String>,
     pub file_size: u64,
     pub modified_time: SystemTime,
@@ -23,7 +23,7 @@ pub struct FileMetadata {
 }
 
 impl FileMetadata {
-    /// Extract metadata from a file path
+    /// Extract metadata from a file path.
     pub fn from_path(path: &Path) -> Result<Self, std::io::Error> {
         let metadata = fs::metadata(path)?;
         let file_type = if metadata.is_dir() {
@@ -62,7 +62,7 @@ impl FileMetadata {
     }
 }
 
-/// Type of file system entity
+/// Type of file system entity.
 #[derive(Debug, Clone)]
 pub enum FileType {
     Regular,

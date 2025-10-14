@@ -1,7 +1,7 @@
-//! # Domain Entities
+//! Domain entities.
 //!
-//! Core business entities representing the fundamental concepts
-//! in the Shadow file encryption domain.
+//! Core business entities representing fundamental concepts
+//! in the Shadow file encryption system.
 
 pub mod algorithm;
 pub mod key;

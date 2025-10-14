@@ -1,32 +1,29 @@
-//! Secure memory handling with automatic zeroization
+//! Secure memory handling with automatic zeroization.
 //! 
-//! This module provides secure memory abstractions that automatically
-//! zeroize sensitive data when dropped, preventing memory leaks of
-//! cryptographic material.
+//! Provides secure containers that automatically clear sensitive data
+//! when dropped, preventing memory leaks of cryptographic material.
 
 use zeroize::Zeroize;
 
-/// Secure container that automatically zeroizes its contents on drop
+/// Secure container that automatically zeroizes contents on drop.
 /// 
-/// `SecureBox<T>` provides a secure wrapper around any type that implements
-/// `Zeroize`. When the SecureBox is dropped, it automatically calls `zeroize()`
-/// on the contained data to clear sensitive information from memory.
+/// Provides secure wrapper around any type implementing `Zeroize`.
+/// Automatically calls `zeroize()` when dropped to clear sensitive data.
 pub struct SecureBox<T: Zeroize> {
     data: Box<T>,
 }
 
 impl<T: Zeroize> SecureBox<T> {
-    /// Create a new SecureBox containing the given data
+    /// Create a new SecureBox containing the given data.
     pub fn new(data: T) -> Self {
         Self {
             data: Box::new(data),
         }
     }
     
-    /// Get a reference to the contained data
+    /// Get a reference to the contained data.
     /// 
-    /// This method is named to make it explicit that sensitive data
-    /// is being exposed and should be handled carefully.
+    /// Method name makes explicit that sensitive data is being exposed.
     pub fn expose_secret(&self) -> &T {
         &self.data
     }
