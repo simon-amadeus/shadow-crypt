@@ -4,7 +4,7 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::repositories::{
-    file_repository::FileRepository,
+    file_handler::FileHandler,
     password_repository::{PasswordRepository, PasswordInputError},
 };
 use crate::domain::services::{DecryptionService, DecryptionOptions as DomainDecryptionOptions};
@@ -75,7 +75,7 @@ impl Default for DecryptionOptions {
 
 /// Coordinates decryption with filename restoration
 pub struct DecryptionWorkflow {
-    file_repo: Box<dyn FileRepository>,
+    file_repo: Box<dyn FileHandler>,
     password_repo: Box<dyn PasswordRepository>,
     decryption_service: DecryptionService,
 }
@@ -83,7 +83,7 @@ pub struct DecryptionWorkflow {
 impl DecryptionWorkflow {
     /// Create a new DecryptionWorkflow instance
     pub fn new(
-        file_repo: Box<dyn FileRepository>,
+        file_repo: Box<dyn FileHandler>,
         password_repo: Box<dyn PasswordRepository>,
     ) -> Self {
         Self {

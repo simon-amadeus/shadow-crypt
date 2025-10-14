@@ -4,7 +4,7 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::repositories::{
-    file_repository::FileRepository,
+    file_handler::FileHandler,
     password_repository::{PasswordRepository, PasswordInputError},
 };
 use crate::application::workflows::results::{WorkflowResult, MigrationPlan, MigrationStep};
@@ -71,14 +71,14 @@ pub struct MigrationAnalysis {
 
 /// Version upgrade planning and execution management
 pub struct MigrationWorkflow {
-    file_repo: Box<dyn FileRepository>,
+    file_repo: Box<dyn FileHandler>,
     password_repo: Box<dyn PasswordRepository>,
 }
 
 impl MigrationWorkflow {
     /// Create a new MigrationWorkflow instance
     pub fn new(
-        file_repo: Box<dyn FileRepository>,
+        file_repo: Box<dyn FileHandler>,
         password_repo: Box<dyn PasswordRepository>,
     ) -> Self {
         Self {

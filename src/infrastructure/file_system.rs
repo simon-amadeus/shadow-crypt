@@ -1,12 +1,15 @@
 //! # File System Infrastructure
 //!
 //! File system operations and repository implementations.
+//! 
+//! NOTE: This implementation needs to be updated to match the new FileHandler 
+//! trait interface located in domain::services::file_handler.
 
 use crate::domain::entities::encrypted_file::EncryptedFileError;
 use crate::domain::entities::header::TlvHeader;
-use crate::domain::repositories::file_repository::{
-    FileRepository, FileMetadata, FileType, CryptoResult
-};
+// TODO: Update implementation to match new FileHandler trait
+// use crate::domain::services::file_handler::{FileHandler, FileResult};
+use crate::domain::entities::metadata::{FileMetadata, FileType};
 use std::fs::{File, OpenOptions};
 use std::io::{Write, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
@@ -278,7 +281,10 @@ impl Default for StandardFileRepository {
     }
 }
 
-impl FileRepository for StandardFileRepository {
+// TODO: Update this implementation to match the new FileHandler trait in domain::services::file_handler
+// The current implementation uses outdated method signatures and types.
+/*
+impl FileHandler for StandardFileRepository {
     fn read_file(&self, path: &Path) -> CryptoResult<Vec<u8>> {
         std::fs::read(path)
             .map_err(|e| {
@@ -413,3 +419,4 @@ impl FileRepository for StandardFileRepository {
         })
     }
 }
+*/

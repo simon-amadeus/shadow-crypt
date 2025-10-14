@@ -10,6 +10,7 @@ pub mod decryption_service;
 pub mod listing_service;
 pub mod migration_service;
 pub mod file_detector;
+pub mod file_handler;
 pub mod password_service;
 pub mod tlv_parser;
 pub mod header_analysis;
@@ -26,6 +27,9 @@ pub use crypto_service::{
 
 // Re-export file detection services
 pub use file_detector::{FileDetector, FileFormat};
+
+// Re-export file handler services
+pub use file_handler::{FileHandler, FileTransaction, FileResult, TransactionBuilder, FileOperation};
 
 // Re-export encryption services
 pub use encryption_service::{EncryptionService, EncryptionOptions, EncryptionResult as ServiceEncryptionResult, BatchResult};

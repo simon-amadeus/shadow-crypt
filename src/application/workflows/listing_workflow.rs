@@ -4,7 +4,7 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use crate::domain::repositories::{
-    file_repository::{FileRepository, FileType},
+    file_handler::{FileHandler, FileType},
     password_repository::{PasswordRepository, PasswordInputError},
 };
 use crate::domain::services::listing_service::ListingService;
@@ -56,7 +56,7 @@ impl From<PasswordInputError> for ListingWorkflowError {
 
 /// Directory scanning and information display coordination
 pub struct ListingWorkflow {
-    file_repo: Box<dyn FileRepository>,
+    file_repo: Box<dyn FileHandler>,
     password_repo: Box<dyn PasswordRepository>,
     listing_service: ListingService,
 }
@@ -64,7 +64,7 @@ pub struct ListingWorkflow {
 impl ListingWorkflow {
     /// Create a new ListingWorkflow instance
     pub fn new(
-        file_repo: Box<dyn FileRepository>,
+        file_repo: Box<dyn FileHandler>,
         password_repo: Box<dyn PasswordRepository>,
     ) -> Self {
         Self {

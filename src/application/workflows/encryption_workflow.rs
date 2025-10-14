@@ -7,7 +7,7 @@ use crate::domain::services::password_service::{PasswordVerificationService, Pas
 use crate::domain::services::EncryptionService;
 use crate::domain::repositories::{
     password_repository::PasswordRepository,
-    file_repository::FileRepository,
+    file_handler::FileHandler,
 };
 use crate::domain::entities::AlgorithmId;
 
@@ -82,7 +82,7 @@ impl Default for EncryptionOptions {
 /// Coordinates encryption with all features and validations
 pub struct EncryptionWorkflow {
     password_service: PasswordVerificationService,
-    file_repo: Box<dyn FileRepository>,
+    file_repo: Box<dyn FileHandler>,
     algorithm: AlgorithmId,
     quiet_mode: bool,
 }
@@ -90,7 +90,7 @@ pub struct EncryptionWorkflow {
 impl EncryptionWorkflow {
     /// Create a new EncryptionWorkflow instance
     pub fn new(
-        file_repo: Box<dyn FileRepository>,
+        file_repo: Box<dyn FileHandler>,
         password_repository: Box<dyn PasswordRepository>,
         algorithm: AlgorithmId,
     ) -> Self {
