@@ -14,6 +14,6 @@ pub mod memory;
 
 // Re-export key types for easier access
 pub use algorithm::AlgorithmId;
-pub use key::KeyMaterial;
+pub use key::{KeyMaterial, KeyDerivationParams};
 pub use memory::SecureBox;
 pub use session::CryptoSession;
