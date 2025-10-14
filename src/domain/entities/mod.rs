@@ -4,18 +4,16 @@
 //! in the Shadow file encryption domain.
 
 pub mod algorithm;
-pub mod key_material;
+pub mod key;
 pub mod encrypted_file;
 pub mod plaintext_file;
-pub mod crypto_session;
-pub mod duplicate_detector;
+pub mod session;
 pub mod metadata;
 pub mod header;
-pub mod version_matrix;
 pub mod memory;
 
 // Re-export key types for easier access
 pub use algorithm::AlgorithmId;
-pub use key_material::KeyMaterial;
+pub use key::KeyMaterial;
 pub use memory::SecureBox;
-pub use crypto_session::CryptoSession;
+pub use session::CryptoSession;

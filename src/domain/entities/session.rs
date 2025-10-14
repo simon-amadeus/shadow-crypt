@@ -4,7 +4,7 @@
 //! Based on specs/DOMAIN_ARCHITECTURE.md
 
 use super::algorithm::AlgorithmId;
-use super::key_material::KeyMaterial;
+use super::key::KeyMaterial;
 use crate::domain::errors::DomainResult;
 
 /// Manages cryptographic state and key material for operations
