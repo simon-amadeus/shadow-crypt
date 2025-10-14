@@ -9,15 +9,16 @@
 //! - `encryption` - Encrypting plaintext files to encrypted files
 //! - `decryption` - Decrypting encrypted files to plaintext files  
 //! - `listing` - Discovering and inspecting encrypted files
-//! - `file_operations` - Type-safe file I/O with atomic transactions
 //!
 //! **Shared Foundation:**
-//! - `shared` - Common entities, value objects, and types
+//! - `shared/file` - File entities, paths, operations and transactions
+//! - `shared/crypto` - Cryptographic primitives and algorithms  
 //! - `errors` - Domain-wide error types
 //!
 //! ## Design Principles
 //!
 //! - **Vertical Slicing**: Group by business capability, not technical concern
+//! - **Topic-Based Sharing**: Shared concepts organized by cohesion 
 //! - **Clean Interfaces**: Each slice exposes only what other slices need
 //! - **Dependency Direction**: Slices depend on shared, not on each other
 //! - **Pure Domain**: No infrastructure dependencies within slices
@@ -36,9 +37,6 @@ pub mod listing;
 
 pub mod shared;
 pub mod errors;
-
-// Legacy services directory (will be removed after migration)
-pub mod services;
 
 // ============================================================================
 // PUBLIC DOMAIN API - ORGANIZED BY CAPABILITY
@@ -69,9 +67,11 @@ pub mod list {
 
 /// File I/O operations capability
 pub mod files {
-    pub use crate::domain::shared::{
-        FileHandler, FileTransaction, TransactionBuilder, FileOperation
-    };
+    // Each vertical slice has its own file operations
+    // No shared file handler needed - too generic
+    pub use crate::domain::encryption::EncryptionFileHandler;
+    pub use crate::domain::decryption::DecryptionFileHandler;
+    pub use crate::domain::listing::ListingFileHandler;
 }
 
 /// Shared domain types and entities - organized by topic
@@ -83,9 +83,10 @@ pub mod types {
         PlaintextFile, EncryptedFile,
         PlaintextFilePath, EncryptedFilePath, TypedFilePath,
         FileMetadata, FileType,
-        FileHandler, FileTransaction, TransactionBuilder, FileOperation,
+        // File format structure
+        TlvHeader, TlvHeaderBuilder, TlvFieldType,
         // Crypto primitives
-        KeyMaterial, ContentHash, TlvHeader, CryptoSession,
+        KeyMaterial, ContentHash, CryptoSession,
     };
 }
 
@@ -100,7 +101,6 @@ pub use errors::{DomainError, DomainResult};
 pub use encryption::EncryptionService;
 pub use decryption::DecryptionService; 
 pub use listing::ListingService;
-pub use shared::FileHandler;
 
 // Most commonly used data types
 pub use shared::{AlgorithmId, PlaintextFile, EncryptedFile};

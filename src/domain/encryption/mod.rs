@@ -3,6 +3,7 @@
 //! Business capability: Encrypting plaintext files to encrypted files.
 
 pub mod service;
+pub mod file_handler;
 
 // Re-export public interface
 pub use service::{
@@ -11,4 +12,9 @@ pub use service::{
     EncryptionOutcome,
     EncryptionEstimate,
     EncryptionResult,
+};
+
+pub use file_handler::{
+    EncryptionFileHandler,
+    EncryptionFileResult,
 };

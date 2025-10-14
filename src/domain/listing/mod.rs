@@ -3,6 +3,7 @@
 //! Business capability: Discovering and inspecting encrypted files.
 
 pub mod service;
+pub mod file_handler;
 
 // Re-export public interface
 pub use service::{
@@ -11,4 +12,9 @@ pub use service::{
     FileInfo,
     DirectoryListing,
     ListingResult,
+};
+
+pub use file_handler::{
+    ListingFileHandler,
+    ListingFileResult,
 };

@@ -24,12 +24,14 @@ pub mod crypto;
 
 // File-related exports
 pub use file::{
+    // Entities
     plaintext_file::PlaintextFile, 
     encrypted_file::EncryptedFile,
+    // Paths and metadata  
     path::{PlaintextFilePath, EncryptedFilePath, TypedFilePath}, 
     metadata::{FileMetadata, FileType},
+    // File format and structure
     header::{TlvHeader, TlvHeaderBuilder, TlvFieldType},
-    handler::{FileHandler, FileTransaction, TransactionBuilder, FileOperation},
 };
 
 // Crypto-related exports  

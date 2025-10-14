@@ -18,12 +18,6 @@ pub mod metadata;
 pub mod header;
 
 // ============================================================================
-// FILE OPERATIONS & TRANSACTIONS
-// ============================================================================
-
-pub mod handler;
-
-// ============================================================================
 // PUBLIC API - ORGANIZED BY CONCERN
 // ============================================================================
 
@@ -35,12 +29,3 @@ pub use encrypted_file::EncryptedFile;
 pub use path::{PlaintextFilePath, EncryptedFilePath, TypedFilePath};
 pub use metadata::{FileMetadata, FileType};
 pub use header::{TlvHeader, TlvHeaderBuilder, TlvFieldType};
-
-// File operations  
-pub use handler::{
-    FileHandler,
-    FileTransaction, 
-    TransactionBuilder,
-    FileOperation,
-    FileResult,
-};
