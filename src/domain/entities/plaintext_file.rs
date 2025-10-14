@@ -1,16 +1,14 @@
-//! # PlaintextFile Entity
+//! PlaintextFile Entity
 //!
-//! Represents a plaintext file ready for encryption.
-//! Based on specs/DOMAIN_ARCHITECTURE.md
+//! Immutable representation of plaintext file data ready for encryption.
+//! Performs no I/O operations and has no side effects.
 
 use std::path::{Path, PathBuf};
-use std::fs;
-use crate::domain::errors::{DomainError, DomainResult};
 use crate::domain::entities::metadata::FileMetadata;
 use sha2::{Sha256, Digest};
 
-/// Represents a plaintext file ready for encryption
-#[derive(Debug)]
+/// Immutable plaintext file entity for encryption workflows
+#[derive(Debug, Clone)]
 pub struct PlaintextFile {
     path: PathBuf,
     content: Vec<u8>,
@@ -19,73 +17,78 @@ pub struct PlaintextFile {
 }
 
 impl PlaintextFile {
-    /// Create PlaintextFile from a file path, loading content and metadata
-    pub fn from_path(path: &Path) -> DomainResult<Self> {
-        // Validate path points to a regular file
-        let fs_metadata = fs::metadata(path)
-            .map_err(|e| DomainError::file_access_denied(
-                path.display().to_string(), 
-                &format!("Cannot read file metadata: {}", e)
-            ))?;
-
-        if !fs_metadata.is_file() {
-            return Err(DomainError::InputValidationError(
-                crate::domain::errors::InputValidationError::InvalidPath { 
-                    path: path.display().to_string(),
-                    reason: "Path must point to a regular file".to_string() 
-                }
-            ));
-        }
-
-        // Load file content
-        let content = fs::read(path)
-            .map_err(|e| DomainError::file_access_denied(
-                path.display().to_string(),
-                &format!("Cannot read file content: {}", e)
-            ))?;
-
-        // Extract metadata
-        let metadata = FileMetadata::from_path(path)
-            .map_err(|e| DomainError::file_access_denied(
-                path.display().to_string(),
-                &format!("Cannot extract file metadata: {}", e)
-            ))?;
-
-        // Calculate content hash
+    /// Creates a new PlaintextFile from loaded data
+    pub fn new(path: PathBuf, content: Vec<u8>, metadata: FileMetadata) -> Self {
         let mut hasher = Sha256::new();
         hasher.update(&content);
         let content_hash: [u8; 32] = hasher.finalize().into();
 
-        Ok(Self {
-            path: path.to_path_buf(),
+        Self {
+            path,
             content,
             metadata,
             content_hash,
-        })
+        }
     }
 
-    /// Get the content hash
+    /// Returns the content hash
     pub fn content_hash(&self) -> &[u8; 32] {
         &self.content_hash
     }
 
-    /// Get the file size
+    /// Returns the file size in bytes
     pub fn size(&self) -> usize {
         self.content.len()
     }
 
-    /// Get the original file path
+    /// Returns the original file path
     pub fn original_path(&self) -> &Path {
         &self.path
     }
 
-    /// Get the file metadata
+    /// Returns the file metadata
     pub fn metadata(&self) -> &FileMetadata {
         &self.metadata
     }
 
-    /// Get the file content
+    /// Returns the file content
     pub fn content(&self) -> &[u8] {
         &self.content
+    }
+
+    /// Returns true if the file content is empty
+    pub fn is_empty(&self) -> bool {
+        self.content.is_empty()
+    }
+
+    /// Returns the filename without path
+    pub fn filename(&self) -> Option<&str> {
+        self.path.file_name()?.to_str()
+    }
+
+    /// Returns the file extension
+    pub fn extension(&self) -> Option<&str> {
+        self.path.extension()?.to_str()
+    }
+
+    /// Verifies content integrity against stored hash
+    pub fn verify_integrity(&self) -> bool {
+        let mut hasher = Sha256::new();
+        hasher.update(&self.content);
+        let computed_hash: [u8; 32] = hasher.finalize().into();
+        computed_hash == self.content_hash
+    }
+
+    /// Returns content hash as hex string
+    pub fn content_hash_hex(&self) -> String {
+        self.content_hash
+            .iter()
+            .map(|byte| format!("{:02x}", byte))
+            .collect()
+    }
+
+    /// Compares content equality via hash
+    pub fn content_equals(&self, other: &Self) -> bool {
+        self.content_hash == other.content_hash
     }
 }
