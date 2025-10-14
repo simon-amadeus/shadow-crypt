@@ -4,8 +4,8 @@
 //! like reading plaintext from encrypted files.
 
 use std::path::{Path, PathBuf};
-use crate::domain::entities::metadata::FileMetadata;
-use crate::domain::entities::header::TlvHeader;
+use crate::domain::shared::metadata::FileMetadata;
+use crate::domain::shared::header::TlvHeader;
 use crate::domain::errors::DomainError;
 
 /// Type-safe file path that knows its content type at compile time.

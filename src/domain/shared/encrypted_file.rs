@@ -3,9 +3,9 @@
 //! Immutable representation of an encrypted file with header, ciphertext,
 //! and storage filenames ready for writing to disk.
 
-use crate::domain::entities::header::TlvHeader;
-use crate::domain::entities::AlgorithmId;
-use crate::domain::entities::memory::SecureBox;
+use crate::domain::shared::header::TlvHeader;
+use crate::domain::shared::AlgorithmId;
+use crate::domain::shared::memory::SecureBox;
 use crate::domain::errors::{DomainError, FormatError};
 use uuid::Uuid;
 

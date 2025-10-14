@@ -12,7 +12,7 @@ use crate::application::workflows::{
     listing_workflow::ListingWorkflow,
     migration_workflow::MigrationWorkflow,
 };
-use crate::domain::entities::AlgorithmId;
+use crate::domain::shared::AlgorithmId;
 
 /// Dependency injection container for stateless workflow coordination
 pub struct Container;

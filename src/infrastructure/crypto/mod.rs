@@ -11,7 +11,7 @@ pub mod factory;
 
 pub use errors::{CryptoError, CryptoResult};
 // Import domain abstractions - infrastructure implements these interfaces
-pub use crate::domain::entities::{AlgorithmId, KeyMaterial};
+pub use crate::domain::shared::{AlgorithmId, KeyMaterial};
 pub use crate::domain::services::{
     CryptographicAlgorithm, EncryptionResult,
     KeyDerivationConfig, EncryptionConfig, ConfigProvider, DefaultConfigProvider,

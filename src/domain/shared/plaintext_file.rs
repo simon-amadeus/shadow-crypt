@@ -3,9 +3,9 @@
 //! Immutable representation of plaintext file data ready for encryption.
 
 use std::path::{Path, PathBuf};
-use crate::domain::entities::metadata::{FileMetadata, FileType};
-use crate::domain::entities::memory::SecureBox;
-use crate::domain::entities::hash::{ContentHash, ContentHasher};
+use crate::domain::shared::metadata::{FileMetadata, FileType};
+use crate::domain::shared::memory::SecureBox;
+use crate::domain::shared::hash::{ContentHash, ContentHasher};
 use crate::domain::errors::{DomainError, InputValidationError};
 
 /// Plaintext file entity for encryption workflows.

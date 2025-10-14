@@ -110,8 +110,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     let size_str = format_file_size(file_info.size);
                     let modified_str = format_modified_time(&file_info.path);
                     let algo_short = match file_info.algorithm {
-                        shadow_crypt::domain::entities::AlgorithmId::XChaCha20Poly1305 => "XChaCha20",
-                        shadow_crypt::domain::entities::AlgorithmId::AesGcm256 => "AES-256",
+                        shadow_crypt::domain::shared::AlgorithmId::XChaCha20Poly1305 => "XChaCha20",
+                        shadow_crypt::domain::shared::AlgorithmId::AesGcm256 => "AES-256",
                     };
                     let metadata = format!("{}, V{}, {}, {}", 
                         algo_short, file_info.version, size_str, modified_str);

@@ -124,7 +124,7 @@ impl MigrationWorkflow {
 
         // Read actual file version from TLV header
         use crate::infrastructure::file_system::FileSystemService;
-        use crate::domain::entities::version_matrix::{VersionMatrix, VersionCompatibility};
+        use crate::domain::shared::version_matrix::{VersionMatrix, VersionCompatibility};
         
         let header = FileSystemService::read_header_only(path)
             .map_err(|e| MigrationWorkflowError::FileError(

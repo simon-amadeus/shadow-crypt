@@ -8,7 +8,7 @@ use std::process;
 // Import from the shadow-crypt library
 use shadow_crypt::application::workflows::encryption_workflow::{EncryptionWorkflow, EncryptionOptions};
 use shadow_crypt::application::workflows::WorkflowResult;
-use shadow_crypt::domain::entities::AlgorithmId;
+use shadow_crypt::domain::shared::AlgorithmId;
 use shadow_crypt::infrastructure::{StandardFileRepository, StandardPasswordRepository};
 use shadow_crypt::cli::common::{CLIValidator, CLIFormatter, SourceFileHandler};
 

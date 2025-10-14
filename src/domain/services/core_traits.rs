@@ -22,7 +22,7 @@
 use std::path::Path;
 use std::time::Duration;
 
-use crate::domain::entities::{
+use crate::domain::shared::{
     AlgorithmId, 
     plaintext_file::PlaintextFile,
     encrypted_file::EncryptedFile,
