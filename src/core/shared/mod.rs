@@ -20,6 +20,8 @@
 pub mod types;
 pub mod crypto;
 pub mod files;
+pub mod progress;
+pub mod pipeline;
 
 // ============================================================================
 // CONVENIENT RE-EXPORTS FOR VERTICAL SLICES
@@ -27,6 +29,12 @@ pub mod files;
 
 // Types
 pub use types::{CoreResult, CoreError, FileError, CryptoError, ValidationError};
+
+// Progress reporting
+pub use progress::ProgressStep;
+
+// Pipeline combinators
+pub use pipeline::ProcessContinue;
 
 // Crypto infrastructure
 pub use crypto::{
