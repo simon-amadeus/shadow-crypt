@@ -7,8 +7,9 @@ use glob::glob;
 use super::types::{FileJob, FileInfo, FileType, PlaintextData};
 use super::detection::detect_file_type;
 use super::format::TlvHeader;
-use crate::core::crypto::{SecureBox, ContentHasher};
-use crate::core::types::{CoreResult, FileError, ValidationError};
+use crate::core::shared::crypto::{SecureBox};
+use crate::core::shared::files::ContentHasher;
+use crate::core::shared::types::{CoreResult, FileError, ValidationError};
 
 /// Expand glob patterns into individual file paths.
 pub fn expand_patterns(patterns: Vec<String>) -> CoreResult<Vec<PathBuf>> {

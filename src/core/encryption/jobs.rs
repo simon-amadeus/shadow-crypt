@@ -3,8 +3,8 @@
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 use super::types::EncryptionJob;
-use crate::core::files::{FileJob, PlaintextData};
-use crate::core::types::{CoreResult, FileError};
+use crate::core::shared::files::{FileJob, PlaintextData};
+use crate::core::shared::types::{CoreResult, FileError};
 
 /// Create encryption jobs from classified file jobs.
 pub fn create_encryption_jobs(

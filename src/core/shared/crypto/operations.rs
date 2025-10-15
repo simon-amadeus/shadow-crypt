@@ -2,7 +2,7 @@
 
 use super::types::{AlgorithmId, KeyMaterial, KeyDerivationParams};
 use super::session::CryptoSession;
-use crate::core::types::{CoreResult, CryptoError};
+use crate::core::shared::types::{CoreResult, CryptoError};
 use argon2::{Argon2, PasswordHasher};
 use argon2::password_hash::{SaltString, rand_core::{OsRng, RngCore}};
 use chacha20poly1305::{XChaCha20Poly1305, Key, XNonce, aead::{Aead, KeyInit, generic_array::GenericArray}};

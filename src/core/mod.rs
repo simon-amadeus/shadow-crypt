@@ -1,50 +1,56 @@
 //! # Core - Functional Pipeline Architecture
 //!
-//! Pure functional core implementing the encryption pipeline with vertical slicing.
+//! Pure functional core implementing cryptographic workflows using vertical slicing.
 //! Organized by business capabilities rather than technical layers.
 //!
 //! ## Architecture Principles
 //!
-//! - **Vertical Slicing**: Modules organized by business concern
+//! - **Vertical Slicing**: Business capabilities as independent modules
+//! - **Shared Module**: Common utilities isolated in shared infrastructure  
 //! - **Pure Functions**: All transformations are pure, side effects isolated  
 //! - **Monadic Composition**: Pipeline uses Result<T, E> for error handling
 //! - **Data-First**: Simple structs + functions, not complex entities
 //!
 //! ## Module Organization
 //!
-//! - `crypto/` - Cryptography vertical slice (algorithms, keys, hashing)
-//! - `files/` - File handling vertical slice (detection, format, operations)  
+//! - `shared/` - Common utilities and infrastructure (crypto, files, types)
 //! - `encryption/` - Encryption workflow vertical slice (pipeline, jobs, validation)
+//! - `decryption/` - Decryption workflow vertical slice (future)
+//! - `listing/` - File listing workflow vertical slice (future)
 
 // ============================================================================
-// CORE MODULES
+// CORE MODULES - VERTICAL SLICES
 // ============================================================================
 
-pub mod types;
-pub mod pipeline;
-pub mod crypto;
-pub mod files;
+pub mod shared;
 pub mod encryption;
 
+// Future vertical slices:
+// pub mod decryption;
+// pub mod listing;
+
 // ============================================================================
-// CONVENIENT RE-EXPORTS
+// CONVENIENT RE-EXPORTS FROM SHARED INFRASTRUCTURE
 // ============================================================================
 
 // Core types and utilities
-pub use types::{CoreResult, CoreError};
-pub use pipeline::{Pipeline, PipelineStep};
+pub use shared::{CoreResult, CoreError};
 
-// Crypto vertical slice
-pub use crypto::{
+// Crypto infrastructure
+pub use shared::{
     AlgorithmId, SecureBox, ContentHash, ContentHasher,
     KeyMaterial, KeyDerivationParams, CryptoSession,
 };
 
-// Files vertical slice  
-pub use files::{
-    FileJob, FileInfo, FileType, TlvHeader, TlvFieldType,
-    PlaintextData, EncryptedData,
+// File infrastructure  
+pub use shared::{
+    FileJob, FileInfo, FileType, EncryptedData,
+    TlvHeader, TlvFieldType, PlaintextData,
 };
+
+// ============================================================================
+// CONVENIENT RE-EXPORTS FROM VERTICAL SLICES
+// ============================================================================
 
 // Encryption vertical slice
 pub use encryption::{

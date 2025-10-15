@@ -3,9 +3,9 @@
 use std::fs::File;
 use std::io::{Write, BufWriter};
 use std::path::Path;
-use crate::core::files::EncryptedData;
+use crate::core::shared::files::EncryptedData;
 use crate::core::encryption::types::EncryptionJob;
-use crate::core::types::{CoreResult, FileError};
+use crate::core::shared::types::{CoreResult, FileError};
 
 /// Write encrypted data to file atomically.
 /// 
@@ -98,7 +98,7 @@ fn create_temp_path(target_path: &Path) -> CoreResult<std::path::PathBuf> {
 /// Write TLV header to a writer.
 fn write_tlv_header(
     writer: &mut impl Write,
-    header: &crate::core::files::format::TlvHeader,
+    header: &crate::core::shared::files::format::TlvHeader,
 ) -> CoreResult<()> {
     // Write version
     writer.write_all(&header.version().to_le_bytes())

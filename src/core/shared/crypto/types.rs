@@ -1,6 +1,7 @@
 //! Core cryptographic types - migrated from domain/shared.
 
-use crate::core::types::{CoreResult, CryptoError};
+use std::fmt;
+use crate::core::shared::types::{CoreResult, CryptoError};
 use zeroize::Zeroize;
 
 // ============================================================================

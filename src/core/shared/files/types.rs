@@ -2,8 +2,9 @@
 
 use std::path::PathBuf;
 use std::time::SystemTime;
-use crate::core::crypto::{SecureBox, ContentHash};
-use crate::core::files::format::TlvHeader;
+use crate::core::shared::crypto::{SecureBox};
+use crate::core::shared::files::format::TlvHeader;
+use crate::core::shared::files::ContentHash;
 
 // ============================================================================
 // FILE CLASSIFICATION

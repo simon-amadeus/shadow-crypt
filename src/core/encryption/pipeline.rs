@@ -4,12 +4,11 @@ use std::time::Instant;
 use super::types::{EncryptionOptions, EncryptionJob, EncryptionResult, EncryptionFailure, EncryptionReport};
 use super::jobs::{create_encryption_jobs, validate_encryption_jobs};
 use super::validation::{validate_options, validate_files_for_encryption, validate_password};
-use crate::core::files::operations::{expand_patterns, filter_regular_files, classify_files};
-use crate::core::files::{EncryptedData, write_encrypted_file, remove_source_file, verify_encrypted_file};
-use crate::core::files::format::{TlvHeaderBuilder, TlvHeader};
-use crate::core::crypto::{create_session, generate_nonce, encrypt_data};
-use crate::core::types::{CoreResult, CoreError};
-use crate::{pipeline};
+use crate::core::shared::files::operations::{expand_patterns, filter_regular_files, classify_files};
+use crate::core::shared::files::{EncryptedData, write_encrypted_file, remove_source_file, verify_encrypted_file};
+use crate::core::shared::files::format::{TlvHeaderBuilder, TlvHeader};
+use crate::core::shared::crypto::{create_session, generate_nonce, encrypt_data, CryptoSession};
+use crate::core::shared::types::{CoreResult, CoreError};
 
 /// Main encryption pipeline orchestrating the functional workflow.
 pub struct EncryptionPipeline;
@@ -24,12 +23,9 @@ impl EncryptionPipeline {
         let start_time = Instant::now();
 
         // Step 1-3: Parse args, expand patterns, validate
-        let file_jobs = pipeline!(
-            patterns
-            => expand_patterns                    // Step 2: expand patterns
-            => filter_regular_files              // Step 6: filter regular files  
-            => classify_files                    // Step 7-8: classify and hash
-        )?;
+        let paths = expand_patterns(patterns)?;
+        let regular_files = filter_regular_files(paths)?;
+        let file_jobs = classify_files(regular_files)?;
 
         // Step 3: Validate password and options
         validate_password(&password)?;
@@ -44,7 +40,7 @@ impl EncryptionPipeline {
         let session = create_session(&password, options.algorithm, None)?;
 
         // Step 11-13: Execute encryption jobs
-        let (successful, failed) = Self::process_encryption_jobs(encryption_jobs, &session, &options);
+        let (successful, failed) = Self::process_batch_jobs(encryption_jobs, &session, &options);
 
         let total_duration = start_time.elapsed();
         
@@ -53,9 +49,9 @@ impl EncryptionPipeline {
     }
 
     /// Process all encryption jobs, collecting successes and failures.
-    fn process_encryption_jobs(
+    fn process_batch_jobs(
         jobs: Vec<EncryptionJob>,
-        session: &crate::core::crypto::CryptoSession,
+        session: &CryptoSession,
         options: &EncryptionOptions,
     ) -> (Vec<EncryptionResult>, Vec<EncryptionFailure>) {
         let mut successful = Vec::new();
@@ -93,7 +89,7 @@ impl EncryptionPipeline {
     /// Encrypt a single job and write to disk with proper cleanup.
     fn encrypt_and_write_job(
         job: &EncryptionJob,
-        session: &crate::core::crypto::CryptoSession,
+        session: &CryptoSession,
         options: &EncryptionOptions,
     ) -> CoreResult<EncryptedData> {
         // Step 11: Encrypt the file
@@ -116,7 +112,7 @@ impl EncryptionPipeline {
     /// Encrypt a single job (Steps 11-12: encrypt + validate).
     fn encrypt_single_job(
         job: &EncryptionJob,
-        session: &crate::core::crypto::CryptoSession,
+        session: &CryptoSession,
         options: &EncryptionOptions,
     ) -> CoreResult<EncryptedData> {
         // Load file content

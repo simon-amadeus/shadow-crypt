@@ -1,8 +1,9 @@
 //! Validation functions for encryption pipeline.
 
+use std::path::Path;
 use super::types::EncryptionOptions;
-use crate::core::files::FileJob;
-use crate::core::types::{CoreResult, ValidationError, FileError};
+use crate::core::shared::files::FileJob;
+use crate::core::shared::types::{CoreResult, ValidationError, FileError};
 
 /// Validate encryption options.
 pub fn validate_options(options: &EncryptionOptions) -> CoreResult<()> {

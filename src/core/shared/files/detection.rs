@@ -4,7 +4,7 @@ use std::path::Path;
 use std::fs;
 use std::io::Read;
 use super::types::FileType;
-use crate::core::types::{CoreResult, FileError};
+use crate::core::shared::types::{CoreResult, FileError};
 
 /// Detect the type of a file.
 pub fn detect_file_type(path: &Path) -> CoreResult<FileType> {

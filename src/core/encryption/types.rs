@@ -2,8 +2,8 @@
 
 use std::path::PathBuf;
 use std::time::Duration;
-use crate::core::crypto::{AlgorithmId, ContentHash};
-use crate::core::files::EncryptedData;
+use crate::core::shared::crypto::{AlgorithmId};
+use crate::core::shared::files::{ContentHash, EncryptedData};
 
 // ============================================================================
 // CONFIGURATION
