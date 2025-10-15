@@ -9,7 +9,7 @@ use crate::core::types::{CoreResult, FileError};
 /// Detect the type of a file.
 pub fn detect_file_type(path: &Path) -> CoreResult<FileType> {
     let metadata = fs::metadata(path)
-        .map_err(|e| FileError::NotFound { 
+        .map_err(|_e| FileError::NotFound { 
             path: path.display().to_string() 
         })?;
 
@@ -40,7 +40,7 @@ pub fn detect_file_type(path: &Path) -> CoreResult<FileType> {
 /// Check if a file is an encrypted Shadow file by examining magic bytes.
 pub fn is_encrypted_file(path: &Path) -> CoreResult<bool> {
     let mut file = fs::File::open(path)
-        .map_err(|e| FileError::NotFound { 
+        .map_err(|_e| FileError::NotFound { 
             path: path.display().to_string() 
         })?;
 

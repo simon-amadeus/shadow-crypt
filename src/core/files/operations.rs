@@ -5,9 +5,9 @@ use std::fs;
 use std::io::Read;
 use glob::glob;
 use super::types::{FileJob, FileInfo, FileType, PlaintextData};
-use super::detection::{detect_file_type, is_encrypted_file};
+use super::detection::detect_file_type;
 use super::format::TlvHeader;
-use crate::core::crypto::{SecureBox, ContentHash, ContentHasher};
+use crate::core::crypto::{SecureBox, ContentHasher};
 use crate::core::types::{CoreResult, FileError, ValidationError};
 
 /// Expand glob patterns into individual file paths.
