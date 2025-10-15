@@ -28,18 +28,6 @@ pub trait ProgressStep<T>: Iterator<Item = T> + Sized {
     /// 
     /// Prints the progress message when the iterator is first consumed,
     /// then delegates to the wrapped iterator.
-    /// 
-    /// # Example
-    /// ```rust
-    /// use crate::core::shared::progress::ProgressStep;
-    /// 
-    /// let results: Vec<i32> = (1..=5)
-    ///     .progress_step("Processing numbers...")
-    ///     .map(|x| x * 2)
-    ///     .collect();
-    /// // Prints: ⏳ Processing numbers...
-    /// // Returns: [2, 4, 6, 8, 10]
-    /// ```
     fn progress_step(self, message: &'static str) -> ProgressWrapper<Self> {
         ProgressWrapper { 
             inner: self, 

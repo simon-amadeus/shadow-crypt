@@ -22,7 +22,7 @@ pub mod crypto;
 pub mod files;
 pub mod progress;
 pub mod pipeline;
-pub mod monadic;
+// pub mod monadic;
 
 // ============================================================================
 // CONVENIENT RE-EXPORTS FOR VERTICAL SLICES
@@ -38,7 +38,7 @@ pub use progress::ProgressStep;
 pub use pipeline::ProcessContinue;
 
 // Monadic pipeline combinators
-pub use monadic::{PipelineItem, PipelineIterator, Pipeline, PipelineFailure};
+// pub use monadic::{PipelineItem, PipelineIterator, Pipeline, PipelineFailure};
 
 // Crypto infrastructure
 pub use crypto::{

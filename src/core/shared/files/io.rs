@@ -38,8 +38,16 @@ pub fn write_encrypted_file(
 
         let mut writer = BufWriter::new(temp_file);
 
-        // Write TLV header
-        write_tlv_header(&mut writer, &encrypted_data.header)?;
+        // Write TLV header using the proper serialization
+        let header_bytes = encrypted_data.header.to_bytes()
+            .map_err(|e| FileError::Format {
+                reason: format!("Failed to serialize header: {}", e),
+            })?;
+        
+        writer.write_all(&header_bytes)
+            .map_err(|e| FileError::Format {
+                reason: format!("Failed to write header: {}", e),
+            })?;
 
         // Write encrypted content
         writer.write_all(&encrypted_data.ciphertext)
@@ -65,7 +73,7 @@ pub fn write_encrypted_file(
 /// Remove source file after successful encryption.
 pub fn remove_source_file(path: &Path) -> CoreResult<()> {
     std::fs::remove_file(path)
-        .map_err(|e| FileError::Permission {
+        .map_err(|_e| FileError::Permission {
             path: path.display().to_string(),
         })?;
     Ok(())
@@ -93,52 +101,6 @@ fn create_temp_path(target_path: &Path) -> CoreResult<std::path::PathBuf> {
     );
 
     Ok(parent.join(temp_name))
-}
-
-/// Write TLV header to a writer.
-fn write_tlv_header(
-    writer: &mut impl Write,
-    header: &crate::core::shared::files::format::TlvHeader,
-) -> CoreResult<()> {
-    // Write version
-    writer.write_all(&header.version().to_le_bytes())
-        .map_err(|e| FileError::Format {
-            reason: format!("Failed to write header version: {}", e),
-        })?;
-
-    // For now, write a simplified header format
-    // In production, you'd implement the full TLV serialization
-    
-    // Write algorithm ID if present
-    if let Some(algo_id) = header.algorithm_id() {
-        writer.write_all(&[0x10, 0x02, 0x00]) // Type=0x10, Length=2
-            .map_err(|e| FileError::Format {
-                reason: format!("Failed to write algorithm field: {}", e),
-            })?;
-        writer.write_all(&algo_id.to_le_bytes())
-            .map_err(|e| FileError::Format {
-                reason: format!("Failed to write algorithm ID: {}", e),
-            })?;
-    }
-
-    // Write filename if present
-    if let Some(filename) = header.original_filename() {
-        let filename_bytes = filename.as_bytes();
-        writer.write_all(&[0x01]) // Type=0x01
-            .map_err(|e| FileError::Format {
-                reason: format!("Failed to write filename field type: {}", e),
-            })?;
-        writer.write_all(&(filename_bytes.len() as u16).to_le_bytes())
-            .map_err(|e| FileError::Format {
-                reason: format!("Failed to write filename length: {}", e),
-            })?;
-        writer.write_all(filename_bytes)
-            .map_err(|e| FileError::Format {
-                reason: format!("Failed to write filename: {}", e),
-            })?;
-    }
-
-    Ok(())
 }
 
 /// Verify that an encrypted file was written correctly.
