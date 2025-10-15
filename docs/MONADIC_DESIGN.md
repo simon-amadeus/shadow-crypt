@@ -257,18 +257,18 @@ where
 
 ## Implementation Strategy
 
-### Phase 3: Monadic Foundation
-1. **Create monadic types** (`PipelineItem`, `PipelineIterator`)
-2. **Implement core combinators** (`map_continue`, `flat_map_continue`, `filter_continue`)
-3. **Add collection methods** (`collect_results`, `collect_report`)
+### Phase 3: Monadic Foundation ✅ COMPLETED
+1. **Create monadic types** (`PipelineItem`, `PipelineIterator`) ✅
+2. **Implement core combinators** (`map_continue`, `flat_map_continue`, `filter_continue`) ✅
+3. **Add collection methods** (`collect_results`, `collect_report`) ✅
 
-### Phase 4: Pipeline Conversion
+### Phase 4: Pipeline Conversion (NEXT)
 1. **Convert pattern expansion** to use `flat_map_continue`
 2. **Convert file filtering** to use `filter_continue`
 3. **Convert job creation** to use `map_continue`
 4. **Integrate progress reporting** throughout chain
 
-### Phase 5: Advanced Combinators
+### Phase 5: Advanced Combinators (FUTURE)
 1. **Implement `and_then_continue`** for dependent operations
 2. **Add `parallel_map_continue`** for concurrent processing
 3. **Create `batch_continue`** for grouped operations
