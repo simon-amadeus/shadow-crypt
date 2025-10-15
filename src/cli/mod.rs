@@ -1,9 +1,1 @@
-//! # CLI Layer (Binaries)
-//!
-//! Command-line interface implementations for all Shadow binaries.
-
-pub mod shared;
-pub mod errors;
-pub mod common;
-
-pub use shared::{CommonModifyFlags, CommonListFlags, validate_input_patterns, validate_algorithm};
+pub mod encryption;

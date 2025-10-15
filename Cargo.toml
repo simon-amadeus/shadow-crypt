@@ -26,17 +26,17 @@ path = "src/lib.rs"
 name = "shadow"
 path = "src/bin/shadow.rs"
 
-[[bin]]
-name = "unshadow"
-path = "src/bin/unshadow.rs"
+#[[bin]]
+#name = "unshadow"
+#path = "src/bin/unshadow.rs"
 
-[[bin]]
-name = "shadows"
-path = "src/bin/shadows.rs"
+#[[bin]]
+#name = "shadows"
+#path = "src/bin/shadows.rs"
 
-[[bin]]
-name = "shadowmigrate"
-path = "src/bin/shadowmigrate.rs"
+#[[bin]]
+#name = "shadowmigrate"
+#path = "src/bin/shadowmigrate.rs"
 
 [dependencies]
 aes-gcm = "0.10"         # AES-256-GCM authenticated encryption

@@ -1,0 +1,11 @@
+//! Files vertical slice - all file-related functionality.
+
+pub mod types;
+pub mod format;
+pub mod detection;
+pub mod operations;
+
+// Re-export commonly used types
+pub use types::{FileJob, FileInfo, FileType, PlaintextData, EncryptedData};
+pub use format::{TlvHeader, TlvFieldType, TlvHeaderBuilder};
+pub use detection::{detect_file_type, is_encrypted_file};
