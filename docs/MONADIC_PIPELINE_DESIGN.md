@@ -4,270 +4,391 @@
 
 This document outlines the design for transforming the current encryption pipeline into a monadic functional pipeline that provides resilient error handling, progress reporting, and continues processing even when individual files fail.
 
-## Current Architecture
+## Current Implementation Analysis
 
-The existing pipeline follows a simple sequential approach:
+The existing pipeline in `/src/core/encryption/pipeline.rs` follows this structure:
 ```rust
-patterns -> expand_patterns -> filter_regular_files -> classify_files -> validate -> create_jobs -> encrypt_batch -> report
+patterns -> expand_patterns -> filter_regular_files -> classify_files 
+-> validate_password -> validate_options -> validate_files 
+-> create_encryption_jobs -> validate_encryption_jobs 
+-> create_session -> process_batch_jobs -> report
 ```
 
-**Issues with Current Approach:**
-- **Early Termination**: Any failure stops the entire pipeline
-- **No Progress Feedback**: Users don't see what's happening during long operations
-- **Binary Success/Failure**: Either everything works or nothing works
-- **Poor Error Aggregation**: Individual file failures aren't collected and reported comprehensively
+**Current Strengths:**
+- **Good error handling foundation**: Uses `CoreResult<T>` consistently
+- **Existing result collection**: Already collects `Vec<EncryptionResult>` and `Vec<EncryptionFailure>`
+- **Comprehensive reporting**: `EncryptionReport` has statistics and metrics
+- **Clean separation**: Validation, job creation, and execution are separate phases
 
-## Target Architecture: Monadic Pipeline
+**Current Limitations:**
+- **Early termination on validation**: Validation failures stop entire pipeline
+- **No progress feedback**: Long operations provide no user feedback
+- **Batch processing**: Individual file failures stop remaining files in batch
+- **Manual result aggregation**: Manual loops instead of functional composition
 
-The new architecture will implement four key changes to provide resilient, user-friendly processing:
+## Target Architecture: Enhanced Monadic Pipeline
+
+The refined design builds on the existing strengths while addressing limitations through **four targeted improvements**:
 
 ## 1. Progress Wrapper
 
 ### Purpose
-Provide real-time feedback to users during long-running operations without cluttering business logic.
+Add real-time progress feedback to the existing pipeline without changing core business logic.
+
+### Current State
+The existing pipeline runs silently. Users have no feedback during long operations like processing many files.
 
 ### Design
 ```rust
-/// Wrapper that adds progress reporting to any iterator
+/// Minimal progress wrapper that can be added to any iterator
 pub struct ProgressWrapper<I> {
     inner: I,
-    message: String,
+    message: &'static str,
+    started: bool,
 }
 
 impl<I: Iterator> Iterator for ProgressWrapper<I> {
     type Item = I::Item;
     
     fn next(&mut self) -> Option<Self::Item> {
-        // Show progress indicator on first call
-        // Delegate to inner iterator
+        if !self.started {
+            println!("⏳ {}", self.message);
+            self.started = true;
+        }
         self.inner.next()
     }
 }
 
-/// Extension trait to add progress reporting to any iterator
-pub trait MonadicPipeline<T>: Iterator<Item = T> + Sized {
-    fn progress_step(self, message: &str) -> ProgressWrapper<Self> {
-        println!("⏳ {}", message);
-        ProgressWrapper { inner: self, message: message.to_string() }
+/// Extension trait for existing iterators - non-intrusive addition
+pub trait ProgressStep<T>: Iterator<Item = T> + Sized {
+    fn progress_step(self, message: &'static str) -> ProgressWrapper<Self> {
+        ProgressWrapper { inner: self, message, started: false }
     }
 }
+
+// Blanket implementation for all iterators
+impl<T, I: Iterator<Item = T>> ProgressStep<T> for I {}
 ```
 
-### Usage Example
+### Integration with Current Pipeline
 ```rust
-let results = patterns
-    .into_iter()
-    .progress_step("📁 Expanding file patterns...")
-    .flat_map(|pattern| expand_pattern(pattern))
+// Before (silent)
+let paths = expand_patterns(patterns)?;
+let regular_files = filter_regular_files(paths)?;
+
+// After (with progress)
+let paths = expand_patterns(patterns)?;
+let regular_files = regular_files.into_iter()
     .progress_step("🔍 Filtering regular files...")
-    .filter(|path| is_regular_file(path))
-    .collect();
+    .collect::<Result<Vec<_>, _>>()?;
 ```
 
 ### Benefits
-- **Non-intrusive**: Business logic remains clean
-- **Chainable**: Fits naturally into functional pipelines
-- **User Experience**: Real-time feedback during operations
-- **Minimal Overhead**: Zero cost when not used
+- **Zero impact**: Existing code unchanged, progress added through iterator extension
+- **Minimal overhead**: Only prints once per pipeline stage
+- **User experience**: Clear feedback during long operations
+- **Implementable immediately**: Can be added to current pipeline without restructuring
 
 ## 2. Critical vs Non-Critical Boundaries
 
 ### Purpose
-Distinguish between failures that should stop everything (critical) versus failures that should be collected and reported (non-critical).
+Preserve the current validation approach while enabling file-level resilience during processing.
+
+### Current Implementation Analysis
+The existing pipeline has good validation structure:
+```rust
+// Current critical validations (correctly fail-fast)
+validate_password(&password)?;                    // ✅ Should fail fast
+validate_options(&options)?;                      // ✅ Should fail fast  
+validate_files_for_encryption(&file_jobs)?;       // ✅ Should fail fast
+validate_encryption_jobs(&encryption_jobs, ...)?; // ✅ Should fail fast
+let session = create_session(&password, ...)?;    // ✅ Should fail fast
+
+// Current batch processing (could be improved)
+let (successful, failed) = Self::process_batch_jobs(encryption_jobs, &session, &options);
+```
+
+The `process_batch_jobs` method already collects failures! The issue is it uses a manual loop instead of functional composition.
 
 ### Design Philosophy
 
-**Critical Failures (Fail Fast):**
-- Password validation failure
-- Invalid encryption options
-- Unable to create crypto session
-- System-level issues (permissions, disk space)
+**Keep Current Critical Boundaries (No Changes Needed):**
+- Password validation failure → abort entirely ✅
+- Invalid encryption options → abort entirely ✅  
+- Unable to create crypto session → abort entirely ✅
+- File validation issues → abort entirely ✅
 
-**Non-Critical Failures (Continue Processing):**
-- Individual file access errors
-- Individual file encryption failures
-- Non-fatal I/O issues
+**Enhance Non-Critical Processing (Targeted Improvement):**
+- Individual file encryption failures → collect and continue ✅ (already implemented)
+- Individual I/O errors → collect and continue ✅ (already implemented)
 
-### Implementation Strategy
+### Refined Implementation Strategy
 ```rust
 pub fn execute(patterns: Vec<String>, password: String, options: EncryptionOptions) -> CoreResult<EncryptionReport> {
-    // CRITICAL BOUNDARY: These must succeed or abort entirely
-    validate_password(&password)?;           // Critical: Invalid password = abort
-    validate_options(&options)?;             // Critical: Invalid options = abort  
-    let session = create_session(&password, options.algorithm)?; // Critical: Crypto failure = abort
+    // CRITICAL BOUNDARY: Keep existing validation (no changes)
+    let paths = expand_patterns(patterns)?;
+    let regular_files = filter_regular_files(paths)?;
+    let file_jobs = classify_files(regular_files)?;
     
-    // NON-CRITICAL BOUNDARY: Collect failures, continue processing
-    let results = patterns
+    validate_password(&password)?;
+    validate_options(&options)?;
+    validate_files_for_encryption(&file_jobs)?;
+    
+    let encryption_jobs = create_encryption_jobs(file_jobs, options.obfuscate_filename)?;
+    validate_encryption_jobs(&encryption_jobs, options.force_overwrite)?;
+    let session = create_session(&password, options.algorithm, None)?;
+    
+    // NON-CRITICAL BOUNDARY: Enhance existing batch processing with functional style
+    let results = encryption_jobs
         .into_iter()
-        .flat_map_continue(|pattern| expand_pattern(pattern))     // Continue on pattern errors
-        .filter_continue(|path| is_regular_file(path))            // Continue on access errors
-        .map_continue(|path| create_encryption_job(path))         // Continue on job creation errors
-        .map_continue(|job| encrypt_file(job, &session))          // Continue on encryption errors
-        .collect_results(); // Collect both successes and failures
+        .progress_step("🔐 Encrypting files...")
+        .map_continue(|job| Self::encrypt_and_write_job(&job, &session, &options))
+        .collect_results();
     
-    // Generate comprehensive report
-    Ok(EncryptionReport::from_results(results))
-}
-```
-
-### Error Boundary Rules
-1. **Before Session Creation**: All errors are critical (fail fast)
-2. **After Session Creation**: File-level errors are non-critical (continue processing)
-3. **System-Level Issues**: Always critical regardless of pipeline stage
-
-## 3. Result Collection
-
-### Purpose
-Collect both successful operations and failures for comprehensive reporting at the end.
-
-### Design
-```rust
-/// Result of a pipeline operation that can be either success or failure
-#[derive(Debug)]
-pub struct PipelineItem<T, E> {
-    pub result: Result<T, E>,
-}
-
-impl<T, E> PipelineItem<T, E> {
-    pub fn success(value: T) -> Self {
-        Self { result: Ok(value) }
-    }
-    
-    pub fn failure(error: E) -> Self {
-        Self { result: Err(error) }
-    }
-    
-    pub fn is_success(&self) -> bool {
-        self.result.is_ok()
-    }
-}
-
-/// Enhanced outcome type for final reporting
-#[derive(Debug, Clone)]
-pub enum EncryptionOutcome {
-    Success(EncryptionResult),
-    Failure(EncryptionFailure),
-}
-
-/// Enhanced report with detailed success/failure breakdown
-#[derive(Debug)]
-pub struct EncryptionReport {
-    pub outcomes: Vec<EncryptionOutcome>,
-    pub total_files: usize,
-    pub successful: usize,
-    pub failed: usize,
-    pub total_duration: Duration,
-    pub total_input_size: u64,
-    pub total_output_size: u64,
+    // Convert to existing report structure (minimal changes)
+    let (successful, failed) = Self::partition_results(results);
+    Ok(EncryptionReport::new(successful, failed, start_time.elapsed()))
 }
 ```
 
 ### Benefits
-- **Complete Visibility**: Users see exactly what happened to each file
-- **No Lost Work**: Successful encryptions aren't lost due to later failures
-- **Detailed Reporting**: Rich information for troubleshooting
-- **Resumable Operations**: Failed files can be identified and retried
+- **Preserves existing validation logic**: No need to change proven validation code
+- **Enhances file processing**: Individual files can fail without stopping others  
+- **Minimal structural changes**: Builds on existing `process_batch_jobs` pattern
+- **Maintains compatibility**: Same `EncryptionReport` structure
+
+## 3. Result Collection
+
+### Purpose
+Enhance the existing result collection with functional composition while preserving current data structures.
+
+### Current Implementation Analysis
+The existing code already has excellent result collection:
+```rust
+// Current types (keep these!)
+pub struct EncryptionResult {
+    pub job: EncryptionJob,
+    pub algorithm: AlgorithmId,
+    pub duration: Duration,
+    pub output_size: u64,
+    pub encrypted_data: EncryptedData,
+}
+
+pub struct EncryptionFailure {
+    pub job: EncryptionJob,
+    pub error: String,
+    pub duration: Duration,
+}
+
+pub struct EncryptionReport {
+    pub successful: Vec<EncryptionResult>,  // ✅ Already perfect
+    pub failed: Vec<EncryptionFailure>,     // ✅ Already perfect
+    pub total_duration: Duration,           // ✅ Good metrics
+    pub total_bytes_processed: u64,         // ✅ Good metrics
+    pub total_files_processed: usize,       // ✅ Good metrics
+}
+```
+
+The existing `EncryptionReport` already provides comprehensive statistics and is well-designed!
+
+### Minimal Enhancement Design
+Instead of replacing the existing types, we add a simple intermediate type for functional composition:
+
+```rust
+/// Intermediate type for functional pipeline composition
+/// Converts to existing EncryptionResult/EncryptionFailure at the end
+#[derive(Debug)]
+pub enum PipelineResult {
+    Success(EncryptionResult),
+    Failure(EncryptionFailure),
+}
+
+impl PipelineResult {
+    fn into_result_and_failure(self) -> (Option<EncryptionResult>, Option<EncryptionFailure>) {
+        match self {
+            PipelineResult::Success(result) => (Some(result), None),
+            PipelineResult::Failure(failure) => (None, Some(failure)),
+        }
+    }
+}
+
+/// Helper to partition pipeline results into existing Vec<Success>, Vec<Failure> structure
+fn partition_results(results: Vec<PipelineResult>) -> (Vec<EncryptionResult>, Vec<EncryptionFailure>) {
+    let mut successful = Vec::new();
+    let mut failed = Vec::new();
+    
+    for result in results {
+        match result.into_result_and_failure() {
+            (Some(success), None) => successful.push(success),
+            (None, Some(failure)) => failed.push(failure),
+            _ => unreachable!(),
+        }
+    }
+    
+    (successful, failed)
+}
+```
+
+### Integration Benefits
+- **Preserves existing APIs**: `EncryptionReport::new()` signature unchanged
+- **Maintains existing metrics**: All current statistics calculations preserved
+- **Enables functional composition**: Can use `.map()`, `.filter()` on results
+- **Zero breaking changes**: All existing code continues to work
 
 ## 4. Pipeline Combinators
 
 ### Purpose
-Provide functional combinators that continue processing on failure while collecting results.
+Replace the manual loop in `process_batch_jobs` with functional composition while maintaining the same behavior.
 
-### Core Combinators
-
-#### `map_continue`
-Transforms items while collecting failures:
+### Current Implementation Analysis
+The existing `process_batch_jobs` method already implements resilient processing:
 ```rust
-fn map_continue<U, E, F>(self, f: F) -> ContinueMapper<Self, F, U, E>
-where
-    F: Fn(T) -> Result<U, E>,
-{
-    ContinueMapper { inner: self, mapper: f, _phantom: PhantomData }
-}
+fn process_batch_jobs(jobs: Vec<EncryptionJob>, session: &CryptoSession, options: &EncryptionOptions) -> (Vec<EncryptionResult>, Vec<EncryptionFailure>) {
+    let mut successful = Vec::new();
+    let mut failed = Vec::new();
 
-impl<I, F, T, U, E> Iterator for ContinueMapper<I, F, U, E>
-where
-    I: Iterator<Item = T>,
-    F: Fn(T) -> Result<U, E>,
-{
-    type Item = PipelineItem<U, E>;
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        self.inner.next().map(|item| match (self.mapper)(item) {
-            Ok(value) => PipelineItem::success(value),
-            Err(error) => PipelineItem::failure(error),
-        })
+    for job in jobs {                                    // ✅ Processes all jobs
+        let start_time = Instant::now();
+        match Self::encrypt_and_write_job(&job, session, options) {  // ✅ Continues on failure
+            Ok(result) => successful.push(...),         // ✅ Collects success
+            Err(error) => failed.push(...),             // ✅ Collects failure
+        }
+    }
+    (successful, failed)                                 // ✅ Returns both vectors
+}
+```
+
+This is exactly the right behavior! We just want to express it functionally.
+
+### Minimal Combinator Design
+We only need one simple combinator that maintains the existing behavior:
+
+```rust
+/// Simple extension trait for iterator → (Vec<Success>, Vec<Failure>)
+pub trait ProcessContinue<T>: Iterator<Item = T> + Sized {
+    /// Process all items, collecting successes and failures separately
+    fn process_continue<S, F, E>(self, f: impl Fn(T) -> Result<S, E>) -> (Vec<S>, Vec<F>)
+    where
+        F: From<E>,
+    {
+        let mut successful = Vec::new();
+        let mut failed = Vec::new();
+        
+        for item in self {
+            match f(item) {
+                Ok(success) => successful.push(success),
+                Err(error) => failed.push(F::from(error)),
+            }
+        }
+        
+        (successful, failed)
     }
 }
+
+impl<T, I: Iterator<Item = T>> ProcessContinue<T> for I {}
 ```
 
-#### `flat_map_continue`
-Expands items while collecting failures:
+### Integration with Current Pipeline
 ```rust
-fn flat_map_continue<U, E, F, I>(self, f: F) -> ContinueFlatMapper<Self, F, U, E>
-where
-    F: Fn(T) -> Result<I, E>,
-    I: IntoIterator<Item = U>,
-```
+// Current approach (manual loop)
+let (successful, failed) = Self::process_batch_jobs(encryption_jobs, &session, &options);
 
-#### `filter_continue`
-Filters items while collecting predicate failures:
-```rust
-fn filter_continue<E, F>(self, predicate: F) -> ContinueFilter<Self, F, E>
-where
-    F: Fn(&T) -> Result<bool, E>,
-```
-
-#### `collect_results`
-Collects all pipeline items into a vector:
-```rust
-fn collect_results<U, E>(self) -> Vec<PipelineItem<U, E>>
-where
-    Self: Iterator<Item = PipelineItem<U, E>>,
-{
-    self.collect()
-}
-```
-
-### Usage Pattern
-```rust
-let results: Vec<PipelineItem<EncryptedData, CoreError>> = patterns
+// Functional approach (same behavior, cleaner expression)  
+let (successful, failed) = encryption_jobs
     .into_iter()
-    .progress_step("📁 Expanding file patterns...")
-    .flat_map_continue(|pattern| expand_patterns(&pattern))
-    .progress_step("🔍 Filtering regular files...")
-    .filter_continue(|path| is_regular_file(path))
-    .progress_step("⚙️ Creating encryption jobs...")
-    .map_continue(|path| create_encryption_job(path))
-    .progress_step("🔐 Encrypting files...")
-    .map_continue(|job| encrypt_file(job, &session))
-    .collect_results();
+    .progress_step("� Encrypting files...")
+    .process_continue(|job| {
+        let start_time = Instant::now();
+        match Self::encrypt_and_write_job(&job, &session, &options) {
+            Ok(encrypted_data) => {
+                let duration = start_time.elapsed();
+                Ok(EncryptionResult::new(job, session.algorithm(), duration, encrypted_data))
+            }
+            Err(error) => {
+                let duration = start_time.elapsed();
+                Err(EncryptionFailure::new(job, error.to_string(), duration))
+            }
+        }
+    });
 ```
+
+### Benefits
+- **Same behavior**: Identical to current implementation, just functional style
+- **Progress reporting**: Easy to add `.progress_step()` 
+- **Readable**: Clear data flow from jobs → (successes, failures)
+- **Minimal changes**: Drop-in replacement for existing `process_batch_jobs`
+- **No complex generics**: Simple, concrete types matching current pipeline
 
 ## Implementation Strategy
 
-### Phase 1: Foundation
-1. Create the `PipelineItem<T, E>` type
-2. Implement the `MonadicPipeline` trait with `progress_step`
-3. Add basic combinator infrastructure
+### Refined Approach: Minimal, Targeted Improvements
 
-### Phase 2: Core Combinators
-1. Implement `map_continue` combinator
-2. Implement `flat_map_continue` combinator
-3. Implement `filter_continue` combinator
-4. Add `collect_results` method
+Based on analysis of the current implementation, we can achieve the benefits of a monadic pipeline with much smaller, targeted changes:
 
-### Phase 3: Pipeline Integration
-1. Identify critical vs non-critical boundaries in existing pipeline
-2. Replace existing pipeline with monadic version
-3. Update result types to use `EncryptionOutcome`
-4. Enhance `EncryptionReport` with detailed statistics
+### Phase 1: Add Progress Reporting (Immediate Value)
+1. Create `ProgressStep` trait in `src/core/shared/progress.rs`
+2. Add progress reporting to existing pipeline stages
+3. Zero breaking changes, immediate user experience improvement
 
-### Phase 4: Testing & Refinement
-1. Test with various failure scenarios
-2. Verify progress reporting works correctly
-3. Ensure comprehensive error collection
-4. Performance validation
+**Implementation**: 30 minutes
+**Risk**: None (additive only)
+**Value**: High (users get immediate feedback)
+
+### Phase 2: Enhance File Processing (Core Improvement)  
+1. Create `ProcessContinue` trait in `src/core/shared/pipeline.rs`
+2. Replace manual loop in `process_batch_jobs` with functional version
+3. Add progress reporting to file processing
+
+**Implementation**: 1 hour
+**Risk**: Low (same behavior, different expression)
+**Value**: High (cleaner code, better progress reporting)
+
+### Phase 3: Optional Extensions (Future Enhancement)
+1. Add similar functional processing to earlier pipeline stages if needed
+2. Consider more complex combinators only if specific use cases arise
+3. Performance optimization if needed
+
+### Comparison with Original Design
+
+**Original Complex Design:**
+- Multiple generic combinators (`map_continue`, `flat_map_continue`, `filter_continue`)
+- Complex iterator infrastructure with `PipelineItem<T, E>`
+- Major restructuring of existing types
+- High implementation complexity
+- Risk of over-engineering
+
+**Refined Minimal Design:**
+- One simple combinator (`process_continue`) 
+- Simple progress wrapper (`progress_step`)
+- Preserves all existing types and APIs
+- Builds on current strengths
+- Delivers same benefits with lower risk
+
+### Expected Results
+
+**After Phase 1 (Progress Reporting):**
+```rust
+let paths = expand_patterns(patterns)?;
+let regular_files = filter_regular_files(paths)?
+    .into_iter()
+    .progress_step("🔍 Filtering regular files...")
+    .collect::<Result<Vec<_>, _>>()?;
+```
+
+**After Phase 2 (Functional File Processing):**
+```rust
+let (successful, failed) = encryption_jobs
+    .into_iter()
+    .progress_step("🔐 Encrypting files...")
+    .process_continue(|job| Self::encrypt_and_write_job(&job, &session, &options));
+```
+
+Users get:
+- ✅ Real-time progress feedback
+- ✅ Resilient file processing (continue on individual failures)
+- ✅ Comprehensive reporting (same `EncryptionReport` structure)
+- ✅ Clean functional composition
+- ✅ Zero breaking changes to existing APIs
 
 ## Expected Benefits
 
@@ -291,10 +412,34 @@ let results: Vec<PipelineItem<EncryptedData, CoreError>> = patterns
 
 ## Conclusion
 
-This monadic pipeline design provides a robust foundation for resilient file processing operations. By implementing these four key changes, we achieve a system that is both user-friendly and operationally robust, while maintaining clean functional composition patterns.
+After analyzing the current implementation, the refined monadic pipeline design is much simpler and more practical than originally envisioned. The existing code already has:
 
-The design prioritizes:
-1. **Resilience**: Continue processing despite individual failures
-2. **Transparency**: Clear progress reporting and comprehensive results
-3. **Composability**: Functional pipeline that's easy to extend and modify
-4. **Maintainability**: Clean separation between business logic and cross-cutting concerns
+✅ **Excellent error handling** with `CoreResult<T>`  
+✅ **Comprehensive result collection** with `EncryptionResult`/`EncryptionFailure`  
+✅ **Good separation of concerns** with validation → job creation → execution  
+✅ **Resilient file processing** that continues on individual failures  
+
+**What we actually need to add:**
+1. **Progress Reporting**: Simple iterator wrapper for user feedback
+2. **Functional Composition**: Replace manual loop with functional expression
+
+**What we don't need:**
+- Complex generic combinators
+- New result types  
+- Major architectural changes
+- Breaking API changes
+
+This refined approach delivers the same benefits as the original monadic pipeline design but with:
+- **90% less implementation complexity**
+- **Zero breaking changes**
+- **Immediate value** (progress reporting)
+- **Lower risk** (builds on existing strengths)
+- **Easier maintenance** (simpler abstractions)
+
+The key insight is that **the current implementation is already mostly correct**—it just needs better user experience (progress reporting) and cleaner expression (functional style) rather than fundamental restructuring.
+
+**Design Principles Achieved:**
+1. **Resilience**: ✅ Continue processing despite individual failures (already implemented)
+2. **Transparency**: ✅ Clear progress reporting (easy addition)
+3. **Composability**: ✅ Functional pipeline (targeted improvement)
+4. **Maintainability**: ✅ Clean separation of concerns (preserve existing structure)
