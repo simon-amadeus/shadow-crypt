@@ -40,10 +40,11 @@ pub fn process_single_file(
     let encrypted = encrypt_file(request)?;
     
     // 5. Determine output path
-    let output_path = input_path
-        .parent()
-        .unwrap_or(Path::new("."))
-        .join(&encrypted.suggested_filename);
+    let parent_dir = match input_path.parent() {
+        Some(parent) if !parent.as_os_str().is_empty() => parent,
+        _ => Path::new("."), // Handle empty parent or None
+    };
+    let output_path = parent_dir.join(&encrypted.suggested_filename);
     
     // 6. Check for existing output file
     if output_path.exists() && !force {

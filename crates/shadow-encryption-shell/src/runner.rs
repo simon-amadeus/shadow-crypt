@@ -2,7 +2,7 @@
 // Main encryption workflow runner
 // Side effects: coordinates file I/O, user interaction, and progress display
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use shadow_core::SecureString;
 use shadow_shell::{prompt_for_password, display_progress, display_success, ShellError};
 use crate::cli::EncryptionArgs;
@@ -91,9 +91,11 @@ fn check_for_duplicates(input_files: &[PathBuf]) -> Result<(), ApplicationError>
     // Group files by target directory
     let mut dirs_to_check = std::collections::HashSet::new();
     for file in input_files {
-        if let Some(parent) = file.parent() {
-            dirs_to_check.insert(parent);
-        }
+        let parent_dir = match file.parent() {
+            Some(parent) if !parent.as_os_str().is_empty() => parent,
+            _ => Path::new("."), // Handle empty parent or None
+        };
+        dirs_to_check.insert(parent_dir);
     }
     
     // Check each directory for duplicates

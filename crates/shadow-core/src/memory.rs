@@ -1,6 +1,6 @@
-// shadow-core/src/types.rs
-// Core data types for the Shadow encryption system
-// All types are pure data structures with no side effects
+// shadow-core/src/memory.rs
+// Secure memory types with automatic zeroization
+// All types handle sensitive data that should be cleared from memory
 
 use zeroize::Zeroizing;
 
@@ -63,23 +63,6 @@ impl SecureBytes {
     }
 }
 
-/// File metadata containing original filename and content hash
-#[derive(Debug, Clone)]
-pub struct FileMetadata {
-    pub original_name: String,
-    pub content_hash: [u8; 32],  // SHA-256
-    pub size: u64,
-}
-
-/// Complete encryption request containing all necessary data
-#[derive(Debug, Clone)]
-pub struct EncryptionRequest {
-    pub content: Vec<u8>,
-    pub metadata: FileMetadata,
-    pub password: SecureString,
-    pub obfuscate_filename: bool,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -121,16 +104,5 @@ mod tests {
         let data = vec![1, 2, 3, 4, 5];
         let secure_data = SecureBytes::new(data.clone());
         assert_eq!(secure_data.as_slice(), data.as_slice());
-    }
-
-    #[test]
-    fn test_file_metadata() {
-        let metadata = FileMetadata {
-            original_name: "test.txt".to_string(),
-            content_hash: [0u8; 32],
-            size: 1024,
-        };
-        assert_eq!(metadata.original_name, "test.txt");
-        assert_eq!(metadata.size, 1024);
     }
 }

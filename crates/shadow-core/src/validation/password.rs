@@ -2,7 +2,7 @@
 // Professional password validation based purely on entropy
 // No arbitrary length requirements - only cryptographic security matters
 
-use crate::types::SecureString;
+use crate::memory::SecureString;
 use crate::errors::ValidationError;
 
 pub use super::entropy::validate_password_entropy;

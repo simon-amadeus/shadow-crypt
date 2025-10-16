@@ -2,7 +2,7 @@
 // Password strength validation using zxcvbn
 // Industry-standard password strength estimation
 
-use crate::types::SecureString;
+use crate::memory::SecureString;
 use crate::errors::ValidationError;
 
 /// Validate password strength using zxcvbn industry-standard algorithm

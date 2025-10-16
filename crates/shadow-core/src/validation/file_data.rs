@@ -2,10 +2,10 @@
 // File content and metadata validation functions
 // All code related to validating file data and requests lives here
 
-use crate::types::{EncryptionRequest, FileMetadata};
+use crate::metadata::FileMetadata;
 use crate::errors::ValidationError;
 use crate::format::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
-use super::password::validate_password_strength;
+
 
 /// Validate file content requirements
 /// Pure function - no side effects
@@ -41,25 +41,12 @@ pub fn validate_file_metadata(metadata: &FileMetadata, actual_content_size: u64)
     Ok(())
 }
 
-/// Validate a complete encryption request before processing
-/// Pure function - no side effects
-pub fn validate_encryption_request(req: &EncryptionRequest) -> Result<(), ValidationError> {
-    // Validate password strength
-    validate_password_strength(&req.password)?;
-    
-    // Validate file content
-    validate_file_content(&req.content)?;
-    
-    // Validate metadata consistency with actual content
-    validate_file_metadata(&req.metadata, req.content.len() as u64)?;
-    
-    Ok(())
-}
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::types::SecureString;
+
 
     #[test]
     fn test_validate_file_content_empty() {
@@ -129,36 +116,5 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test]
-    fn test_validate_encryption_request_weak_password() {
-        let request = EncryptionRequest {
-            content: b"Hello, World!".to_vec(),
-            metadata: FileMetadata {
-                original_name: "test.txt".to_string(),
-                content_hash: [0u8; 32],
-                size: 13,
-            },
-            password: SecureString::new("weak".to_string()),
-            obfuscate_filename: false,
-        };
-        let result = validate_encryption_request(&request);
-        assert!(matches!(result, Err(ValidationError::WeakPassword { .. })));
-    }
 
-    #[test]
-    fn test_validate_encryption_request_valid() {
-        let content = b"Hello, World!";
-        let request = EncryptionRequest {
-            content: content.to_vec(),
-            metadata: FileMetadata {
-                original_name: "test.txt".to_string(),
-                content_hash: [0u8; 32],
-                size: content.len() as u64,
-            },
-            password: SecureString::new("The quick brown fox jumps over 13 lazy dogs!".to_string()),
-            obfuscate_filename: false,
-        };
-        let result = validate_encryption_request(&request);
-        assert!(result.is_ok());
-    }
 }

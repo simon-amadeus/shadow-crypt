@@ -2,7 +2,7 @@
 // Key derivation and key management operations
 // All code related to generating and deriving keys lives here
 
-use crate::types::{SecureString, SecureKey};
+use crate::memory::{SecureString, SecureKey};
 use crate::errors::CryptoError;
 
 use argon2::{Argon2, PasswordHasher};

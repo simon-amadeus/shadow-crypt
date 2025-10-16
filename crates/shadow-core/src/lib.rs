@@ -5,16 +5,19 @@
 // All cryptographic operations, data types, and validation logic
 // are implemented here without any I/O dependencies.
 
-pub mod types;       // Core data types
+pub mod memory;      // Secure memory types with zeroization  
+pub mod metadata;    // File metadata and information
 pub mod errors;      // Error types organized by domain
 pub mod crypto;      // Cryptographic operations (modular)
 pub mod format;      // Modular file format handling
 pub mod validation;  // Validation functions (modular)
 
 // Re-export key types and functions for convenient access
-pub use types::{
-    SecureString, SecureKey, SecureBytes,
-    FileMetadata, EncryptionRequest
+pub use memory::{
+    SecureString, SecureKey, SecureBytes
+};
+pub use metadata::{
+    FileMetadata
 };
 pub use format::v1::{
     FileHeader, FilenameData, EncryptedFile,
@@ -30,8 +33,7 @@ pub use crypto::{
     hash_content, generate_nonce, generate_salt, constant_time_eq
 };
 pub use validation::{
-    validate_encryption_request, validate_file_header, 
-    check_content_duplicate, validate_header_bytes,
+    validate_file_header, check_content_duplicate, validate_header_bytes,
     validate_password_strength, validate_password_format,
     validate_file_content, validate_file_metadata
 };

@@ -2,7 +2,7 @@
 // Encryption and decryption operations
 // All code related to encrypting and decrypting data lives here
 
-use crate::types::SecureKey;
+use crate::memory::SecureKey;
 use crate::errors::CryptoError;
 use super::keys::derive_filename_key;
 
