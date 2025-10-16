@@ -663,49 +663,215 @@ fn process_file(path: &Path) -> Result<(), ApplicationError> {
 
 ---
 
-## 5. Module Organization
+## 5. Module Organization with Vertical Slicing
 
-### 5.1 Project Structure
+### 5.1 Vertical Slicing + Functional Core/Imperative Shell
+
+Each feature is vertically sliced with its own functional core and imperative shell, while sharing common foundational components.
 
 ```
 src/
 ├── lib.rs              # Public API exports
 ├── bin/
-│   └── shadow.rs       # Binary entry point (imperative shell)
-├── core/               # Functional core
+│   ├── shadow.rs       # Encryption binary
+│   ├── unshadow.rs     # Decryption binary
+│   └── shadows.rs      # Listing binary
+├── shared/             # Shared foundational components
 │   ├── mod.rs
-│   ├── types.rs        # Pure data types (including SecureString)
-│   ├── crypto.rs       # Pure crypto functions
-│   ├── validation.rs   # Pure validation
-│   └── transform.rs    # Pure transformations
-├── shell/              # Imperative shell
+│   ├── types.rs        # Common types (SecureString, SecureKey, FileHeader, etc.)
+│   ├── crypto.rs       # Pure crypto primitives (shared by all features)
+│   ├── file_format.rs  # File format parsing/serialization
+│   ├── validation.rs   # Common validation functions
+│   └── errors.rs       # Shared error types
+├── encryption/         # Vertical slice: Encryption feature
 │   ├── mod.rs
-│   ├── cli.rs          # Command line interface
-│   ├── file_ops.rs     # File operations
-│   ├── ui.rs           # User interaction
-│   └── errors.rs       # Error handling
-└── testing/            # Test utilities
+│   ├── core/           # Functional core for encryption
+│   │   ├── mod.rs
+│   │   ├── types.rs    # Encryption-specific types
+│   │   ├── pipeline.rs # Pure encryption pipeline
+│   │   └── validation.rs # Encryption-specific validation
+│   └── shell/          # Imperative shell for encryption
+│       ├── mod.rs
+│       ├── cli.rs      # CLI handling
+│       ├── file_ops.rs # File operations
+│       └── ui.rs       # User interaction
+├── decryption/         # Vertical slice: Decryption feature
+│   ├── mod.rs
+│   ├── core/           # Functional core for decryption
+│   │   ├── mod.rs
+│   │   ├── types.rs    # Decryption-specific types
+│   │   ├── pipeline.rs # Pure decryption pipeline
+│   │   └── validation.rs # Decryption-specific validation
+│   └── shell/          # Imperative shell for decryption
+│       ├── mod.rs
+│       ├── cli.rs      # CLI handling
+│       ├── file_ops.rs # File operations
+│       └── ui.rs       # User interaction
+├── listing/            # Vertical slice: File listing feature
+│   ├── mod.rs
+│   ├── core/           # Functional core for listing
+│   │   ├── mod.rs
+│   │   ├── types.rs    # Listing-specific types
+│   │   ├── analysis.rs # Pure file analysis
+│   │   └── formatting.rs # Pure output formatting
+│   └── shell/          # Imperative shell for listing
+│       ├── mod.rs
+│       ├── cli.rs      # CLI handling
+│       ├── file_ops.rs # File operations
+│       └── ui.rs       # User interaction
+└── testing/            # Test utilities (shared)
     ├── mod.rs
     ├── fixtures.rs     # Test data
     └── helpers.rs      # Test helpers
 ```
 
-### 5.2 Dependency Boundaries
+### 5.2 Dependency Flow and Boundaries
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Binary Layer                              │
+│  shadow.rs    │   unshadow.rs   │   shadows.rs              │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────┼─────────────────┼─────────────────────────┐
+│           Feature Shells (Imperative)                       │
+│  encryption/    │  decryption/    │  listing/               │
+│  shell/         │  shell/         │  shell/                 │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────┼─────────────────┼─────────────────────────┐
+│           Feature Cores (Functional)                        │
+│  encryption/    │  decryption/    │  listing/               │
+│  core/          │  core/          │  core/                  │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────────────────────────────────────────────────┐
+│                    Shared Foundation                         │
+│     shared/ (types, crypto, file_format, validation)        │
+└─────────────────────────────────────────────────────────────┘
+
+Dependencies flow: Shell -> Core -> Shared (never upward)
+```
+
+**Key Principles:**
+- Each feature is **vertically sliced** (encryption, decryption, listing)
+- Each feature has its own **functional core** and **imperative shell**
+- **Shared components** are pure and used by all features
+- **No cross-feature dependencies** between slices
+- **Dependencies only flow downward** (shell -> core -> shared)
+
+### 5.3 Shared Foundation Components
 
 ```rust
-// lib.rs - Clean API boundary
-pub mod core {
-    // Only pure functions and types
-    pub use crate::internal_core::*;
-}
+// shared/types.rs - Common types used by all features
+pub struct SecureString(zeroize::Zeroizing<String>);
+pub struct SecureKey(zeroize::Zeroizing<[u8; 32]>);
+pub struct FileHeader { /* ... */ }
+pub struct FilenameData { /* ... */ }
 
-pub mod shell {
-    // Side-effect functions
-    pub use crate::internal_shell::*;
-}
+// shared/crypto.rs - Pure crypto primitives
+pub fn derive_key(password: &SecureString, salt: &[u8; 16]) -> Result<SecureKey, CryptoError>;
+pub fn encrypt_content(plaintext: &[u8], key: &SecureKey, nonce: &[u8; 24], aad: &[u8]) -> Result<Vec<u8>, CryptoError>;
+pub fn decrypt_content(ciphertext: &[u8], key: &SecureKey, nonce: &[u8; 24], aad: &[u8]) -> Result<Vec<u8>, CryptoError>;
+pub fn hash_content(content: &[u8]) -> [u8; 32];
 
-// Dependencies flow one way: shell -> core (never core -> shell)
+// shared/file_format.rs - File format handling
+pub fn serialize_header(header: &FileHeader) -> Result<Vec<u8>, SerializationError>;
+pub fn deserialize_header(data: &[u8]) -> Result<FileHeader, SerializationError>;
+pub fn validate_file_header(header: &FileHeader) -> Result<(), ValidationError>;
 ```
+
+### 5.4 Feature-Specific Components
+
+#### Encryption Feature
+```rust
+// encryption/core/types.rs - Encryption-specific types
+pub struct EncryptionRequest {
+    pub content: Vec<u8>,
+    pub metadata: FileMetadata,
+    pub password: SecureString,
+    pub obfuscate_filename: bool,
+}
+
+pub struct EncryptedFile {
+    pub header: FileHeader,
+    pub ciphertext: Vec<u8>,
+    pub suggested_filename: String,
+}
+
+// encryption/core/pipeline.rs - Pure encryption pipeline
+pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, EncryptionError>;
+pub fn create_encryption_request(/* ... */) -> EncryptionRequest;
+
+// encryption/shell/cli.rs - Encryption CLI
+pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError>;
+```
+
+#### Decryption Feature  
+```rust
+// decryption/core/types.rs - Decryption-specific types
+pub struct DecryptionRequest {
+    pub encrypted_file: Vec<u8>,
+    pub password: SecureString,
+    pub output_path: Option<PathBuf>,
+}
+
+pub struct DecryptedFile {
+    pub content: Vec<u8>,
+    pub original_filename: String,
+    pub metadata: FileMetadata,
+}
+
+// decryption/core/pipeline.rs - Pure decryption pipeline
+pub fn decrypt_file(request: DecryptionRequest) -> Result<DecryptedFile, DecryptionError>;
+
+// decryption/shell/cli.rs - Decryption CLI
+pub fn run_decryption(args: DecryptionArgs) -> Result<(), ApplicationError>;
+```
+
+#### Listing Feature
+```rust
+// listing/core/types.rs - Listing-specific types
+pub struct FileInfo {
+    pub path: PathBuf,
+    pub header: FileHeader,
+    pub size: u64,
+    pub created: SystemTime,
+}
+
+pub struct ListingOptions {
+    pub show_hashes: bool,
+    pub show_metadata: bool,
+    pub format: OutputFormat,
+}
+
+// listing/core/analysis.rs - Pure file analysis
+pub fn analyze_shadow_file(path: &Path) -> Result<FileInfo, AnalysisError>;
+pub fn extract_file_info(encrypted_data: &[u8]) -> Result<FileInfo, AnalysisError>;
+
+// listing/shell/cli.rs - Listing CLI
+pub fn run_listing(args: ListingArgs) -> Result<(), ApplicationError>;
+```
+
+### 5.5 Benefits of This Architecture
+
+#### Vertical Slicing Benefits
+- **Feature Independence**: Each feature can be developed, tested, and deployed independently
+- **Team Scalability**: Different teams can work on different features without conflicts
+- **Clear Ownership**: Each feature slice has clear boundaries and responsibilities
+- **Reduced Coupling**: Features don't depend on each other's implementation details
+
+#### Functional Core/Imperative Shell Benefits per Feature
+- **Testability**: Each feature's core logic is pure and easily testable
+- **Security**: Crypto operations isolated in pure functions per feature
+- **Maintainability**: Clear separation between business logic and infrastructure per feature
+- **Reusability**: Shared components can be reused across features
+
+#### Combined Benefits
+- **Scalable Architecture**: Easy to add new features (e.g., batch operations, file migration)
+- **Consistent Patterns**: Each feature follows the same architectural pattern
+- **Shared Security**: Common crypto primitives ensure consistent security across features
+- **Independent Evolution**: Features can evolve independently while sharing stable foundations
 
 ---
 
@@ -823,58 +989,132 @@ mod shell_tests {
 
 ---
 
-## 7. Implementation Phases
+## 7. Implementation Phases (Vertical Slicing Approach)
 
-### 7.1 Phase 1: Functional Core (Week 1-2)
+### 7.1 Phase 1: Shared Foundation (Week 1)
 
-**Goal**: Implement all pure functions with comprehensive testing
-
-**Tasks**:
-1. Define core types (`types.rs`)
-2. Implement cryptographic functions (`crypto.rs`)
-3. Implement validation functions (`validation.rs`)
-4. Implement transformation pipeline (`transform.rs`)
-5. Write comprehensive unit tests
-6. Property-based testing for crypto functions
-
-**Deliverables**:
-- Fully tested functional core
-- 100% test coverage for pure functions
-- Documentation for all public APIs
-
-### 7.2 Phase 2: Imperative Shell (Week 3)
-
-**Goal**: Implement side-effect functions and CLI
+**Goal**: Implement shared components used by all features
 
 **Tasks**:
-1. CLI argument parsing (`cli.rs`)
-2. File operations (`file_ops.rs`)
-3. User interface (`ui.rs`)
-4. Error handling integration (`errors.rs`)
-5. Integration testing
+1. **Shared Types** (`shared/types.rs`)
+   - `SecureString`, `SecureKey`, `SecureBytes`
+   - `FileHeader`, `FilenameData`, `FileMetadata`
+   - Common error types
+2. **Shared Crypto** (`shared/crypto.rs`)
+   - Pure cryptographic functions (encrypt/decrypt, key derivation, hashing)
+   - Nonce and salt generation
+3. **File Format** (`shared/file_format.rs`)
+   - Header serialization/deserialization
+   - File format validation
+4. **Comprehensive Testing**
+   - 100% test coverage for shared components
+   - Property-based testing for crypto functions
 
 **Deliverables**:
-- Working CLI application
-- File I/O operations
-- User interaction components
+- Stable shared foundation
+- Complete test suite for shared components
+- Documentation for shared APIs
 
-### 7.3 Phase 3: Integration & Polish (Week 4)
+### 7.2 Phase 2: Encryption Feature (Week 2)
 
-**Goal**: Complete application with quality features
+**Goal**: Complete encryption feature as first vertical slice
 
 **Tasks**:
-1. Performance optimization
-2. Progress reporting
-3. Comprehensive error messages
-4. Security audit of implementation
-5. End-to-end testing
-6. Documentation
+1. **Encryption Core** (`encryption/core/`)
+   - Pure encryption pipeline
+   - Encryption-specific types and validation
+   - Duplicate detection logic
+2. **Encryption Shell** (`encryption/shell/`)
+   - CLI argument parsing
+   - File I/O operations
+   - User interaction and progress reporting
+3. **Integration Testing**
+   - End-to-end encryption workflow tests
+   - Error handling validation
 
 **Deliverables**:
-- Production-ready binary
-- Complete test suite
-- Security validation
-- User documentation
+- Working `shadow` binary
+- Complete encryption feature
+- Integration test suite
+
+### 7.3 Phase 3: Decryption Feature (Week 3)
+
+**Goal**: Add decryption as second vertical slice
+
+**Tasks**:
+1. **Decryption Core** (`decryption/core/`)
+   - Pure decryption pipeline
+   - Password verification
+   - File integrity validation
+2. **Decryption Shell** (`decryption/shell/`)
+   - CLI for decryption operations
+   - Output file handling
+   - Error reporting
+3. **Cross-Feature Testing**
+   - Encrypt/decrypt round-trip tests
+   - Compatibility validation
+
+**Deliverables**:
+- Working `unshadow` binary
+- Complete decryption feature
+- Round-trip validation
+
+### 7.4 Phase 4: Listing Feature (Week 4)
+
+**Goal**: Add file analysis as third vertical slice
+
+**Tasks**:
+1. **Listing Core** (`listing/core/`)
+   - Pure file analysis functions
+   - Metadata extraction
+   - Output formatting
+2. **Listing Shell** (`listing/shell/`)
+   - CLI for listing operations
+   - Directory scanning
+   - Pretty-printed output
+3. **Polish & Documentation**
+   - Performance optimization
+   - Complete documentation
+   - Security audit
+
+### 7.5 Future Feature Addition Pattern
+
+**Adding a new feature** (e.g., `shadowmigrate` for format migration):
+
+1. **Create Feature Slice**:
+   ```
+   src/migration/
+   ├── mod.rs
+   ├── core/           # Functional core
+   │   ├── mod.rs
+   │   ├── types.rs    # Migration-specific types
+   │   ├── pipeline.rs # Pure migration logic
+   │   └── validation.rs
+   └── shell/          # Imperative shell
+       ├── mod.rs
+       ├── cli.rs      # CLI handling
+       ├── file_ops.rs # File operations
+       └── ui.rs       # User interaction
+   ```
+
+2. **Add Binary**:
+   ```toml
+   [[bin]]
+   name = "shadowmigrate"
+   path = "src/bin/shadowmigrate.rs"
+   ```
+
+3. **Implement Using Shared Foundation**:
+   - Reuse `shared/crypto.rs` for cryptographic operations
+   - Reuse `shared/file_format.rs` for file parsing
+   - Follow same FC/IS pattern as other features
+
+4. **Independent Development**:
+   - No changes needed to existing features
+   - Self-contained testing and validation
+   - Clear feature boundaries
+
+This pattern ensures **linear scalability** as features are added.
 
 ---
 
