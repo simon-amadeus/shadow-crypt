@@ -1159,6 +1159,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "shadow-cli"
+version = "0.1.0"
+dependencies = [
+ "shadow-encryption-shell",
+]
+
+[[package]]
 name = "shadow-core"
 version = "0.1.0"
 dependencies = [
@@ -1176,6 +1183,26 @@ dependencies = [
  "uuid",
  "zeroize",
  "zxcvbn",
+]
+
+[[package]]
+name = "shadow-encryption-core"
+version = "0.1.0"
+dependencies = [
+ "shadow-core",
+ "thiserror",
+]
+
+[[package]]
+name = "shadow-encryption-shell"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "shadow-core",
+ "shadow-encryption-core",
+ "shadow-shell",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]

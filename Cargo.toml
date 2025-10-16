@@ -6,8 +6,10 @@ resolver = "2"
 members = [
     "crates/shadow-core",              # Pure shared foundation (crypto, types, validation)
     "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers)
+    "crates/shadow-encryption-core",   # Pure encryption business logic
+    "crates/shadow-encryption-shell",  # Encryption I/O and CLI
+    "crates/shadow-cli",               # Final binaries
     # Future crates will be added in subsequent phases:
-    # "crates/shadow-encryption-core",   # Pure encryption business logic
     # "crates/shadow-encryption-shell",  # Encryption I/O and CLI
     # "crates/shadow-decryption-core",   # Pure decryption business logic
     # "crates/shadow-decryption-shell",  # Decryption I/O and CLI

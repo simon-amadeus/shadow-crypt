@@ -1,0 +1,17 @@
+[package]
+name = "shadow-encryption-core"
+version.workspace = true
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Pure encryption business logic for Shadow - functional core with no I/O"
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# ONLY pure dependencies - shadow-core only per architecture strategy
+shadow-core = { path = "../shadow-core" }
+thiserror = "2.0"
+
+# No I/O dependencies allowed in encryption core - enforced by architecture

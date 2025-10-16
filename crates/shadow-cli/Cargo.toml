@@ -1,0 +1,22 @@
+[package]
+name = "shadow-cli"
+version.workspace = true
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shadow CLI binaries - final executable applications"
+keywords.workspace = true
+categories.workspace = true
+
+[[bin]]
+name = "shadow"
+path = "src/bin/shadow.rs"
+
+[dependencies]
+# Only depends on shell crates per architecture strategy  
+shadow-encryption-shell = { path = "../shadow-encryption-shell" }
+
+# Future dependencies will be added for decryption and listing features:
+# shadow-decryption-shell = { path = "../shadow-decryption-shell" }
+# shadow-listing-shell = { path = "../shadow-listing-shell" }

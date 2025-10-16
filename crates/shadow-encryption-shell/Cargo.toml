@@ -1,0 +1,23 @@
+[package]
+name = "shadow-encryption-shell"
+version.workspace = true
+edition = "2024"
+authors.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Encryption I/O and CLI for Shadow - imperative shell with side effects"
+keywords.workspace = true
+categories.workspace = true
+
+[dependencies]
+# Depends on both cores and shell utilities per architecture strategy
+shadow-core = { path = "../shadow-core" }
+shadow-shell = { path = "../shadow-shell" }
+shadow-encryption-core = { path = "../shadow-encryption-core" }
+
+# CLI and I/O dependencies
+thiserror = "2.0"
+clap = { version = "4", features = ["derive"] }
+
+[dev-dependencies]
+tempfile = "3.8"
