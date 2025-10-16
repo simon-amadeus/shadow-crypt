@@ -179,7 +179,6 @@ impl PartialEq for ShellError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::path::Path;
 
     #[test]
     fn test_duplicate_content_error() {

@@ -22,7 +22,3 @@ pub const KEY_SIZE: usize = 32;      // XChaCha20 key size
 pub const NONCE_SIZE: usize = 24;    // XChaCha20 nonce size  
 pub const SALT_SIZE: usize = 16;     // Argon2id salt size
 pub const HASH_SIZE: usize = 32;     // SHA-256 hash size
-
-/// Minimum password strength requirements for v1
-pub const MIN_PASSWORD_LENGTH: usize = 8;
-pub const MIN_PASSWORD_ENTROPY_BITS: f64 = 32.0;
