@@ -81,8 +81,8 @@ pub enum SerializationError {
     #[error("Failed to deserialize header")]
     HeaderDeserialization,
     
-    #[error("Invalid data length: expected {expected}, got {actual}")]
-    InvalidLength { expected: usize, actual: usize },
+    #[error("Invalid data length for field '{field}': expected {expected}, got {actual}")]
+    InvalidLength { field: String, expected: usize, actual: usize },
     
     #[error("Buffer overflow: trying to write {requested} bytes, but only {available} available")]
     BufferOverflow { requested: usize, available: usize },
@@ -95,6 +95,12 @@ pub enum SerializationError {
     
     #[error("Filename too long: {length} bytes, maximum is {max}")]
     FilenameTooLong { length: usize, max: usize },
+    
+    #[error("Invalid magic bytes")]
+    InvalidMagicBytes,
+    
+    #[error("Invalid obfuscation flag: {0}")]
+    InvalidObfuscationFlag(u8),
 }
 
 /// Aggregated error type that can contain any core error
@@ -148,8 +154,12 @@ mod tests {
 
     #[test]
     fn test_serialization_error_invalid_length() {
-        let err = SerializationError::InvalidLength { expected: 100, actual: 50 };
-        assert_eq!(err.to_string(), "Invalid data length: expected 100, got 50");
+        let err = SerializationError::InvalidLength { 
+            field: "test_field".to_string(),
+            expected: 100, 
+            actual: 50 
+        };
+        assert_eq!(err.to_string(), "Invalid data length for field 'test_field': expected 100, got 50");
     }
 
     #[test]

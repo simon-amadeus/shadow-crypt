@@ -4,7 +4,7 @@
 
 use crate::types::{EncryptionRequest, FileMetadata};
 use crate::errors::ValidationError;
-use crate::constants::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
+use crate::format::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
 use super::password::validate_password_strength;
 
 /// Validate file content requirements
@@ -155,7 +155,7 @@ mod tests {
                 content_hash: [0u8; 32],
                 size: content.len() as u64,
             },
-            password: SecureString::new("StrongP@ssw0rd123!".to_string()),
+            password: SecureString::new("The quick brown fox jumps over 13 lazy dogs!".to_string()),
             obfuscate_filename: false,
         };
         let result = validate_encryption_request(&request);

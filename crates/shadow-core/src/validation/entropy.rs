@@ -4,10 +4,8 @@
 
 use crate::types::SecureString;
 use crate::errors::ValidationError;
+use crate::format::MIN_PASSWORD_ENTROPY_BITS;
 use std::collections::HashMap;
-
-/// Minimum entropy required for cryptographic security (NIST recommendation)
-const MIN_ENTROPY_BITS: f64 = 50.0;
 
 /// Character frequency analysis for entropy calculation
 const ENGLISH_LETTER_FREQUENCIES: &[(char, f64)] = &[
@@ -29,11 +27,11 @@ const COMMON_PATTERNS: &[&str] = &[
 pub fn validate_password_entropy(password: &SecureString) -> Result<(), ValidationError> {
     let entropy = estimate_password_entropy_advanced(password.as_str());
     
-    if entropy < MIN_ENTROPY_BITS {
+    if entropy < MIN_PASSWORD_ENTROPY_BITS {
         return Err(ValidationError::WeakPassword {
             reason: format!(
                 "Password entropy {:.1} bits is below required minimum of {:.1} bits. Use a longer passphrase or more random characters.",
-                entropy, MIN_ENTROPY_BITS
+                entropy, MIN_PASSWORD_ENTROPY_BITS
             ),
         });
     }
@@ -334,14 +332,14 @@ mod tests {
     fn test_entropy_calculation() {
         // Very weak password
         let entropy1 = estimate_password_entropy_advanced("password");
-        assert!(entropy1 < MIN_ENTROPY_BITS);
+        assert!(entropy1 < MIN_PASSWORD_ENTROPY_BITS);
         
         // Strong random password
         let entropy2 = estimate_password_entropy_advanced("Kj8#mP9$nQ2@wE5!");
-        assert!(entropy2 >= MIN_ENTROPY_BITS);
+        assert!(entropy2 >= MIN_PASSWORD_ENTROPY_BITS);
         
         // Good passphrase
         let entropy3 = estimate_password_entropy_advanced("The quick brown fox jumps over 13 lazy dogs!");
-        assert!(entropy3 >= MIN_ENTROPY_BITS);
+        assert!(entropy3 >= MIN_PASSWORD_ENTROPY_BITS);
     }
 }
