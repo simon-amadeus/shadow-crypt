@@ -174,6 +174,11 @@ pub mod crypto {
         // Caller should wrap in SecureKey immediately
     }
     
+    fn encrypt_with_key(data: &[u8], key: &SecureKey, nonce: &[u8; 24]) -> Result<Vec<u8>, CryptoError> {
+        // XChaCha20-Poly1305 encryption implementation
+        // Uses key.as_bytes() internally
+    }
+    
     // Content hashing - pure function
     pub fn hash_content(content: &[u8]) -> [u8; 32] {
         // SHA-256 implementation
@@ -665,123 +670,51 @@ fn process_file(path: &Path) -> Result<(), ApplicationError> {
 
 ## 5. Module Organization with Vertical Slicing
 
-### 5.1 Vertical Slicing + Functional Core/Imperative Shell
+### 5.1 Crate-Based Vertical Slicing + Functional Core/Imperative Shell
 
-Each feature is vertically sliced with its own functional core and imperative shell, while sharing common foundational components.
+Each feature is vertically sliced into separate crates with their own functional core and imperative shell, while sharing common foundational components through the `shadow-core` and `shadow-shell` crates.
 
-```
-src/
-├── lib.rs              # Public API exports
-├── bin/
-│   ├── shadow.rs       # Encryption binary
-│   ├── unshadow.rs     # Decryption binary
-│   └── shadows.rs      # Listing binary
-├── shared/             # Shared foundational components
-│   ├── mod.rs
-│   ├── types.rs        # Common types (SecureString, SecureKey, FileHeader, etc.)
-│   ├── crypto.rs       # Pure crypto primitives (shared by all features)
-│   ├── file_format.rs  # File format parsing/serialization
-│   ├── validation.rs   # Common validation functions
-│   └── errors.rs       # Shared error types
-├── encryption/         # Vertical slice: Encryption feature
-│   ├── mod.rs
-│   ├── core/           # Functional core for encryption
-│   │   ├── mod.rs
-│   │   ├── types.rs    # Encryption-specific types
-│   │   ├── pipeline.rs # Pure encryption pipeline
-│   │   └── validation.rs # Encryption-specific validation
-│   └── shell/          # Imperative shell for encryption
-│       ├── mod.rs
-│       ├── cli.rs      # CLI handling
-│       ├── file_ops.rs # File operations
-│       └── ui.rs       # User interaction
-├── decryption/         # Vertical slice: Decryption feature
-│   ├── mod.rs
-│   ├── core/           # Functional core for decryption
-│   │   ├── mod.rs
-│   │   ├── types.rs    # Decryption-specific types
-│   │   ├── pipeline.rs # Pure decryption pipeline
-│   │   └── validation.rs # Decryption-specific validation
-│   └── shell/          # Imperative shell for decryption
-│       ├── mod.rs
-│       ├── cli.rs      # CLI handling
-│       ├── file_ops.rs # File operations
-│       └── ui.rs       # User interaction
-├── listing/            # Vertical slice: File listing feature
-│   ├── mod.rs
-│   ├── core/           # Functional core for listing
-│   │   ├── mod.rs
-│   │   ├── types.rs    # Listing-specific types
-│   │   ├── analysis.rs # Pure file analysis
-│   │   └── formatting.rs # Pure output formatting
-│   └── shell/          # Imperative shell for listing
-│       ├── mod.rs
-│       ├── cli.rs      # CLI handling
-│       ├── file_ops.rs # File operations
-│       └── ui.rs       # User interaction
-└── testing/            # Test utilities (shared)
-    ├── mod.rs
-    ├── fixtures.rs     # Test data
-    └── helpers.rs      # Test helpers
-```
+### 5.2 Shared Foundation Components
 
-### 5.2 Dependency Flow and Boundaries
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Binary Layer                              │
-│  shadow.rs    │   unshadow.rs   │   shadows.rs              │
-└─────────────────┼─────────────────┼─────────────────────────┘
-                  │                 │                          
-┌─────────────────┼─────────────────┼─────────────────────────┐
-│           Feature Shells (Imperative)                       │
-│  encryption/    │  decryption/    │  listing/               │
-│  shell/         │  shell/         │  shell/                 │
-└─────────────────┼─────────────────┼─────────────────────────┘
-                  │                 │                          
-┌─────────────────┼─────────────────┼─────────────────────────┐
-│           Feature Cores (Functional)                        │
-│  encryption/    │  decryption/    │  listing/               │
-│  core/          │  core/          │  core/                  │
-└─────────────────┼─────────────────┼─────────────────────────┘
-                  │                 │                          
-┌─────────────────────────────────────────────────────────────┐
-│                    Shared Foundation                         │
-│     shared/ (types, crypto, file_format, validation)        │
-└─────────────────────────────────────────────────────────────┘
-
-Dependencies flow: Shell -> Core -> Shared (never upward)
-```
-
-**Key Principles:**
-- Each feature is **vertically sliced** (encryption, decryption, listing)
-- Each feature has its own **functional core** and **imperative shell**
-- **Shared components** are pure and used by all features
-- **No cross-feature dependencies** between slices
-- **Dependencies only flow downward** (shell -> core -> shared)
-
-### 5.3 Shared Foundation Components
-
+#### shadow-core (Pure - No I/O)
 ```rust
-// shared/types.rs - Common types used by all features
+// shadow-core/src/types.rs - Common types used by all features
 pub struct SecureString(zeroize::Zeroizing<String>);
 pub struct SecureKey(zeroize::Zeroizing<[u8; 32]>);
 pub struct FileHeader { /* ... */ }
 pub struct FilenameData { /* ... */ }
 
-// shared/crypto.rs - Pure crypto primitives
+// shadow-core/src/crypto.rs - Pure crypto primitives
 pub fn derive_key(password: &SecureString, salt: &[u8; 16]) -> Result<SecureKey, CryptoError>;
 pub fn encrypt_content(plaintext: &[u8], key: &SecureKey, nonce: &[u8; 24], aad: &[u8]) -> Result<Vec<u8>, CryptoError>;
 pub fn decrypt_content(ciphertext: &[u8], key: &SecureKey, nonce: &[u8; 24], aad: &[u8]) -> Result<Vec<u8>, CryptoError>;
 pub fn hash_content(content: &[u8]) -> [u8; 32];
 
-// shared/file_format.rs - File format handling
+// shadow-core/src/file_format.rs - Pure file format handling
 pub fn serialize_header(header: &FileHeader) -> Result<Vec<u8>, SerializationError>;
 pub fn deserialize_header(data: &[u8]) -> Result<FileHeader, SerializationError>;
 pub fn validate_file_header(header: &FileHeader) -> Result<(), ValidationError>;
 ```
 
-### 5.4 Feature-Specific Components
+#### shadow-shell (Impure - I/O Utilities)
+```rust
+// shadow-shell/src/file_ops.rs - Common file operations
+pub fn read_file_safely(path: &Path) -> Result<Vec<u8>, FileError>;
+pub fn write_file_atomically(path: &Path, data: &[u8]) -> Result<(), FileError>;
+pub fn scan_shadow_files(dir: &Path) -> Result<Vec<PathBuf>, FileError>;
+
+// shadow-shell/src/cli_helpers.rs - CLI utilities
+pub fn parse_glob_patterns(patterns: &[String]) -> Result<Vec<PathBuf>, GlobError>;
+pub fn prompt_for_password() -> Result<SecureString, UiError>;
+pub fn confirm_overwrite(path: &Path) -> Result<bool, UiError>;
+
+// shadow-shell/src/ui.rs - User interface utilities
+pub fn display_progress(current: u64, total: u64, file: &str);
+pub fn display_error(error: &dyn Error);
+pub fn display_success(message: &str);
+```
+
+### 5.3 Feature-Specific Components
 
 #### Encryption Feature
 ```rust
@@ -853,7 +786,163 @@ pub fn extract_file_info(encrypted_data: &[u8]) -> Result<FileInfo, AnalysisErro
 pub fn run_listing(args: ListingArgs) -> Result<(), ApplicationError>;
 ```
 
-### 5.5 Benefits of This Architecture
+### 5.4 Crate-Based Architecture with Clear Core/Shell Separation
+
+#### Workspace Structure
+
+```toml
+# Cargo.toml - Workspace definition
+[workspace]
+members = [
+    "crates/shadow-core",           # Pure shared foundation (crypto, types, validation)
+    "crates/shadow-shell",          # Shared I/O utilities (file ops, CLI helpers)
+    "crates/shadow-encryption-core", 
+    "crates/shadow-encryption-shell",
+    "crates/shadow-decryption-core",
+    "crates/shadow-decryption-shell", 
+    "crates/shadow-listing-core",
+    "crates/shadow-listing-shell",
+    "crates/shadow-cli"
+]
+
+# crates/shadow-core/Cargo.toml - Pure foundation, no I/O
+[package]
+name = "shadow-core"
+version = "0.1.0"
+
+[dependencies]
+zeroize = "1.6"
+chacha20poly1305 = "0.10"
+argon2 = "0.5"
+sha2 = "0.10"
+uuid = { version = "1.10", features = ["v4", "rng"] }
+# ONLY pure dependencies - no file I/O, no CLI
+
+# crates/shadow-shell/Cargo.toml - Shared I/O utilities
+[package]
+name = "shadow-shell"
+version = "0.1.0"
+
+[dependencies]
+shadow-core = { path = "../shadow-core" }
+clap = "4"
+rpassword = "7.2"
+tempfile = "3"
+colored = "3.0"
+# I/O and CLI utilities that all shells can use
+
+# crates/shadow-encryption-core/Cargo.toml  
+[package]
+name = "shadow-encryption-core"
+version = "0.1.0"
+
+[dependencies]
+shadow-core = { path = "../shadow-core" }
+# ONLY pure dependencies - cannot import shell utilities
+
+# crates/shadow-encryption-shell/Cargo.toml
+[package] 
+name = "shadow-encryption-shell"
+version = "0.1.0"
+
+[dependencies]
+shadow-core = { path = "../shadow-core" }
+shadow-shell = { path = "../shadow-shell" }
+shadow-encryption-core = { path = "../shadow-encryption-core" }
+# Can use both core logic and shell utilities
+```
+
+#### Directory Structure with Clear Core/Shell Distinction
+
+```
+shadow/
+├── Cargo.toml (workspace)
+├── crates/
+│   ├── shadow-core/              # PURE: Shared foundation (no I/O)
+│   │   ├── Cargo.toml           # crypto deps only
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── types.rs          # SecureString, SecureKey, FileHeader
+│   │       ├── crypto.rs         # Pure crypto functions
+│   │       ├── file_format.rs    # Serialization (pure functions)
+│   │       ├── validation.rs     # Pure validation functions
+│   │       └── errors.rs         # Core error types
+│   ├── shadow-shell/             # IMPURE: Shared I/O utilities
+│   │   ├── Cargo.toml           # I/O and CLI deps
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── file_ops.rs       # Common file operations
+│   │       ├── cli_helpers.rs    # CLI parsing utilities
+│   │       ├── ui.rs             # Progress, colors, formatting
+│   │       └── errors.rs         # I/O error handling
+│   ├── shadow-encryption-core/   # PURE: Encryption business logic
+│   │   ├── Cargo.toml           # depends: shadow-core only
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── types.rs          # EncryptionRequest, EncryptedFile
+│   │       ├── pipeline.rs       # encrypt_file() - pure function
+│   │       └── validation.rs     # Encryption-specific validation
+│   ├── shadow-encryption-shell/  # IMPURE: Encryption I/O and CLI
+│   │   ├── Cargo.toml           # depends: shadow-core + shadow-shell + shadow-encryption-core
+│   │   └── src/
+│   │       ├── lib.rs
+│   │       ├── cli.rs            # Encryption CLI
+│   │       ├── file_ops.rs       # Encryption file operations
+│   │       └── runner.rs         # Main encryption workflow
+│   ├── shadow-decryption-core/   # PURE: Decryption business logic
+│   ├── shadow-decryption-shell/  # IMPURE: Decryption I/O and CLI
+│   ├── shadow-listing-core/      # PURE: Listing business logic
+│   ├── shadow-listing-shell/     # IMPURE: Listing I/O and CLI
+│   └── shadow-cli/              # IMPURE: Final binaries
+│       ├── Cargo.toml           # depends: all shells only
+│       └── src/
+│           └── bin/
+│               ├── shadow.rs     # uses shadow-encryption-shell
+│               ├── unshadow.rs   # uses shadow-decryption-shell
+│               └── shadows.rs    # uses shadow-listing-shell
+```
+
+### 5.5 Dependency Flow and Enforcement
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Binary Layer                              │
+│  shadow.rs    │   unshadow.rs   │   shadows.rs              │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────┼─────────────────┼─────────────────────────┐
+│           Feature Shells (Imperative)                       │
+│  encryption/    │  decryption/    │  listing/               │
+│  shell/         │  shell/         │  shell/                 │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────┼─────────────────┼─────────────────────────┐
+│           Feature Cores (Functional)                        │
+│  encryption/    │  decryption/    │  listing/               │
+│  core/          │  core/          │  core/                  │
+└─────────────────┼─────────────────┼─────────────────────────┘
+                  │                 │                          
+┌─────────────────────────────────────────────────────────────┐
+│      shadow-shell (Shared I/O utilities)                    │
+│      file_ops, cli_helpers, ui, progress                    │
+└─────────────────────────────────────────────────────────────┘
+                  │                 │                          
+┌─────────────────────────────────────────────────────────────┐
+│      shadow-core (Pure shared foundation)                   │
+│      types, crypto, file_format, validation                 │
+└─────────────────────────────────────────────────────────────┘
+
+Dependencies flow: Shell -> Core -> shadow-shell -> shadow-core
+```
+
+**Enforcement guarantees:**
+- ✅ **shadow-core**: Cannot import any I/O dependencies (compile-time enforced)
+- ✅ **shadow-shell**: Can only import shadow-core + I/O dependencies  
+- ✅ **feature-cores**: Can only import shadow-core (compile-time enforced)
+- ✅ **feature-shells**: Can import shadow-core + shadow-shell + their feature-core
+- ✅ **binaries**: Can only import feature-shells (not cores directly)
+
+### 5.6 Benefits of This Architecture
 
 #### Vertical Slicing Benefits
 - **Feature Independence**: Each feature can be developed, tested, and deployed independently
@@ -989,45 +1078,52 @@ mod shell_tests {
 
 ---
 
-## 7. Implementation Phases (Vertical Slicing Approach)
+## 7. Implementation Phases (Crate-Based Vertical Slicing)
 
-### 7.1 Phase 1: Shared Foundation (Week 1)
+### 7.1 Phase 1: Foundation Crates (Week 1)
 
-**Goal**: Implement shared components used by all features
+**Goal**: Implement `shadow-core` and `shadow-shell` crates
 
 **Tasks**:
-1. **Shared Types** (`shared/types.rs`)
-   - `SecureString`, `SecureKey`, `SecureBytes`
-   - `FileHeader`, `FilenameData`, `FileMetadata`
-   - Common error types
-2. **Shared Crypto** (`shared/crypto.rs`)
-   - Pure cryptographic functions (encrypt/decrypt, key derivation, hashing)
-   - Nonce and salt generation
-3. **File Format** (`shared/file_format.rs`)
-   - Header serialization/deserialization
-   - File format validation
+1. **Setup Workspace** (`Cargo.toml`)
+   - Define workspace with all planned crates
+   - Set up dependency relationships
+2. **Shadow Core** (`crates/shadow-core/`)
+   - `SecureString`, `SecureKey`, `SecureBytes` types
+   - Pure cryptographic functions (no I/O allowed)
+   - File format serialization/deserialization (pure)
+   - Common error types and validation
+3. **Shadow Shell** (`crates/shadow-shell/`)
+   - Common file operations utilities
+   - CLI helper functions
+   - UI utilities (progress, formatting, colors)
+   - I/O error handling
 4. **Comprehensive Testing**
-   - 100% test coverage for shared components
+   - 100% test coverage for shadow-core
+   - Integration tests for shadow-shell
    - Property-based testing for crypto functions
 
 **Deliverables**:
-- Stable shared foundation
-- Complete test suite for shared components
-- Documentation for shared APIs
+- Working `shadow-core` crate (pure, no I/O dependencies)
+- Working `shadow-shell` crate (I/O utilities)
+- Complete test suite for both foundation crates
+- Published API documentation
 
 ### 7.2 Phase 2: Encryption Feature (Week 2)
 
 **Goal**: Complete encryption feature as first vertical slice
 
 **Tasks**:
-1. **Encryption Core** (`encryption/core/`)
+1. **Encryption Core** (`crates/shadow-encryption-core/`)
    - Pure encryption pipeline
    - Encryption-specific types and validation
    - Duplicate detection logic
-2. **Encryption Shell** (`encryption/shell/`)
-   - CLI argument parsing
-   - File I/O operations
+   - **Depends only on**: `shadow-core`
+2. **Encryption Shell** (`crates/shadow-encryption-shell/`)
+   - CLI argument parsing using shadow-shell utilities
+   - File I/O operations using shadow-shell helpers
    - User interaction and progress reporting
+   - **Depends on**: `shadow-core` + `shadow-shell` + `shadow-encryption-core`
 3. **Integration Testing**
    - End-to-end encryption workflow tests
    - Error handling validation
@@ -1037,82 +1133,94 @@ mod shell_tests {
 - Complete encryption feature
 - Integration test suite
 
-### 7.3 Phase 3: Decryption Feature (Week 3)
+### 7.3 Phase 3: Decryption Crates (Week 3)
 
-**Goal**: Add decryption as second vertical slice
+**Goal**: Add decryption feature as new crate pair
 
 **Tasks**:
-1. **Decryption Core** (`decryption/core/`)
+1. **Decryption Core** (`crates/shadow-decryption-core/`)
    - Pure decryption pipeline
-   - Password verification
-   - File integrity validation
-2. **Decryption Shell** (`decryption/shell/`)
-   - CLI for decryption operations
-   - Output file handling
-   - Error reporting
-3. **Cross-Feature Testing**
-   - Encrypt/decrypt round-trip tests
-   - Compatibility validation
+   - Password verification and file integrity validation
+   - **Depends only on**: `shadow-core`
+2. **Decryption Shell** (`crates/shadow-decryption-shell/`)
+   - CLI for decryption operations using shadow-shell utilities
+   - Output file handling and error reporting
+   - **Depends on**: `shadow-core` + `shadow-shell` + `shadow-decryption-core`
+3. **Update CLI Binary** (`crates/shadow-cli/src/bin/unshadow.rs`)
+   - Add unshadow binary using decryption shell
 
 **Deliverables**:
 - Working `unshadow` binary
-- Complete decryption feature
-- Round-trip validation
+- Complete decryption feature across two crates
+- Round-trip encryption/decryption validation
 
-### 7.4 Phase 4: Listing Feature (Week 4)
+### 7.4 Phase 4: Listing Crates (Week 4)
 
-**Goal**: Add file analysis as third vertical slice
+**Goal**: Add file analysis feature as third crate pair
 
 **Tasks**:
-1. **Listing Core** (`listing/core/`)
+1. **Listing Core** (`crates/shadow-listing-core/`)
    - Pure file analysis functions
-   - Metadata extraction
-   - Output formatting
-2. **Listing Shell** (`listing/shell/`)
-   - CLI for listing operations
-   - Directory scanning
-   - Pretty-printed output
-3. **Polish & Documentation**
-   - Performance optimization
-   - Complete documentation
-   - Security audit
+   - Metadata extraction and output formatting  
+   - **Depends only on**: `shadow-core`
+2. **Listing Shell** (`crates/shadow-listing-shell/`)
+   - CLI for listing operations using shadow-shell utilities
+   - Directory scanning and pretty-printed output
+   - **Depends on**: `shadow-core` + `shadow-shell` + `shadow-listing-core`
+3. **Final Polish**
+   - Complete `shadows` binary
+   - Performance optimization across all crates
+   - Security audit and documentation
+
+**Deliverables**:
+- Working `shadows` binary
+- Complete listing feature across two crates
+- Production-ready multi-crate system
 
 ### 7.5 Future Feature Addition Pattern
 
 **Adding a new feature** (e.g., `shadowmigrate` for format migration):
 
-1. **Create Feature Slice**:
+1. **Create Feature Crates**:
    ```
-   src/migration/
-   ├── mod.rs
-   ├── core/           # Functional core
-   │   ├── mod.rs
-   │   ├── types.rs    # Migration-specific types
-   │   ├── pipeline.rs # Pure migration logic
-   │   └── validation.rs
-   └── shell/          # Imperative shell
-       ├── mod.rs
-       ├── cli.rs      # CLI handling
-       ├── file_ops.rs # File operations
-       └── ui.rs       # User interaction
+   crates/shadow-migration-core/     # Pure migration logic
+   ├── Cargo.toml                   # depends: shadow-core only
+   └── src/
+       ├── lib.rs
+       ├── types.rs                 # Migration-specific types
+       ├── pipeline.rs              # Pure migration logic
+       └── validation.rs            # Migration validation
+
+   crates/shadow-migration-shell/   # Migration I/O and CLI
+   ├── Cargo.toml                  # depends: shadow-core + shadow-shell + shadow-migration-core
+   └── src/
+       ├── lib.rs
+       ├── cli.rs                  # CLI handling
+       ├── file_ops.rs             # File operations
+       └── runner.rs               # Main migration workflow
    ```
 
 2. **Add Binary**:
    ```toml
+   # crates/shadow-cli/Cargo.toml
    [[bin]]
    name = "shadowmigrate"
    path = "src/bin/shadowmigrate.rs"
+   
+   [dependencies]
+   shadow-migration-shell = { path = "../shadow-migration-shell" }
+   # ... other shells
    ```
 
 3. **Implement Using Shared Foundation**:
-   - Reuse `shared/crypto.rs` for cryptographic operations
-   - Reuse `shared/file_format.rs` for file parsing
+   - Reuse `shadow-core` for cryptographic operations
+   - Reuse `shadow-shell` for file I/O and CLI utilities
    - Follow same FC/IS pattern as other features
 
 4. **Independent Development**:
-   - No changes needed to existing features
+   - No changes needed to existing crates
    - Self-contained testing and validation
-   - Clear feature boundaries
+   - Clear crate boundaries and compile-time dependency enforcement
 
 This pattern ensures **linear scalability** as features are added.
 
