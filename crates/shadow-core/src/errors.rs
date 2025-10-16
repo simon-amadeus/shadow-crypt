@@ -41,6 +41,9 @@ pub enum ValidationError {
     #[error("Empty password provided")]
     EmptyPassword,
     
+    #[error("Weak password: {reason}")]
+    WeakPassword { reason: String },
+    
     #[error("Empty file content")]
     EmptyFile,
     

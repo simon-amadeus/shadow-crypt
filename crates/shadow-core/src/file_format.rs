@@ -4,13 +4,13 @@
 
 use crate::types::{FileHeader, FilenameData, EncryptedFile};
 use crate::errors::SerializationError;
+use crate::constants::{
+    OBFUSCATION_FLAG_DISABLED, OBFUSCATION_FLAG_ENABLED,
+    MAX_FILENAME_LENGTH
+};
 
-// Constants from the specification
-const MAGIC_BYTES: &[u8; 8] = b"SHADOW01";
-const ALGORITHM_ID_XCHACHA20_POLY1305: u8 = 0x01;
-const OBFUSCATION_FLAG_DISABLED: u8 = 0x00;
-const OBFUSCATION_FLAG_ENABLED: u8 = 0x01;
-const MAX_FILENAME_LENGTH: usize = 255;
+#[cfg(test)]
+use crate::constants::{MAGIC_BYTES, ALGORITHM_ID_XCHACHA20_POLY1305};
 
 /// Serialize a file header to bytes
 /// Pure function - deterministic with same inputs

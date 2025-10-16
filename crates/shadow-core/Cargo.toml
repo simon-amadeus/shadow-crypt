@@ -1,7 +1,7 @@
 [package]
 name = "shadow-core"
 version.workspace = true
-edition = "2021"
+edition = "2024"
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -20,6 +20,7 @@ getrandom = { workspace = true }
 subtle = { workspace = true }
 uuid = { workspace = true }
 thiserror = { workspace = true }
+rand = { workspace = true }
 
 [dev-dependencies]
 hex = { workspace = true }

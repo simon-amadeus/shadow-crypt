@@ -71,8 +71,11 @@ pub fn prompt_for_password() -> ShellResult<SecureString> {
         return Err(ShellError::UserInput("Empty password not allowed".to_string()));
     }
     
+    // Convert to SecureString for validation
+    let secure_password = SecureString::new(password1.clone());
+    
     // Validate password strength
-    validate_password_strength(&password1)
+    validate_password_strength(&secure_password)
         .map_err(|e| ShellError::Validation(e))?;
     
     Ok(SecureString::new(password1))
