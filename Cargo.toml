@@ -1,8 +1,8 @@
 [package]
 name = "shadow-crypt"
-version = "0.27.0"
+version = "0.1.0"
 edition = "2024"
-description = "File encryption with modern cryptography (DEVELOPMENT - NOT READY FOR PRODUCTION)"
+description = "Simple file encryption"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]
@@ -10,9 +10,6 @@ readme = "README.md"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 exclude = [
-    "prompts/",
-    "docs/BACKLOG.md",
-    "docs/FEEDBACK.md",
     "docs/specs/",
     "*.bak",
     "*_backup.*"
@@ -67,20 +64,3 @@ serde_json = "1.0"          # For test data serialization
 tempfile = "3.8"            # For temporary file testing (updated version)
 hex = "0.4"                 # For hex encoding in tests
 proptest = "1.0"            # For property-based testing
-
-
-[lints.clippy]
-allow-expect-in-consts = "warn"
-allow-unwrap-in-consts = "warn"
-
-# Function length limits
-too_many_lines = { level = "warn", max_lines = 100 }
-
-# Parameter limits
-too_many_arguments = { level = "warn", max_args = 5 }
-
-# Cognitive complexity limits
-cognitive_complexity = { level = "warn", max_complexity = 15 }
-
-# Documentation requirements
-missing_docs = "warn"
