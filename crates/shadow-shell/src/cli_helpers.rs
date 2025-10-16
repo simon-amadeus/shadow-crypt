@@ -48,7 +48,7 @@ pub fn parse_glob_patterns(patterns: &[String]) -> ShellResult<Vec<PathBuf>> {
 
 /// Prompt user for password with confirmation
 /// Side effect: User interaction via stdin/stdout
-pub fn prompt_for_password() -> ShellResult<SecureString> {
+pub fn prompt_for_password(allow_weak: bool) -> ShellResult<SecureString> {
     print!("Enter password: ");
     io::stdout().flush()
         .map_err(|e| ShellError::UserInput(format!("Failed to flush stdout: {}", e)))?;
@@ -74,12 +74,15 @@ pub fn prompt_for_password() -> ShellResult<SecureString> {
     // Convert to SecureString for validation
     let secure_password = SecureString::new(password1.clone());
     
-    // Validate password strength
-    validate_password_strength(&secure_password)
-        .map_err(|e| ShellError::Validation(e))?;
+    // Validate password strength only if not allowing weak passwords
+    if !allow_weak {
+        validate_password_strength(&secure_password)
+            .map_err(|e| ShellError::Validation(e))?;
+    }
     
     Ok(SecureString::new(password1))
 }
+
 
 /// Prompt user for password without confirmation (for decryption)
 /// Side effect: User interaction via stdin/stdout  

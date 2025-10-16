@@ -20,7 +20,7 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
     }
     
     // 3. Get password from user (user interaction side effect)
-    let password = get_encryption_password()?;
+    let password = get_encryption_password(args.allow_weak_password)?;
     
     // 4. Process each file
     let mut processed_files = Vec::new();
@@ -114,8 +114,8 @@ fn check_for_duplicates(input_files: &[PathBuf]) -> Result<(), ApplicationError>
 
 /// Get encryption password from user
 /// Side effect: user interaction via stdin/stdout
-fn get_encryption_password() -> Result<SecureString, ApplicationError> {
-    match prompt_for_password() {
+fn get_encryption_password(allow_weak_passwords: bool) -> Result<SecureString, ApplicationError> {
+    match prompt_for_password(allow_weak_passwords) {
         Ok(password) => Ok(password),
         Err(e) => Err(ApplicationError::UserInput(e.to_string())),
     }

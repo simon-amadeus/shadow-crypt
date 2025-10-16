@@ -13,6 +13,7 @@ pub struct EncryptionArgs {
     pub force: bool,
     pub keep: bool,
     pub quiet: bool,
+    pub allow_weak_password: bool,
 }
 
 /// Parse encryption command line arguments
@@ -55,6 +56,12 @@ pub fn parse_args() -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
                 .help("Suppress progress output")
                 .action(clap::ArgAction::SetTrue)
         )
+        .arg(
+            Arg::new("allow_weak_password")
+                .long("allow-weak-password")
+                .help("Allow weak password (skip strength validation)")
+                .action(clap::ArgAction::SetTrue)
+        )
         .get_matches();
 
     Ok(EncryptionArgs::from_matches(&matches)?)
@@ -86,6 +93,7 @@ impl EncryptionArgs {
             force: matches.get_flag("force"),
             keep: matches.get_flag("keep"),
             quiet: matches.get_flag("quiet"),
+            allow_weak_password: matches.get_flag("allow_weak_password"),
         })
     }
 }
@@ -128,6 +136,11 @@ mod tests {
                     .short('q')
                     .action(clap::ArgAction::SetTrue)
             )
+            .arg(
+                Arg::new("allow_weak_password")
+                    .long("allow-weak-password")
+                    .action(clap::ArgAction::SetTrue)
+            )
     }
 
     #[test]
@@ -142,6 +155,7 @@ mod tests {
         assert!(!args.force);
         assert!(!args.keep);
         assert!(!args.quiet);
+        assert!(!args.allow_weak_password);
     }
 
     #[test]
@@ -149,7 +163,7 @@ mod tests {
         let app = create_test_app();
         let matches = app.try_get_matches_from(vec![
             "shadow", "test1.txt", "test2.txt", 
-            "--obfuscate", "--force", "--keep", "--quiet"
+            "--obfuscate", "--force", "--keep", "--quiet", "--allow-weak-password"
         ]).unwrap();
         let args = parse_args_from_matches(&matches).unwrap();
 
@@ -158,6 +172,7 @@ mod tests {
         assert!(args.force);
         assert!(args.keep);
         assert!(args.quiet);
+        assert!(args.allow_weak_password);
     }
 
     #[test]
@@ -172,6 +187,7 @@ mod tests {
         assert!(args.force);
         assert!(args.keep);
         assert!(args.quiet);
+        assert!(!args.allow_weak_password); // Not specified in short flags test
     }
 
     #[test]
@@ -179,5 +195,21 @@ mod tests {
         let app = create_test_app();
         let result = app.try_get_matches_from(vec!["shadow"]);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_allow_weak_passwords_flag() {
+        let app = create_test_app();
+        let matches = app.try_get_matches_from(vec![
+            "shadow", "test.txt", "--allow-weak-password"
+        ]).unwrap();
+        let args = parse_args_from_matches(&matches).unwrap();
+
+        assert_eq!(args.input_files.len(), 1);
+        assert!(!args.obfuscate);
+        assert!(!args.force);
+        assert!(!args.keep);
+        assert!(!args.quiet);
+        assert!(args.allow_weak_password);
     }
 }
