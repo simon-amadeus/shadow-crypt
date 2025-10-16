@@ -1,5 +1,25 @@
-# Shadow Workspace Configuration
-# Functional Core, Imperative Shell Architecture with Vertical Slicing
+# Shadow Crypt - Secure File Encryption Tool
+
+[package]
+name = "shadow-crypt"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Simple file encryption tools"
+repository.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories.workspace = true
+
+# All binaries from workspace
+[[bin]]
+name = "shadow"
+path = "src/bin/shadow.rs"
+
+[dependencies]
+# Only depend on what the main binary actually needs
+shadow-encryption-shell = { path = "crates/shadow-encryption-shell" }
 
 [workspace]
 resolver = "2"
@@ -8,14 +28,11 @@ members = [
     "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers)
     "crates/shadow-encryption-core",   # Pure encryption business logic
     "crates/shadow-encryption-shell",  # Encryption I/O and CLI
-    "crates/shadow-cli",               # Final binaries
     # Future crates will be added in subsequent phases:
-    # "crates/shadow-encryption-shell",  # Encryption I/O and CLI
     # "crates/shadow-decryption-core",   # Pure decryption business logic
     # "crates/shadow-decryption-shell",  # Decryption I/O and CLI
     # "crates/shadow-listing-core",      # Pure listing business logic
     # "crates/shadow-listing-shell",     # Listing I/O and CLI
-    # "crates/shadow-cli"                # Final binaries
 ]
 
 [workspace.package]
