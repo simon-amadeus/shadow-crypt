@@ -59,6 +59,7 @@ pub fn parse_args() -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
         .arg(
             Arg::new("allow_weak_password")
                 .long("allow-weak-password")
+                .short('w')
                 .help("Allow weak password (skip strength validation)")
                 .action(clap::ArgAction::SetTrue)
         )

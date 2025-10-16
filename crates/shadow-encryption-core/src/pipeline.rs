@@ -22,10 +22,10 @@ pub enum EncryptionError {
 /// No side effects - deterministic except for random generation
 pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, EncryptionError> {
     // 1. Generate random values using shadow-core functions
-    let salt = generate_salt()?;
-    let content_nonce = generate_nonce()?;
+    let salt = generate_salt();
+    let content_nonce = generate_nonce();
     let filename_nonce = if request.obfuscate_filename {
-        Some(generate_nonce()?)
+        Some(generate_nonce())
     } else {
         None
     };

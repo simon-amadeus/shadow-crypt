@@ -2,9 +2,6 @@
 // Low-level cryptographic primitives and utilities
 // All code related to basic crypto utilities lives here
 
-use crate::errors::CryptoError;
-
-use rand::RngCore;
 use sha2::{Sha256, Digest};
 use subtle::ConstantTimeEq;
 
@@ -18,22 +15,18 @@ pub fn hash_content(content: &[u8]) -> [u8; 32] {
 
 /// Generate cryptographically secure random nonce
 /// This function has side effects (uses system randomness)
-pub fn generate_nonce() -> Result<[u8; 24], CryptoError> {
+pub fn generate_nonce() -> [u8; 24] {
     let mut nonce = [0u8; 24];
-    rand::thread_rng()
-        .try_fill_bytes(&mut nonce)
-        .map_err(|_| CryptoError::RandomGeneration)?;
-    Ok(nonce)
+    rand::fill(&mut nonce);
+    nonce
 }
 
 /// Generate cryptographically secure random salt
 /// This function has side effects (uses system randomness)
-pub fn generate_salt() -> Result<[u8; 16], CryptoError> {
+pub fn generate_salt() -> [u8; 16] {
     let mut salt = [0u8; 16];
-    rand::thread_rng()
-        .try_fill_bytes(&mut salt)
-        .map_err(|_| CryptoError::RandomGeneration)?;
-    Ok(salt)
+    rand::fill(&mut salt);
+    salt
 }
 
 /// Constant-time equality comparison for security-sensitive data
@@ -72,20 +65,16 @@ mod tests {
     }
 
     #[test]
-    fn test_generate_nonce_different() {
-        let nonce1 = generate_nonce().unwrap();
-        let nonce2 = generate_nonce().unwrap();
-        
-        // Should be extremely unlikely to be the same
+    fn test_generate_nonce_unique() {
+        let nonce1 = generate_nonce();
+        let nonce2 = generate_nonce();
         assert_ne!(nonce1, nonce2);
     }
 
     #[test]
-    fn test_generate_salt_different() {
-        let salt1 = generate_salt().unwrap();
-        let salt2 = generate_salt().unwrap();
-        
-        // Should be extremely unlikely to be the same
+    fn test_generate_salt_unique() {
+        let salt1 = generate_salt();
+        let salt2 = generate_salt();
         assert_ne!(salt1, salt2);
     }
 
