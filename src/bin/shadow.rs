@@ -42,9 +42,19 @@ fn main() {
                     display_error(shell_err);
                 }
                 shadow_encryption_shell::runner::ApplicationError::FileOperation(file_err) => {
-                    let shell_error =
-                        ShellError::UserInput(format!("File operation failed: {}", file_err));
-                    display_error(&shell_error);
+                    // Check if this is a wrapped ShellError
+                    match file_err {
+                        shadow_encryption_shell::file_ops::EncryptionFileError::Shell(shell_err) => {
+                            // Display the structured shell error directly
+                            display_error(shell_err);
+                        }
+                        _ => {
+                            // For other file operation errors, wrap in UserInput
+                            let shell_error =
+                                ShellError::UserInput(format!("File operation failed: {}", file_err));
+                            display_error(&shell_error);
+                        }
+                    }
                 }
             };
 

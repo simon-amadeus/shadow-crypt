@@ -48,9 +48,10 @@ pub enum ShellError {
     #[error("Operation cancelled by user")]
     Cancelled,
 
-    #[error("Duplicate content found")]
+    #[error("Duplicate content found: '{original_file}' has the same content as existing file '{conflicting_file}'")]
     DuplicateContent {
         original_file: PathBuf,
+        conflicting_file: PathBuf,
         content_hash: String,
     },
 
@@ -77,7 +78,17 @@ impl ShellError {
     /// Create a duplicate content error with formatted hash
     pub fn duplicate_content(original_file: PathBuf, content_hash: &[u8; 32]) -> Self {
         Self::DuplicateContent {
+            original_file: original_file.clone(),
+            conflicting_file: PathBuf::from("unknown"), // Fallback for backwards compatibility
+            content_hash: hex::encode(content_hash),
+        }
+    }
+    
+    /// Create a duplicate content error with conflicting file information
+    pub fn duplicate_content_with_file(original_file: PathBuf, conflicting_file: PathBuf, content_hash: &[u8; 32]) -> Self {
+        Self::DuplicateContent {
             original_file,
+            conflicting_file,
             content_hash: hex::encode(content_hash),
         }
     }
@@ -102,13 +113,15 @@ impl PartialEq for ShellError {
             (
                 ShellError::DuplicateContent {
                     original_file: a1,
-                    content_hash: a2,
+                    conflicting_file: a2,
+                    content_hash: a3,
                 },
                 ShellError::DuplicateContent {
                     original_file: b1,
-                    content_hash: b2,
+                    conflicting_file: b2,
+                    content_hash: b3,
                 },
-            ) => a1 == b1 && a2 == b2,
+            ) => a1 == b1 && a2 == b2 && a3 == b3,
             (ShellError::NoFilesMatched, ShellError::NoFilesMatched) => true,
             (
                 ShellError::TooManyFiles {
@@ -151,9 +164,11 @@ mod tests {
         match error {
             ShellError::DuplicateContent {
                 original_file,
+                conflicting_file,
                 content_hash,
             } => {
                 assert_eq!(original_file, path);
+                assert_eq!(conflicting_file, PathBuf::from("unknown"));
                 assert_eq!(content_hash, hex::encode(hash));
             }
             _ => panic!("Expected DuplicateContent error"),

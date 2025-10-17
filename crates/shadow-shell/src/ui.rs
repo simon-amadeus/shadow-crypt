@@ -78,6 +78,7 @@ mod tests {
             ShellError::PasswordMismatch,
             ShellError::DuplicateContent {
                 original_file: PathBuf::from("test.txt"),
+                conflicting_file: PathBuf::from("existing.shadow"),
                 content_hash: "abc123".to_string(),
             },
             ShellError::FileTooLarge {

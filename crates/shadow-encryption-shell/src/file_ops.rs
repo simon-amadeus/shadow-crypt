@@ -6,6 +6,7 @@ use shadow_core::{SecureString, SerializationError, hash_content, serialize_head
 use shadow_encryption_core::pipeline::{EncryptionError, create_encryption_request};
 use shadow_encryption_core::{EncryptedFile, encrypt_file};
 use shadow_shell::{ShellError, read_file_safely, write_file_atomically};
+use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -24,7 +25,7 @@ pub fn process_single_file(
     // 2. Extract filename
     let filename = input_path
         .file_name()
-        .ok_or_else(|| EncryptionFileError::InvalidFilename(input_path.to_path_buf()))?
+        .ok_or_else(|| ShellError::InvalidFilename("No filename".to_string()))?
         .to_string_lossy()
         .to_string();
 
@@ -35,12 +36,13 @@ pub fn process_single_file(
             Some(parent) if !parent.as_os_str().is_empty() => parent,
             _ => Path::new("."),
         };
-        let existing_hashes = scan_existing_shadow_files(parent_dir)?;
-        if existing_hashes.contains(&content_hash) {
-            return Err(EncryptionFileError::DuplicateContent {
-                original_file: input_path.to_path_buf(),
-                content_hash,
-            });
+        let existing_files = scan_existing_shadow_files(parent_dir)?;
+        if let Some(conflicting_file) = existing_files.get(&content_hash) {
+            return Err(ShellError::duplicate_content_with_file(
+                input_path.to_path_buf(),
+                conflicting_file.clone(),
+                &content_hash,
+            ).into());
         }
     }
 
@@ -65,7 +67,7 @@ pub fn process_single_file(
 
     // 7. Check for existing output file
     if output_path.exists() && !force {
-        return Err(EncryptionFileError::OutputExists(output_path));
+        return Err(ShellError::OutputExists(output_path).into());
     }
 
     // 8. Write encrypted file (I/O side effect)
@@ -107,26 +109,27 @@ pub fn check_for_duplicate_content(
         let content_hash = hash_content(&content);
 
         // Scan target directory for existing .shadow files
-        let existing_hashes = scan_existing_shadow_files(target_dir)?;
+        let existing_files = scan_existing_shadow_files(target_dir)?;
 
-        if existing_hashes.contains(&content_hash) {
-            return Err(EncryptionFileError::DuplicateContent {
-                original_file: input_path.clone(),
-                content_hash,
-            });
+        if let Some(conflicting_file) = existing_files.get(&content_hash) {
+            return Err(ShellError::duplicate_content_with_file(
+                input_path.clone(),
+                conflicting_file.clone(),
+                &content_hash,
+            ).into());
         }
     }
 
     Ok(())
 }
 
-/// Scan directory for existing .shadow files and extract their content hashes
+/// Scan directory for existing .shadow files and extract their content hashes with file paths
 /// Side effect: reads from file system
-fn scan_existing_shadow_files(dir: &Path) -> Result<Vec<[u8; 32]>, EncryptionFileError> {
-    let mut hashes = Vec::new();
+fn scan_existing_shadow_files(dir: &Path) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionFileError> {
+    let mut hash_to_file = HashMap::new();
 
     if !dir.exists() || !dir.is_dir() {
-        return Ok(hashes);
+        return Ok(hash_to_file);
     }
 
     for entry in fs::read_dir(dir)? {
@@ -135,13 +138,13 @@ fn scan_existing_shadow_files(dir: &Path) -> Result<Vec<[u8; 32]>, EncryptionFil
 
         if path.extension().map_or(false, |ext| ext == "shadow") {
             if let Ok(hash) = read_shadow_file_content_hash(&path) {
-                hashes.push(hash);
+                hash_to_file.insert(hash, path);
             }
             // Ignore files we can't read - they might be corrupted or different format
         }
     }
 
-    Ok(hashes)
+    Ok(hash_to_file)
 }
 
 /// Read content hash from a .shadow file header
@@ -189,18 +192,6 @@ pub enum EncryptionFileError {
     #[error("I/O error: {0}")]
     Io(#[from] std::io::Error),
 
-    #[error("Invalid filename: {0}")]
-    InvalidFilename(PathBuf),
-
-    #[error("Output file exists: {0}")]
-    OutputExists(PathBuf),
-
-    #[error("Duplicate content found for file: {original_file:?}")]
-    DuplicateContent {
-        original_file: PathBuf,
-        content_hash: [u8; 32],
-    },
-
     #[error("Invalid shadow file format: {0}")]
     InvalidShadowFile(PathBuf),
 }
@@ -225,7 +216,7 @@ mod tests {
         // 2. Extract filename
         let filename = input_path
             .file_name()
-            .ok_or_else(|| EncryptionFileError::InvalidFilename(input_path.to_path_buf()))?
+            .ok_or_else(|| ShellError::InvalidFilename("No filename".to_string()))?
             .to_string_lossy()
             .to_string();
 
@@ -250,7 +241,7 @@ mod tests {
 
         // 6. Check for existing output file
         if output_path.exists() && !force {
-            return Err(EncryptionFileError::OutputExists(output_path));
+            return Err(ShellError::OutputExists(output_path).into());
         }
 
         // 7. Serialize and write the encrypted file (I/O side effect)
@@ -334,7 +325,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            EncryptionFileError::OutputExists(_)
+            EncryptionFileError::Shell(ShellError::OutputExists(_))
         ));
     }
 

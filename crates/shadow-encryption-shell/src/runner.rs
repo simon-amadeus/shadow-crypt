@@ -6,7 +6,7 @@ use crate::cli::EncryptionArgs;
 use crate::file_ops::{EncryptionFileError, process_single_file};
 use shadow_core::SecureString;
 use shadow_shell::{
-    ShellError, display_error, display_progress, display_success, prompt_for_password,
+    ShellError, display_progress, display_success, prompt_for_password,
 };
 use std::path::PathBuf;
 
@@ -50,14 +50,17 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
                 }
             }
             Err(e) => {
-                // Convert to ShellError for consistent error display
-                let shell_error = ShellError::UserInput(format!(
-                    "Error processing {}: {}",
-                    input_path.display(),
-                    e
-                ));
-                display_error(&shell_error);
-                return Err(ApplicationError::FileOperation(e));
+                // Handle different error types appropriately
+                match e {
+                    EncryptionFileError::Shell(shell_error) => {
+                        // Return the structured shell error directly (don't display here)
+                        return Err(ApplicationError::Shell(shell_error));
+                    }
+                    other_error => {
+                        // For other encryption-specific errors, return as file operation error
+                        return Err(ApplicationError::FileOperation(other_error));
+                    }
+                }
             }
         }
     }
