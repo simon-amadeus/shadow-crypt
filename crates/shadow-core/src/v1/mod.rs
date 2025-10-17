@@ -26,10 +26,10 @@ pub use crate::security::SecurityProfile;
 pub use file_data::{validate_file_content, validate_file_metadata};
 pub use file_operations::{
     encrypt_file, decrypt_file, EncryptFileRequest, DecryptFileRequest, 
-    EncryptedFile as V1EncryptedFile, DecryptedFile, FileOperationError
+    EncryptedFile, DecryptedFile, FileOperationError
 };
 pub use header::{validate_file_header, validate_header_bytes};
 pub use header_builder::{create_v1_header, V1HeaderRequest, V1HeaderResult};
 pub use serialization::{deserialize_header, serialize_header};
-pub use types::{EncryptedFile, FileHeader, FilenameData};
+pub use types::{FileHeader, FilenameData};
 pub use validation::{validate_file_header as validate_v1_file_header, validate_header_bytes as validate_v1_header_bytes};

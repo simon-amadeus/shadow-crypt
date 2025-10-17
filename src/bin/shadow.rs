@@ -2,7 +2,8 @@
 // Main Shadow encryption binary
 // Entry point for the encryption feature using shadow-shell
 
-use shadow_shell::{ShellError, display_error, parse_args, run_encryption, ApplicationError, EncryptionFileError};
+use shadow_shell::{ShellError, display_error, parse_args, run_encryption};
+use shadow_shell::encryption::EncryptionError;
 use std::process;
 
 fn main() {
@@ -24,50 +25,62 @@ fn main() {
         Err(e) => {
             // Use display_error for consistent error display
             match &e {
-                ApplicationError::FileNotFound(path) => {
+                EncryptionError::FileNotFound(path) => {
                     let shell_error =
                         ShellError::UserInput(format!("File not found: {}", path.display()));
                     display_error(&shell_error);
                 }
-                ApplicationError::NotAFile(path) => {
+                EncryptionError::NotAFile(path) => {
                     let shell_error =
                         ShellError::UserInput(format!("Not a file: {}", path.display()));
                     display_error(&shell_error);
                 }
-                ApplicationError::UserInput(msg) => {
+                EncryptionError::UserInput(msg) => {
                     let shell_error = ShellError::UserInput(msg.clone());
                     display_error(&shell_error);
                 }
-                ApplicationError::Shell(shell_err) => {
+                EncryptionError::Shell(shell_err) => {
                     display_error(shell_err);
                 }
-                ApplicationError::FileOperation(file_err) => {
-                    // Check if this is a wrapped ShellError
-                    match file_err {
-                        EncryptionFileError::Shell(
-                            shell_err,
-                        ) => {
-                            // Display the structured shell error directly
-                            display_error(shell_err);
-                        }
-                        _ => {
-                            // For other file operation errors, wrap in UserInput
-                            let shell_error = ShellError::UserInput(format!(
-                                "File operation failed: {}",
-                                file_err
-                            ));
-                            display_error(&shell_error);
-                        }
-                    }
+                EncryptionError::FileOperation(file_err) => {
+                    let shell_error = ShellError::UserInput(format!(
+                        "File operation failed: {}",
+                        file_err
+                    ));
+                    display_error(&shell_error);
+                }
+                EncryptionError::Serialization(ser_err) => {
+                    let shell_error = ShellError::UserInput(format!(
+                        "Serialization failed: {}",
+                        ser_err
+                    ));
+                    display_error(&shell_error);
+                }
+                EncryptionError::Io(io_err) => {
+                    let shell_error = ShellError::UserInput(format!(
+                        "I/O error: {}",
+                        io_err
+                    ));
+                    display_error(&shell_error);
+                }
+                EncryptionError::InvalidShadowFile(path) => {
+                    let shell_error = ShellError::UserInput(format!(
+                        "Invalid shadow file: {}",
+                        path.display()
+                    ));
+                    display_error(&shell_error);
                 }
             };
 
             let exit_code = match &e {
-                ApplicationError::FileNotFound(_) => 2,
-                ApplicationError::NotAFile(_) => 2,
-                ApplicationError::UserInput(_) => 64,
-                ApplicationError::Shell(_) => 5,
-                ApplicationError::FileOperation(_) => 74,
+                EncryptionError::FileNotFound(_) => 2,
+                EncryptionError::NotAFile(_) => 2,
+                EncryptionError::UserInput(_) => 64,
+                EncryptionError::Shell(_) => 5,
+                EncryptionError::FileOperation(_) => 74,
+                EncryptionError::Serialization(_) => 74,
+                EncryptionError::Io(_) => 74,
+                EncryptionError::InvalidShadowFile(_) => 74,
             };
             process::exit(exit_code);
         }

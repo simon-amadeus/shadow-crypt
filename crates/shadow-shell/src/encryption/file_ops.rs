@@ -2,9 +2,11 @@
 // File I/O operations for encryption
 // All functions have side effects - interact with file system
 
-use shadow_core::{SecureString, SerializationError};
-use shadow_core::v1::SecurityProfile;
-use crate::{ShellError, read_file_safely, write_file_atomically, encrypt_file, EncryptedFile, PipelineError};
+use shadow_core::SecureString;
+use shadow_core::v1::{SecurityProfile, encrypt_file, EncryptFileRequest, serialize_header};
+use shadow_core::v1::file_operations::EncryptedFile;
+use crate::{ShellError, read_file_safely, write_file_atomically};
+use super::EncryptionError;
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -17,7 +19,7 @@ pub fn process_single_file(
     obfuscate_filename: bool,
     force: bool,
     keep: bool,
-) -> Result<PathBuf, EncryptionFileError> {
+) -> Result<PathBuf, EncryptionError> {
     // 1. Read file content (I/O side effect)
     let content = read_file_safely(input_path)?;
 
@@ -46,14 +48,15 @@ pub fn process_single_file(
         }
     }
 
-    // 4. Encrypt file using pipeline (pure function)
-    let encrypted = encrypt_file(
+    // 4. Encrypt file using shadow-core directly (pure function)
+    let encrypt_request = EncryptFileRequest {
         content,
-        filename,
-        password.clone(),
+        original_filename: filename,
+        password: password.clone(),
         obfuscate_filename,
-        SecurityProfile::Production,
-    )?;
+        security_profile: SecurityProfile::Production,
+    };
+    let encrypted = encrypt_file(encrypt_request)?;
 
     // 6. Determine output path
     let parent_dir = match input_path.parent() {
@@ -83,9 +86,12 @@ pub fn process_single_file(
 pub fn write_encrypted_file(
     encrypted: &EncryptedFile,
     output_path: &Path,
-) -> Result<(), EncryptionFileError> {
-    // 9. Create complete file data (header + ciphertext)
-    let mut file_data = encrypted.header_bytes.clone();
+) -> Result<(), EncryptionError> {
+    // Serialize header to bytes for file format
+    let header_bytes = serialize_header(&encrypted.header)?;
+    
+    // Create complete file data (header + ciphertext)
+    let mut file_data = header_bytes;
     file_data.extend_from_slice(&encrypted.ciphertext);
 
     // Write atomically using shell utility
@@ -99,7 +105,7 @@ pub fn write_encrypted_file(
 pub fn check_for_duplicate_content(
     input_paths: &[PathBuf],
     target_dir: &Path,
-) -> Result<(), EncryptionFileError> {
+) -> Result<(), EncryptionError> {
     for input_path in input_paths {
         let content = read_file_safely(input_path)?;
         let content_hash = shadow_core::v1::hash_content(&content);
@@ -124,7 +130,7 @@ pub fn check_for_duplicate_content(
 /// Side effect: reads from file system
 fn scan_existing_shadow_files(
     dir: &Path,
-) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionFileError> {
+) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionError> {
     let mut hash_to_file = HashMap::new();
 
     if !dir.exists() || !dir.is_dir() {
@@ -148,7 +154,7 @@ fn scan_existing_shadow_files(
 
 /// Read content hash from a .shadow file header
 /// Side effect: reads from file system
-fn read_shadow_file_content_hash(path: &Path) -> Result<[u8; 32], EncryptionFileError> {
+fn read_shadow_file_content_hash(path: &Path) -> Result<[u8; 32], EncryptionError> {
     use std::io::Read;
 
     let mut file = fs::File::open(path)?;
@@ -157,18 +163,18 @@ fn read_shadow_file_content_hash(path: &Path) -> Result<[u8; 32], EncryptionFile
     // Read enough for basic header validation
     let bytes_read = file.read(&mut buffer)?;
     if bytes_read < 8 {
-        return Err(EncryptionFileError::InvalidShadowFile(path.to_path_buf()));
+        return Err(EncryptionError::InvalidShadowFile(path.to_path_buf()));
     }
 
     // Check magic bytes
     if &buffer[0..8] != b"SHADOW01" {
-        return Err(EncryptionFileError::InvalidShadowFile(path.to_path_buf()));
+        return Err(EncryptionError::InvalidShadowFile(path.to_path_buf()));
     }
 
     // Extract content hash (starts at offset 10: magic(8) + algorithm(1) + obfuscation(1))
     if bytes_read < 42 {
         // 10 + 32 for hash
-        return Err(EncryptionFileError::InvalidShadowFile(path.to_path_buf()));
+        return Err(EncryptionError::InvalidShadowFile(path.to_path_buf()));
     }
 
     let mut hash = [0u8; 32];
@@ -176,24 +182,7 @@ fn read_shadow_file_content_hash(path: &Path) -> Result<[u8; 32], EncryptionFile
     Ok(hash)
 }
 
-/// Error type for encryption file operations
-#[derive(Debug, thiserror::Error)]
-pub enum EncryptionFileError {
-    #[error("Shell error: {0}")]
-    Shell(#[from] ShellError),
-
-    #[error("Pipeline error: {0}")]
-    Pipeline(#[from] PipelineError),
-
-    #[error("Serialization error: {0}")]
-    Serialization(#[from] SerializationError),
-
-    #[error("I/O error: {0}")]
-    Io(#[from] std::io::Error),
-
-    #[error("Invalid shadow file format: {0}")]
-    InvalidShadowFile(PathBuf),
-}
+// EncryptionError is now defined in the parent module
 
 #[cfg(test)]
 mod tests {
@@ -208,7 +197,7 @@ mod tests {
         obfuscate_filename: bool,
         force: bool,
         keep: bool,
-    ) -> Result<PathBuf, EncryptionFileError> {
+    ) -> Result<PathBuf, EncryptionError> {
         // 1. Read file content (I/O side effect)
         let content = read_file_safely(input_path)?;
 
@@ -219,14 +208,15 @@ mod tests {
             .to_string_lossy()
             .to_string();
 
-        // 3. Encrypt file using pipeline with TEST parameters (pure function)
-        let encrypted = encrypt_file(
+        // 3. Encrypt file using shadow-core with TEST parameters (pure function)
+        let encrypt_request = EncryptFileRequest {
             content,
-            filename,
-            password.clone(),
+            original_filename: filename,
+            password: password.clone(),
             obfuscate_filename,
-            SecurityProfile::Test,
-        )?;
+            security_profile: SecurityProfile::Test,
+        };
+        let encrypted = encrypt_file(encrypt_request)?;
 
         // 5. Determine output path
         let parent_dir = match input_path.parent() {
@@ -240,11 +230,8 @@ mod tests {
             return Err(ShellError::OutputExists(output_path).into());
         }
 
-        // 7. Create complete file data (header + ciphertext)
-        let mut file_content = encrypted.header_bytes.clone();
-        file_content.extend_from_slice(&encrypted.ciphertext);
-
-        write_file_atomically(&output_path, &file_content)?;
+        // 7. Write encrypted file
+        write_encrypted_file(&encrypted, &output_path)?;
 
         // 8. Optionally remove original file (I/O side effect)
         if !keep {
@@ -319,7 +306,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            EncryptionFileError::Shell(ShellError::OutputExists(_))
+            EncryptionError::Shell(ShellError::OutputExists(_))
         ));
     }
 

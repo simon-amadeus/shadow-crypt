@@ -3,14 +3,15 @@
 // Side effects: coordinates file I/O, user interaction, and progress display
 
 use super::cli::EncryptionArgs;
-use super::file_ops::{EncryptionFileError, process_single_file};
+use super::file_ops::process_single_file;
+use super::EncryptionError;
 use shadow_core::SecureString;
-use crate::{ShellError, display_progress, display_success, prompt_for_password};
+use crate::{display_progress, display_success, prompt_for_password};
 use std::path::PathBuf;
 
 /// Main encryption runner - coordinates the entire encryption workflow
 /// Side effects: file I/O, user interaction, progress display
-pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
+pub fn run_encryption(args: EncryptionArgs) -> Result<(), EncryptionError> {
     // 1. Validate input files exist and are readable (I/O side effect)
     let validated_inputs = validate_inputs(&args.input_files)?;
 
@@ -50,13 +51,13 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
             Err(e) => {
                 // Handle different error types appropriately
                 match e {
-                    EncryptionFileError::Shell(shell_error) => {
+                    EncryptionError::Shell(shell_error) => {
                         // Return the structured shell error directly (don't display here)
-                        return Err(ApplicationError::Shell(shell_error));
+                        return Err(EncryptionError::Shell(shell_error));
                     }
                     other_error => {
-                        // For other encryption-specific errors, return as file operation error
-                        return Err(ApplicationError::FileOperation(other_error));
+                        // For other encryption-specific errors, return directly
+                        return Err(other_error);
                     }
                 }
             }
@@ -77,15 +78,15 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
 
 /// Validate that input files exist and are readable
 /// Side effect: file system checks
-fn validate_inputs(input_files: &[PathBuf]) -> Result<Vec<PathBuf>, ApplicationError> {
+fn validate_inputs(input_files: &[PathBuf]) -> Result<Vec<PathBuf>, EncryptionError> {
     let mut validated = Vec::new();
 
     for path in input_files {
         if !path.exists() {
-            return Err(ApplicationError::FileNotFound(path.clone()));
+            return Err(EncryptionError::FileNotFound(path.clone()));
         }
         if !path.is_file() {
-            return Err(ApplicationError::NotAFile(path.clone()));
+            return Err(EncryptionError::NotAFile(path.clone()));
         }
         validated.push(path.clone());
     }
@@ -95,31 +96,14 @@ fn validate_inputs(input_files: &[PathBuf]) -> Result<Vec<PathBuf>, ApplicationE
 
 /// Get encryption password from user
 /// Side effect: user interaction via stdin/stdout
-fn get_encryption_password(allow_weak_passwords: bool) -> Result<SecureString, ApplicationError> {
+fn get_encryption_password(allow_weak_passwords: bool) -> Result<SecureString, EncryptionError> {
     match prompt_for_password(allow_weak_passwords) {
         Ok(password) => Ok(password),
-        Err(e) => Err(ApplicationError::UserInput(e.to_string())),
+        Err(e) => Err(EncryptionError::UserInput(e.to_string())),
     }
 }
 
-/// Application-level error type
-#[derive(Debug, thiserror::Error)]
-pub enum ApplicationError {
-    #[error("File not found: {0}")]
-    FileNotFound(PathBuf),
-
-    #[error("Not a file: {0}")]
-    NotAFile(PathBuf),
-
-    #[error("Shell error: {0}")]
-    Shell(#[from] ShellError),
-
-    #[error("File operation error: {0}")]
-    FileOperation(#[from] EncryptionFileError),
-
-    #[error("User input error: {0}")]
-    UserInput(String),
-}
+// ApplicationError is now unified as EncryptionError in parent module
 
 #[cfg(test)]
 mod tests {
@@ -149,7 +133,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            ApplicationError::FileNotFound(path) if path == nonexistent
+            EncryptionError::FileNotFound(path) if path == nonexistent
         ));
     }
 
@@ -163,7 +147,7 @@ mod tests {
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
-            ApplicationError::NotAFile(path) if path == dir_path
+            EncryptionError::NotAFile(path) if path == dir_path
         ));
     }
 }

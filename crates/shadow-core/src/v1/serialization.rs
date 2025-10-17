@@ -3,7 +3,8 @@
 // Pure functions implementing the Shadow v1.0 file format specification
 
 use super::constants::*;
-use super::types::{EncryptedFile, FileHeader, FilenameData};
+use super::types::{FileHeader, FilenameData};
+use super::file_operations::EncryptedFile;
 use crate::errors::SerializationError;
 
 /// Serialize a v1 file header to bytes

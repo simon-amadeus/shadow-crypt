@@ -26,13 +26,7 @@ pub enum FilenameData {
     },
 }
 
-/// Complete encrypted file structure for v1 format
-#[derive(Debug, Clone)]
-pub struct EncryptedFile {
-    pub header: FileHeader,
-    pub ciphertext: Vec<u8>,
-    pub suggested_filename: String,
-}
+// EncryptedFile is now in file_operations.rs to avoid duplication
 
 #[cfg(test)]
 mod tests {
