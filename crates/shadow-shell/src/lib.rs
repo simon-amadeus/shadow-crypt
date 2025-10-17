@@ -19,8 +19,7 @@ pub use cli_helpers::{
     confirm_overwrite
 };
 pub use ui::{
-    display_progress, display_error, display_success,
-    display_warning, display_info
+    display_progress, display_error, display_success
 };
 pub use errors::ShellError;
 

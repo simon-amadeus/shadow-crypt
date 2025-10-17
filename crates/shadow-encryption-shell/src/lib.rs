@@ -10,3 +10,6 @@ pub mod file_ops;
 pub use cli::{EncryptionArgs, parse_args};
 pub use runner::run_encryption;
 pub use file_ops::{process_single_file, write_encrypted_file};
+
+// Re-export UI utilities for error handling in main binary
+pub use shadow_shell::{display_error, ShellError};

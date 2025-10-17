@@ -4,7 +4,7 @@
 
 use std::path::{Path, PathBuf};
 use shadow_core::SecureString;
-use shadow_shell::{prompt_for_password, display_progress, display_success, ShellError};
+use shadow_shell::{prompt_for_password, display_progress, display_success, display_error, ShellError};
 use crate::cli::EncryptionArgs;
 use crate::file_ops::{process_single_file, check_for_duplicate_content, EncryptionFileError};
 
@@ -49,7 +49,9 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
                 }
             }
             Err(e) => {
-                eprintln!("Error processing {}: {}", input_path.display(), e);
+                // Convert to ShellError for consistent error display
+                let shell_error = ShellError::UserInput(format!("Error processing {}: {}", input_path.display(), e));
+                display_error(&shell_error);
                 return Err(ApplicationError::FileOperation(e));
             }
         }
