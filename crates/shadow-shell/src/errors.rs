@@ -48,7 +48,9 @@ pub enum ShellError {
     #[error("Operation cancelled by user")]
     Cancelled,
 
-    #[error("Duplicate content found: '{original_file}' has the same content as existing file '{conflicting_file}'")]
+    #[error(
+        "Duplicate content found: '{original_file}' has the same content as existing file '{conflicting_file}'"
+    )]
     DuplicateContent {
         original_file: PathBuf,
         conflicting_file: PathBuf,
@@ -83,9 +85,13 @@ impl ShellError {
             content_hash: hex::encode(content_hash),
         }
     }
-    
+
     /// Create a duplicate content error with conflicting file information
-    pub fn duplicate_content_with_file(original_file: PathBuf, conflicting_file: PathBuf, content_hash: &[u8; 32]) -> Self {
+    pub fn duplicate_content_with_file(
+        original_file: PathBuf,
+        conflicting_file: PathBuf,
+        content_hash: &[u8; 32],
+    ) -> Self {
         Self::DuplicateContent {
             original_file,
             conflicting_file,

@@ -42,7 +42,8 @@ pub fn process_single_file(
                 input_path.to_path_buf(),
                 conflicting_file.clone(),
                 &content_hash,
-            ).into());
+            )
+            .into());
         }
     }
 
@@ -116,7 +117,8 @@ pub fn check_for_duplicate_content(
                 input_path.clone(),
                 conflicting_file.clone(),
                 &content_hash,
-            ).into());
+            )
+            .into());
         }
     }
 
@@ -125,7 +127,9 @@ pub fn check_for_duplicate_content(
 
 /// Scan directory for existing .shadow files and extract their content hashes with file paths
 /// Side effect: reads from file system
-fn scan_existing_shadow_files(dir: &Path) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionFileError> {
+fn scan_existing_shadow_files(
+    dir: &Path,
+) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionFileError> {
     let mut hash_to_file = HashMap::new();
 
     if !dir.exists() || !dir.is_dir() {

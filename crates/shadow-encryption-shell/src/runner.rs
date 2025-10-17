@@ -5,9 +5,7 @@
 use crate::cli::EncryptionArgs;
 use crate::file_ops::{EncryptionFileError, process_single_file};
 use shadow_core::SecureString;
-use shadow_shell::{
-    ShellError, display_progress, display_success, prompt_for_password,
-};
+use shadow_shell::{ShellError, display_progress, display_success, prompt_for_password};
 use std::path::PathBuf;
 
 /// Main encryption runner - coordinates the entire encryption workflow
