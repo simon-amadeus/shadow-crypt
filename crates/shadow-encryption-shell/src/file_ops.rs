@@ -28,7 +28,23 @@ pub fn process_single_file(
         .to_string_lossy()
         .to_string();
     
-    // 3. Create encryption request (pure function)
+    // 3. Check for duplicate content (handles obfuscated files)
+    if !force {
+        let content_hash = hash_content(&content);
+        let parent_dir = match input_path.parent() {
+            Some(parent) if !parent.as_os_str().is_empty() => parent,
+            _ => Path::new("."),
+        };
+        let existing_hashes = scan_existing_shadow_files(parent_dir)?;
+        if existing_hashes.contains(&content_hash) {
+            return Err(EncryptionFileError::DuplicateContent {
+                original_file: input_path.to_path_buf(),
+                content_hash,
+            });
+        }
+    }
+
+    // 4. Create encryption request (pure function)
     let request = create_encryption_request(
         content,
         filename,
@@ -37,25 +53,25 @@ pub fn process_single_file(
         shadow_core::SecurityProfile::Production,
     );
     
-    // 4. Encrypt file (pure function)
+    // 5. Encrypt file (pure function)
     let encrypted = encrypt_file(request)?;
     
-    // 5. Determine output path
+    // 6. Determine output path
     let parent_dir = match input_path.parent() {
         Some(parent) if !parent.as_os_str().is_empty() => parent,
         _ => Path::new("."), // Handle empty parent or None
     };
     let output_path = parent_dir.join(&encrypted.suggested_filename);
     
-    // 6. Check for existing output file
+    // 7. Check for existing output file
     if output_path.exists() && !force {
         return Err(EncryptionFileError::OutputExists(output_path));
     }
     
-    // 7. Write encrypted file (I/O side effect)
+    // 8. Write encrypted file (I/O side effect)
     write_encrypted_file(&encrypted, &output_path)?;
     
-    // 8. Remove source file if not keeping (I/O side effect)
+    // 9. Remove source file if not keeping (I/O side effect)
     if !keep {
         fs::remove_file(input_path)?;
     }

@@ -2,11 +2,11 @@
 // Main encryption workflow runner
 // Side effects: coordinates file I/O, user interaction, and progress display
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use shadow_core::SecureString;
 use shadow_shell::{prompt_for_password, display_progress, display_success, display_error, ShellError};
 use crate::cli::EncryptionArgs;
-use crate::file_ops::{process_single_file, check_for_duplicate_content, EncryptionFileError};
+use crate::file_ops::{process_single_file, EncryptionFileError};
 
 /// Main encryption runner - coordinates the entire encryption workflow
 /// Side effects: file I/O, user interaction, progress display
@@ -14,10 +14,7 @@ pub fn run_encryption(args: EncryptionArgs) -> Result<(), ApplicationError> {
     // 1. Validate input files exist and are readable (I/O side effect)
     let validated_inputs = validate_inputs(&args.input_files)?;
     
-    // 2. Check for duplicate content if not forcing (I/O side effect)
-    if !args.force {
-        check_for_duplicates(&validated_inputs)?;
-    }
+    // 2. Duplicate content checking is now handled per-file during processing
     
     // 3. Get password from user (user interaction side effect)
     let password = get_encryption_password(args.allow_weak_password)?;
@@ -85,33 +82,6 @@ fn validate_inputs(input_files: &[PathBuf]) -> Result<Vec<PathBuf>, ApplicationE
     }
     
     Ok(validated)
-}
-
-/// Check for duplicate content in target directories
-/// Side effect: reads from file system
-fn check_for_duplicates(input_files: &[PathBuf]) -> Result<(), ApplicationError> {
-    // Group files by target directory
-    let mut dirs_to_check = std::collections::HashSet::new();
-    for file in input_files {
-        let parent_dir = match file.parent() {
-            Some(parent) if !parent.as_os_str().is_empty() => parent,
-            _ => Path::new("."), // Handle empty parent or None
-        };
-        dirs_to_check.insert(parent_dir);
-    }
-    
-    // Check each directory for duplicates
-    for dir in dirs_to_check {
-        let files_in_dir: Vec<PathBuf> = input_files
-            .iter()
-            .filter(|f| f.parent() == Some(dir))
-            .cloned()
-            .collect();
-        
-        check_for_duplicate_content(&files_in_dir, dir)?;
-    }
-    
-    Ok(())
 }
 
 /// Get encryption password from user
@@ -188,16 +158,5 @@ mod tests {
         ));
     }
 
-    #[test]
-    fn test_check_for_duplicates_no_duplicates() {
-        let temp_dir = TempDir::new().unwrap();
-        let test_file1 = temp_dir.path().join("test1.txt");
-        let test_file2 = temp_dir.path().join("test2.txt");
-        
-        fs::write(&test_file1, b"unique content 1").unwrap();
-        fs::write(&test_file2, b"unique content 2").unwrap();
-        
-        let result = check_for_duplicates(&[test_file1, test_file2]);
-        assert!(result.is_ok());
-    }
+
 }
