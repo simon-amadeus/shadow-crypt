@@ -1,4 +1,4 @@
-// shadow-core/src/format/v1/types.rs
+// shadow-core/src/v1/types.rs
 // Version 1.0 format-specific types and structures
 // All v1 format types live here for maximum cohesion
 

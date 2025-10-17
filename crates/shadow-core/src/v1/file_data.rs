@@ -1,10 +1,10 @@
-// shadow-core/src/validation/file_data.rs
-// File content and metadata validation functions
-// All code related to validating file data and requests lives here
+// shadow-core/src/v1/file_data.rs  
+// V1-specific file content and metadata validation functions
+// All code related to validating file data according to v1 format rules
 
 use crate::errors::ValidationError;
-use crate::format::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
 use crate::metadata::FileMetadata;
+use super::constants::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
 
 /// Validate file content requirements
 /// Pure function - no side effects

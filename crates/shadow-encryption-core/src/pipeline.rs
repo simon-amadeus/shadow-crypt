@@ -4,8 +4,10 @@
 
 use crate::types::{EncryptedFile, EncryptionRequest};
 use shadow_core::{
-    CryptoError, FileHeader, FilenameData, SecurityProfile, SerializationError, derive_key,
-    encrypt_content, encrypt_filename, generate_nonce, generate_salt, serialize_header,
+    CryptoError, SerializationError, encrypt_content, encrypt_filename, generate_nonce, generate_salt,
+};
+use shadow_core::v1::{
+    FileHeader, FilenameData, SecurityProfile, derive_key, serialize_header,
 };
 
 /// Encryption pipeline error combining crypto and serialization errors
@@ -96,7 +98,7 @@ pub fn create_encryption_request(
     obfuscate: bool,
     security_profile: SecurityProfile,
 ) -> EncryptionRequest {
-    let content_hash = shadow_core::hash_content(&content);
+    let content_hash = shadow_core::v1::hash_content(&content);
     let metadata = shadow_core::FileMetadata {
         original_name: original_filename,
         content_hash,

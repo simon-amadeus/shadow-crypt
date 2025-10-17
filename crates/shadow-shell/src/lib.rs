@@ -17,6 +17,6 @@ pub use ui::{display_error, display_progress, display_success};
 
 // Re-export core types for convenience
 pub use shadow_core::{
-    CryptoError, FileHeader, FilenameData, SecureKey, SecureString, SerializationError,
-    ValidationError,
+    CryptoError, SecureKey, SecureString, SerializationError, ValidationError,
 };
+pub use shadow_core::v1::{FileHeader, FilenameData};

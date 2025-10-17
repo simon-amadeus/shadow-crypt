@@ -2,7 +2,8 @@
 // File I/O operations for encryption
 // All functions have side effects - interact with file system
 
-use shadow_core::{SecureString, SerializationError, hash_content, serialize_header};
+use shadow_core::{SecureString, SerializationError};
+use shadow_core::v1::{SecurityProfile, serialize_header};
 use shadow_encryption_core::pipeline::{EncryptionError, create_encryption_request};
 use shadow_encryption_core::{EncryptedFile, encrypt_file};
 use shadow_shell::{ShellError, read_file_safely, write_file_atomically};
@@ -31,7 +32,7 @@ pub fn process_single_file(
 
     // 3. Check for duplicate content (handles obfuscated files)
     if !force {
-        let content_hash = hash_content(&content);
+        let content_hash = shadow_core::v1::hash_content(&content);
         let parent_dir = match input_path.parent() {
             Some(parent) if !parent.as_os_str().is_empty() => parent,
             _ => Path::new("."),
@@ -53,7 +54,7 @@ pub fn process_single_file(
         filename,
         password.clone(),
         obfuscate_filename,
-        shadow_core::SecurityProfile::Production,
+        SecurityProfile::Production,
     );
 
     // 5. Encrypt file (pure function)
@@ -107,7 +108,7 @@ pub fn check_for_duplicate_content(
 ) -> Result<(), EncryptionFileError> {
     for input_path in input_paths {
         let content = read_file_safely(input_path)?;
-        let content_hash = hash_content(&content);
+        let content_hash = shadow_core::v1::hash_content(&content);
 
         // Scan target directory for existing .shadow files
         let existing_files = scan_existing_shadow_files(target_dir)?;
@@ -230,7 +231,7 @@ mod tests {
             filename,
             password.clone(),
             obfuscate_filename,
-            shadow_core::SecurityProfile::Test,
+            SecurityProfile::Test,
         );
 
         // 4. Encrypt file (pure function)

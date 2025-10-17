@@ -2,7 +2,8 @@
 // Encryption-specific types for the functional core
 // Pure data structures with no side effects
 
-use shadow_core::{FileHeader, FileMetadata, SecureString, SecurityProfile};
+use shadow_core::{FileMetadata, SecureString};
+use shadow_core::v1::{FileHeader, SecurityProfile};
 
 /// Complete encryption request containing all necessary data
 /// Pure data structure - immutable and serializable
@@ -58,6 +59,8 @@ impl EncryptedFile {
 
 #[cfg(test)]
 mod tests {
+    use shadow_core::v1::FilenameData;
+
     use super::*;
 
     #[test]
@@ -90,7 +93,7 @@ mod tests {
             algorithm_id: 0x01,
             obfuscation_flag: 0x00,
             content_hash: [0u8; 32],
-            filename_data: shadow_core::FilenameData::Plaintext("test.txt".to_string()),
+            filename_data: FilenameData::Plaintext("test.txt".to_string()),
             salt: [1u8; 16],
             content_nonce: [2u8; 24],
         };

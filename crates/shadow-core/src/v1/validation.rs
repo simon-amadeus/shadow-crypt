@@ -1,4 +1,4 @@
-// shadow-core/src/format/v1/validation.rs
+// shadow-core/src/v1/validation.rs
 // V1 format-specific validation functions
 
 use super::constants::{

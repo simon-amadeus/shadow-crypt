@@ -2,11 +2,10 @@
 // Key derivation and key management operations
 // All code related to generating and deriving keys lives here
 
-use super::config::SecurityProfile;
 use crate::errors::CryptoError;
 use crate::memory::{SecureKey, SecureString};
 
-use argon2::PasswordHasher;
+use argon2::{Argon2, PasswordHasher};
 use argon2::password_hash::SaltString;
 use hkdf::Hkdf;
 use sha2::Sha256;
@@ -17,15 +16,13 @@ use sha2::Sha256;
 /// # Parameters
 ///
 /// * `password` - The password to derive the key from
-/// * `salt` - 16-byte salt for key derivation
-/// * `profile` - Security profile determining Argon2 parameters
+/// * `salt` - 16-byte salt for key derivation  
+/// * `argon2` - Configured Argon2 instance with desired parameters
 pub fn derive_key(
     password: &SecureString,
     salt: &[u8; 16],
-    profile: SecurityProfile,
+    argon2: &Argon2,
 ) -> Result<SecureKey, CryptoError> {
-    let argon2 = profile.create_argon2();
-
     // Convert salt to required format
     let salt_string = SaltString::encode_b64(salt).map_err(|_| CryptoError::KeyDerivation)?;
 
@@ -63,13 +60,20 @@ pub fn derive_filename_key(master_key: &SecureKey) -> Result<SecureKey, CryptoEr
 #[cfg(test)]
 mod tests {
     use super::*;
+    use argon2::{Algorithm, Argon2, Params, Version};
+
+    fn create_test_argon2() -> Argon2<'static> {
+        let params = Params::new(64, 1, 1, None).expect("Test Argon2 parameters should be valid");
+        Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
+    }
 
     #[test]
     fn test_derive_key_basic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
+        let argon2 = create_test_argon2();
 
-        let result = derive_key(&password, &salt, SecurityProfile::Test);
+        let result = derive_key(&password, &salt, &argon2);
         assert!(result.is_ok());
     }
 
@@ -77,9 +81,10 @@ mod tests {
     fn test_derive_key_deterministic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
+        let argon2 = create_test_argon2();
 
-        let key1 = derive_key(&password, &salt, SecurityProfile::Test).unwrap();
-        let key2 = derive_key(&password, &salt, SecurityProfile::Test).unwrap();
+        let key1 = derive_key(&password, &salt, &argon2).unwrap();
+        let key2 = derive_key(&password, &salt, &argon2).unwrap();
 
         assert_eq!(key1.as_bytes(), key2.as_bytes());
     }
@@ -89,9 +94,10 @@ mod tests {
         let password = SecureString::new("test_password".to_string());
         let salt1 = [1u8; 16];
         let salt2 = [2u8; 16];
+        let argon2 = create_test_argon2();
 
-        let key1 = derive_key(&password, &salt1, SecurityProfile::Test).unwrap();
-        let key2 = derive_key(&password, &salt2, SecurityProfile::Test).unwrap();
+        let key1 = derive_key(&password, &salt1, &argon2).unwrap();
+        let key2 = derive_key(&password, &salt2, &argon2).unwrap();
 
         assert_ne!(key1.as_bytes(), key2.as_bytes());
     }

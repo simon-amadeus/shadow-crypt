@@ -1,27 +1,29 @@
-// shadow-core/src/validation/header.rs
-// File header validation functions - delegates to format-specific modules
+// shadow-core/src/v1/header.rs
+// V1-specific file header validation functions
 
 use crate::errors::ValidationError;
-use crate::format::v1;
+use super::validation;
+use super::types::FileHeader;
 
 /// Validate a complete file header structure
-/// Currently delegates to v1 format validation
-pub fn validate_file_header(header: &v1::FileHeader) -> Result<(), ValidationError> {
-    v1::validate_file_header(header)
+/// V1-specific validation implementation
+pub fn validate_file_header(header: &FileHeader) -> Result<(), ValidationError> {
+    validation::validate_file_header(header)
 }
 
 /// Validate raw header bytes for basic structure requirements
-/// Currently delegates to v1 format validation
+/// V1-specific validation implementation
 pub fn validate_header_bytes(data: &[u8]) -> Result<(), ValidationError> {
-    v1::validate_header_bytes(data)
+    validation::validate_header_bytes(data)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::format::v1::{
-        ALGORITHM_XCHACHA20_POLY1305, FILENAME_PLAINTEXT, FileHeader, FilenameData, MAGIC,
+    use crate::v1::constants::{
+        ALGORITHM_XCHACHA20_POLY1305, FILENAME_PLAINTEXT, MAGIC,
     };
+    use crate::v1::types::{FileHeader, FilenameData};
 
     fn create_valid_header() -> FileHeader {
         FileHeader {

@@ -1,14 +1,10 @@
 // shadow-core/src/validation/mod.rs
-// Organized validation functions with improved cohesion
-// Validation functions grouped by what they validate
+// Generic validation functions (version-agnostic)
+// Only contains validation logic that applies across all format versions
 
-pub mod duplicates;
-pub mod file_data; // File content and metadata validation
-pub mod header; // File header structure validation
-pub mod password; // Password format validation
+pub mod duplicates; // Generic content hash comparison (version-agnostic)
+pub mod password;   // Generic password validation (version-agnostic)
 
-// Re-export the main validation functions
+// Re-export the generic validation functions
 pub use duplicates::{check_content_duplicate, find_duplicate_hashes};
-pub use file_data::{validate_file_content, validate_file_metadata};
-pub use header::{validate_file_header, validate_header_bytes};
 pub use password::{validate_password_format, validate_password_strength};

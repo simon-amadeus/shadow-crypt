@@ -33,6 +33,7 @@ pub fn validate_encryption_request(request: &EncryptionRequest) -> Result<(), Va
 mod tests {
     use super::*;
     use shadow_core::{FileMetadata, SecureString};
+    use shadow_core::v1::SecurityProfile;
 
     fn create_valid_request() -> EncryptionRequest {
         EncryptionRequest {
@@ -44,7 +45,7 @@ mod tests {
             },
             password: SecureString::new("correct horse battery staple".to_string()),
             obfuscate_filename: false,
-            security_profile: shadow_core::SecurityProfile::Test,
+            security_profile: SecurityProfile::Test,
         }
     }
 

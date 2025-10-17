@@ -5,25 +5,29 @@
 // All cryptographic operations, data types, and validation logic
 // are implemented here without any I/O dependencies.
 
-pub mod crypto; // Cryptographic operations (modular)
+pub mod crypto; // Generic cryptographic operations (version-agnostic)
 pub mod errors; // Error types organized by domain
-pub mod format; // Modular file format handling
 pub mod memory; // Secure memory types with zeroization
 pub mod metadata; // File metadata and information
-pub mod validation; // Validation functions (modular)
+pub mod validation; // Generic validation functions (version-agnostic)
+pub mod v1; // Version 1.0 format implementation (complete & self-contained)
 
-// Re-export key types and functions for convenient access
+// Re-export only generic, version-agnostic types and functions
 pub use crypto::{
-    SecurityProfile, constant_time_eq, decrypt_content, decrypt_filename, derive_filename_key,
-    derive_key, encrypt_content, encrypt_filename, generate_nonce, generate_salt, hash_content,
+    constant_time_eq, decrypt_content, decrypt_filename, derive_filename_key,
+    encrypt_content, encrypt_filename, generate_nonce, generate_salt,
 };
 pub use errors::{CryptoError, SerializationError, ValidationError};
-pub use format::v1::{
-    EncryptedFile, FileHeader, FilenameData, deserialize_header, serialize_header,
-};
 pub use memory::{SecureBytes, SecureKey, SecureString};
 pub use metadata::FileMetadata;
 pub use validation::{
-    check_content_duplicate, validate_file_content, validate_file_header, validate_file_metadata,
-    validate_header_bytes, validate_password_format, validate_password_strength,
+    check_content_duplicate, validate_password_format, validate_password_strength,
 };
+
+// NOTE: Version-specific items are NOT re-exported.
+// Use explicit imports for clarity:
+//   use shadow_core::v1::{SecurityProfile, derive_key, FileHeader, ...};
+//
+// This makes version usage explicit and supports migration scenarios:
+//   - Decrypt with v1::decrypt_content()
+//   - Encrypt with v2::encrypt_content()

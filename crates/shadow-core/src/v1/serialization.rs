@@ -1,4 +1,4 @@
-// shadow-core/src/format/v1/serialization.rs
+// shadow-core/src/v1/serialization.rs
 // Version 1.0 format serialization/deserialization functions
 // Pure functions implementing the Shadow v1.0 file format specification
 
