@@ -2,7 +2,7 @@
 // Encryption-specific types for the functional core
 // Pure data structures with no side effects
 
-use shadow_core::{SecureString, FileMetadata, FileHeader};
+use shadow_core::{SecureString, FileMetadata, FileHeader, SecurityProfile};
 
 /// Complete encryption request containing all necessary data
 /// Pure data structure - immutable and serializable
@@ -12,6 +12,7 @@ pub struct EncryptionRequest {
     pub metadata: FileMetadata,
     pub password: SecureString,
     pub obfuscate_filename: bool,
+    pub security_profile: SecurityProfile,
 }
 
 /// Result of encryption operation with header, ciphertext, and filename
@@ -31,12 +32,14 @@ impl EncryptionRequest {
         metadata: FileMetadata,
         password: SecureString,
         obfuscate_filename: bool,
+        security_profile: SecurityProfile,
     ) -> Self {
         Self {
             content,
             metadata,
             password,
             obfuscate_filename,
+            security_profile,
         }
     }
 }
@@ -71,7 +74,7 @@ mod tests {
         };
         let password = SecureString::new("test_password".to_string());
         
-        let request = EncryptionRequest::new(content.clone(), metadata.clone(), password, false);
+        let request = EncryptionRequest::new(content.clone(), metadata.clone(), password, false, SecurityProfile::Test);
         
         assert_eq!(request.content, content);
         assert_eq!(request.metadata.original_name, "test.txt");

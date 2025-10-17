@@ -44,6 +44,7 @@ mod tests {
             },
             password: SecureString::new("correct horse battery staple".to_string()),
             obfuscate_filename: false,
+            security_profile: shadow_core::SecurityProfile::Test,
         }
     }
 

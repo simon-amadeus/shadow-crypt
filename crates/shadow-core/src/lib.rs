@@ -27,6 +27,7 @@ pub use errors::{
     CryptoError, ValidationError, SerializationError
 };
 pub use crypto::{
+    SecurityProfile,
     derive_key, derive_filename_key,
     encrypt_content, decrypt_content, 
     encrypt_filename, decrypt_filename,

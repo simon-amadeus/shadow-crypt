@@ -34,6 +34,7 @@ pub fn process_single_file(
         filename,
         password.clone(),
         obfuscate_filename,
+        shadow_core::SecurityProfile::Production,
     );
     
     // 4. Encrypt file (pure function)
@@ -190,6 +191,64 @@ mod tests {
     use tempfile::TempDir;
     use shadow_core::SecureString;
 
+    /// Fast test version of process_single_file using SecurityProfile::Test
+    fn process_single_file_test(
+        input_path: &Path,
+        password: &SecureString,
+        obfuscate_filename: bool,
+        force: bool,
+        keep: bool,
+    ) -> Result<PathBuf, EncryptionFileError> {
+        // 1. Read file content (I/O side effect)
+        let content = read_file_safely(input_path)?;
+        
+        // 2. Extract filename
+        let filename = input_path
+            .file_name()
+            .ok_or_else(|| EncryptionFileError::InvalidFilename(input_path.to_path_buf()))?
+            .to_string_lossy()
+            .to_string();
+        
+        // 3. Create encryption request with TEST parameters (pure function)
+        let request = create_encryption_request(
+            content,
+            filename,
+            password.clone(),
+            obfuscate_filename,
+            shadow_core::SecurityProfile::Test,
+        );
+        
+        // 4. Encrypt file (pure function)
+        let encrypted = encrypt_file(request)?;
+        
+        // 5. Determine output path
+        let parent_dir = match input_path.parent() {
+            Some(parent) if !parent.as_os_str().is_empty() => parent,
+            _ => Path::new("."), // Handle empty parent or None
+        };
+        let output_path = parent_dir.join(&encrypted.suggested_filename);
+        
+        // 6. Check for existing output file
+        if output_path.exists() && !force {
+            return Err(EncryptionFileError::OutputExists(output_path));
+        }
+        
+        // 7. Serialize and write the encrypted file (I/O side effect)
+        let serialized_header = serialize_header(&encrypted.header)?;
+        let mut file_content = Vec::new();
+        file_content.extend_from_slice(&serialized_header);
+        file_content.extend_from_slice(&encrypted.ciphertext);
+        
+        write_file_atomically(&output_path, &file_content)?;
+        
+        // 8. Optionally remove original file (I/O side effect)
+        if !keep {
+            std::fs::remove_file(input_path)?;
+        }
+        
+        Ok(output_path)
+    }
+
     #[test]
     fn test_process_single_file() {
         let temp_dir = TempDir::new().unwrap();
@@ -198,7 +257,7 @@ mod tests {
         
         let password = SecureString::new("correct horse battery staple".to_string());
         
-        let result = process_single_file(
+        let result = process_single_file_test(
             &test_file,
             &password,
             false, // no obfuscation
@@ -225,7 +284,7 @@ mod tests {
         
         let password = SecureString::new("correct horse battery staple".to_string());
         
-        let result = process_single_file(
+        let result = process_single_file_test(
             &test_file,
             &password,
             false, // no obfuscation
@@ -250,7 +309,7 @@ mod tests {
         
         let password = SecureString::new("correct horse battery staple".to_string());
         
-        let result = process_single_file(
+        let result = process_single_file_test(
             &test_file,
             &password,
             false, // no obfuscation

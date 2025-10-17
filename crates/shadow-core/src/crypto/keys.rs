@@ -4,16 +4,27 @@
 
 use crate::memory::{SecureString, SecureKey};
 use crate::errors::CryptoError;
+use super::config::SecurityProfile;
 
-use argon2::{Argon2, PasswordHasher};
+use argon2::PasswordHasher;
 use argon2::password_hash::SaltString;
 use hkdf::Hkdf;
 use sha2::Sha256;
 
 /// Derive a cryptographic key from password and salt using Argon2id
 /// Pure function - deterministic with same inputs
-pub fn derive_key(password: &SecureString, salt: &[u8; 16]) -> Result<SecureKey, CryptoError> {
-    let argon2 = Argon2::default();
+/// 
+/// # Parameters
+/// 
+/// * `password` - The password to derive the key from
+/// * `salt` - 16-byte salt for key derivation
+/// * `profile` - Security profile determining Argon2 parameters
+pub fn derive_key(
+    password: &SecureString, 
+    salt: &[u8; 16],
+    profile: SecurityProfile
+) -> Result<SecureKey, CryptoError> {
+    let argon2 = profile.create_argon2();
     
     // Convert salt to required format
     let salt_string = SaltString::encode_b64(salt)
@@ -60,7 +71,7 @@ mod tests {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
         
-        let result = derive_key(&password, &salt);
+        let result = derive_key(&password, &salt, SecurityProfile::Test);
         assert!(result.is_ok());
     }
 
@@ -69,8 +80,8 @@ mod tests {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
         
-        let key1 = derive_key(&password, &salt).unwrap();
-        let key2 = derive_key(&password, &salt).unwrap();
+        let key1 = derive_key(&password, &salt, SecurityProfile::Test).unwrap();
+        let key2 = derive_key(&password, &salt, SecurityProfile::Test).unwrap();
         
         assert_eq!(key1.as_bytes(), key2.as_bytes());
     }
@@ -81,8 +92,8 @@ mod tests {
         let salt1 = [1u8; 16];
         let salt2 = [2u8; 16];
         
-        let key1 = derive_key(&password, &salt1).unwrap();
-        let key2 = derive_key(&password, &salt2).unwrap();
+        let key1 = derive_key(&password, &salt1, SecurityProfile::Test).unwrap();
+        let key2 = derive_key(&password, &salt2, SecurityProfile::Test).unwrap();
         
         assert_ne!(key1.as_bytes(), key2.as_bytes());
     }

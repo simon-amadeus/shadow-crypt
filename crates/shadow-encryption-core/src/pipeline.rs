@@ -4,7 +4,7 @@
 
 use crate::types::{EncryptionRequest, EncryptedFile};
 use shadow_core::{
-    CryptoError, SerializationError, FilenameData, FileHeader,
+    CryptoError, SerializationError, FilenameData, FileHeader, SecurityProfile,
     derive_key, encrypt_content, encrypt_filename, generate_nonce, generate_salt,
     serialize_header,
 };
@@ -30,8 +30,8 @@ pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, Encrypt
         None
     };
 
-    // 2. Derive master key using shadow-core crypto
-    let master_key = derive_key(&request.password, &salt)?;
+    // 2. Derive master key using shadow-core crypto with specified security profile
+    let master_key = derive_key(&request.password, &salt, request.security_profile)?;
 
     // 3. Create filename data based on obfuscation setting
     let filename_data = if request.obfuscate_filename {
@@ -99,6 +99,7 @@ pub fn create_encryption_request(
     original_filename: String,
     password: shadow_core::SecureString,
     obfuscate: bool,
+    security_profile: SecurityProfile,
 ) -> EncryptionRequest {
     let content_hash = shadow_core::hash_content(&content);
     let metadata = shadow_core::FileMetadata {
@@ -107,7 +108,7 @@ pub fn create_encryption_request(
         size: content.len() as u64,
     };
 
-    EncryptionRequest::new(content, metadata, password, obfuscate)
+    EncryptionRequest::new(content, metadata, password, obfuscate, security_profile)
 }
 
 #[cfg(test)]
@@ -122,6 +123,7 @@ mod tests {
             "test.txt".to_string(),
             SecureString::new("correct horse battery staple".to_string()),
             false,
+            SecurityProfile::Test,
         )
     }
 
@@ -133,12 +135,14 @@ mod tests {
             "test.txt".to_string(),
             SecureString::new("password".to_string()),
             true,
+            SecurityProfile::Test,
         );
 
         assert_eq!(request.content, content);
         assert_eq!(request.metadata.original_name, "test.txt");
         assert_eq!(request.metadata.size, content.len() as u64);
         assert!(request.obfuscate_filename);
+        assert_eq!(request.security_profile, SecurityProfile::Test);
     }
 
     #[test]
