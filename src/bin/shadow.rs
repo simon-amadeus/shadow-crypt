@@ -1,8 +1,8 @@
 // shadow-cli/src/bin/shadow.rs
 // Main Shadow encryption binary
-// Entry point for the encryption feature using shadow-encryption-shell
+// Entry point for the encryption feature using shadow-shell
 
-use shadow_encryption_shell::{ShellError, display_error, parse_args, run_encryption};
+use shadow_shell::{ShellError, display_error, parse_args, run_encryption, ApplicationError, EncryptionFileError};
 use std::process;
 
 fn main() {
@@ -24,27 +24,27 @@ fn main() {
         Err(e) => {
             // Use display_error for consistent error display
             match &e {
-                shadow_encryption_shell::runner::ApplicationError::FileNotFound(path) => {
+                ApplicationError::FileNotFound(path) => {
                     let shell_error =
                         ShellError::UserInput(format!("File not found: {}", path.display()));
                     display_error(&shell_error);
                 }
-                shadow_encryption_shell::runner::ApplicationError::NotAFile(path) => {
+                ApplicationError::NotAFile(path) => {
                     let shell_error =
                         ShellError::UserInput(format!("Not a file: {}", path.display()));
                     display_error(&shell_error);
                 }
-                shadow_encryption_shell::runner::ApplicationError::UserInput(msg) => {
+                ApplicationError::UserInput(msg) => {
                     let shell_error = ShellError::UserInput(msg.clone());
                     display_error(&shell_error);
                 }
-                shadow_encryption_shell::runner::ApplicationError::Shell(shell_err) => {
+                ApplicationError::Shell(shell_err) => {
                     display_error(shell_err);
                 }
-                shadow_encryption_shell::runner::ApplicationError::FileOperation(file_err) => {
+                ApplicationError::FileOperation(file_err) => {
                     // Check if this is a wrapped ShellError
                     match file_err {
-                        shadow_encryption_shell::file_ops::EncryptionFileError::Shell(
+                        EncryptionFileError::Shell(
                             shell_err,
                         ) => {
                             // Display the structured shell error directly
@@ -63,11 +63,11 @@ fn main() {
             };
 
             let exit_code = match &e {
-                shadow_encryption_shell::runner::ApplicationError::FileNotFound(_) => 2,
-                shadow_encryption_shell::runner::ApplicationError::NotAFile(_) => 2,
-                shadow_encryption_shell::runner::ApplicationError::UserInput(_) => 64,
-                shadow_encryption_shell::runner::ApplicationError::Shell(_) => 5,
-                shadow_encryption_shell::runner::ApplicationError::FileOperation(_) => 74,
+                ApplicationError::FileNotFound(_) => 2,
+                ApplicationError::NotAFile(_) => 2,
+                ApplicationError::UserInput(_) => 64,
+                ApplicationError::Shell(_) => 5,
+                ApplicationError::FileOperation(_) => 74,
             };
             process::exit(exit_code);
         }

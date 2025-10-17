@@ -1,12 +1,10 @@
-// shadow-encryption-shell/src/file_ops.rs
+// shadow-shell/src/encryption/file_ops.rs
 // File I/O operations for encryption
 // All functions have side effects - interact with file system
 
 use shadow_core::{SecureString, SerializationError};
-use shadow_core::v1::{SecurityProfile, serialize_header};
-use shadow_encryption_core::pipeline::{EncryptionError, create_encryption_request};
-use shadow_encryption_core::{EncryptedFile, encrypt_file};
-use shadow_shell::{ShellError, read_file_safely, write_file_atomically};
+use shadow_core::v1::SecurityProfile;
+use crate::{ShellError, read_file_safely, write_file_atomically, encrypt_file, EncryptedFile, PipelineError};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -48,17 +46,14 @@ pub fn process_single_file(
         }
     }
 
-    // 4. Create encryption request (pure function)
-    let request = create_encryption_request(
+    // 4. Encrypt file using pipeline (pure function)
+    let encrypted = encrypt_file(
         content,
         filename,
         password.clone(),
         obfuscate_filename,
         SecurityProfile::Production,
-    );
-
-    // 5. Encrypt file (pure function)
-    let encrypted = encrypt_file(request)?;
+    )?;
 
     // 6. Determine output path
     let parent_dir = match input_path.parent() {
@@ -89,9 +84,8 @@ pub fn write_encrypted_file(
     encrypted: &EncryptedFile,
     output_path: &Path,
 ) -> Result<(), EncryptionFileError> {
-    // Serialize header and combine with ciphertext
-    let header_bytes = serialize_header(&encrypted.header)?;
-    let mut file_data = header_bytes;
+    // 9. Create complete file data (header + ciphertext)
+    let mut file_data = encrypted.header_bytes.clone();
     file_data.extend_from_slice(&encrypted.ciphertext);
 
     // Write atomically using shell utility
@@ -188,8 +182,8 @@ pub enum EncryptionFileError {
     #[error("Shell error: {0}")]
     Shell(#[from] ShellError),
 
-    #[error("Encryption error: {0}")]
-    Encryption(#[from] EncryptionError),
+    #[error("Pipeline error: {0}")]
+    Pipeline(#[from] PipelineError),
 
     #[error("Serialization error: {0}")]
     Serialization(#[from] SerializationError),
@@ -225,17 +219,14 @@ mod tests {
             .to_string_lossy()
             .to_string();
 
-        // 3. Create encryption request with TEST parameters (pure function)
-        let request = create_encryption_request(
+        // 3. Encrypt file using pipeline with TEST parameters (pure function)
+        let encrypted = encrypt_file(
             content,
             filename,
             password.clone(),
             obfuscate_filename,
             SecurityProfile::Test,
-        );
-
-        // 4. Encrypt file (pure function)
-        let encrypted = encrypt_file(request)?;
+        )?;
 
         // 5. Determine output path
         let parent_dir = match input_path.parent() {
@@ -249,10 +240,8 @@ mod tests {
             return Err(ShellError::OutputExists(output_path).into());
         }
 
-        // 7. Serialize and write the encrypted file (I/O side effect)
-        let serialized_header = serialize_header(&encrypted.header)?;
-        let mut file_content = Vec::new();
-        file_content.extend_from_slice(&serialized_header);
+        // 7. Create complete file data (header + ciphertext)
+        let mut file_content = encrypted.header_bytes.clone();
         file_content.extend_from_slice(&encrypted.ciphertext);
 
         write_file_atomically(&output_path, &file_content)?;

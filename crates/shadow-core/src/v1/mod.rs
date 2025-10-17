@@ -12,6 +12,7 @@
 pub mod constants;     // V1 format constants and specifications
 pub mod crypto;        // V1 cryptographic algorithms and parameters
 pub mod file_data;     // V1 file content and metadata validation
+pub mod file_operations; // V1 high-level encrypt/decrypt operations
 pub mod header;        // V1 header validation
 pub mod header_builder; // V1 header construction with version-specific logic
 pub mod serialization; // V1 serialization/deserialization
@@ -20,9 +21,13 @@ pub mod validation;    // V1 format-specific validation
 
 // Re-export main V1 API for convenience
 pub use constants::*;
-pub use crypto::{derive_key, hash_content, encrypt_content, encrypt_filename};
+pub use crypto::{derive_key, hash_content, encrypt_content, encrypt_filename, decrypt_content, decrypt_filename};
 pub use crate::security::SecurityProfile;
 pub use file_data::{validate_file_content, validate_file_metadata};
+pub use file_operations::{
+    encrypt_file, decrypt_file, EncryptFileRequest, DecryptFileRequest, 
+    EncryptedFile as V1EncryptedFile, DecryptedFile, FileOperationError
+};
 pub use header::{validate_file_header, validate_header_bytes};
 pub use header_builder::{create_v1_header, V1HeaderRequest, V1HeaderResult};
 pub use serialization::{deserialize_header, serialize_header};

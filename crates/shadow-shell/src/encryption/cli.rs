@@ -1,4 +1,4 @@
-// shadow-encryption-shell/src/cli.rs
+// shadow-shell/src/encryption/cli.rs
 // CLI argument parsing for encryption operations
 // Side effects: parses command line arguments
 

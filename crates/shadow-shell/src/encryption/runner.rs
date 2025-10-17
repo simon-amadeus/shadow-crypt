@@ -1,11 +1,11 @@
-// shadow-encryption-shell/src/runner.rs
+// shadow-shell/src/encryption/runner.rs
 // Main encryption workflow runner
 // Side effects: coordinates file I/O, user interaction, and progress display
 
-use crate::cli::EncryptionArgs;
-use crate::file_ops::{EncryptionFileError, process_single_file};
+use super::cli::EncryptionArgs;
+use super::file_ops::{EncryptionFileError, process_single_file};
 use shadow_core::SecureString;
-use shadow_shell::{ShellError, display_progress, display_success, prompt_for_password};
+use crate::{ShellError, display_progress, display_success, prompt_for_password};
 use std::path::PathBuf;
 
 /// Main encryption runner - coordinates the entire encryption workflow

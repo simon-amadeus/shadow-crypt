@@ -19,15 +19,13 @@ path = "src/bin/shadow.rs"
 
 [dependencies]
 # Only depend on what the main binary actually needs
-shadow-encryption-shell = { path = "crates/shadow-encryption-shell" }
+shadow-shell = { path = "crates/shadow-shell" }
 
 [workspace]
 resolver = "2"
 members = [
     "crates/shadow-core",              # Pure shared foundation (crypto, types, validation)
-    "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers)
-    "crates/shadow-encryption-core",   # Pure encryption business logic
-    "crates/shadow-encryption-shell",  # Encryption I/O and CLI
+    "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers) + encryption module
     # Future crates will be added in subsequent phases:
     # "crates/shadow-decryption-core",   # Pure decryption business logic
     # "crates/shadow-decryption-shell",  # Decryption I/O and CLI
