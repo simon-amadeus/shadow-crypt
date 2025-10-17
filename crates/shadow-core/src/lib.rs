@@ -6,6 +6,7 @@ mod algorithms; // Cryptographic algorithm implementations
 pub mod errors; // Error types organized by domain
 pub mod memory; // Secure memory types with zeroization
 pub mod metadata; // File metadata and information
+pub mod security; // Algorithm-agnostic security profiles
 pub mod validation; // Generic validation functions (version-agnostic)
 pub mod v1; // Version 1.0 format implementation (complete & self-contained)
 
@@ -14,6 +15,7 @@ pub use algorithms::{argon2, xchacha20_poly1305};
 pub use errors::{CryptoError, SerializationError, ValidationError};
 pub use memory::{SecureBytes, SecureKey, SecureString};
 pub use metadata::FileMetadata;
+pub use security::SecurityProfile;
 pub use validation::{
     check_content_duplicate, validate_password_format, validate_password_strength,
 };

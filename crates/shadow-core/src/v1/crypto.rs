@@ -11,10 +11,10 @@
 use crate::algorithms::{argon2, xchacha20_poly1305};
 use crate::errors::CryptoError;
 use crate::memory::{SecureKey, SecureString};
+use crate::security::SecurityProfile;
 use sha2::{Digest, Sha256};
 
 // Re-export the specific algorithms used by v1
-pub use argon2::SecurityProfile;
 pub use xchacha20_poly1305::ALGORITHM_ID;
 
 // === V1 Cryptographic Operations ===
@@ -29,7 +29,7 @@ pub fn derive_key(
     salt: &[u8; 16],
     profile: SecurityProfile,
 ) -> Result<SecureKey, CryptoError> {
-    let argon2 = profile.create_argon2();
+    let argon2 = argon2::Argon2Config::create_argon2(profile);
     argon2::derive_key(password, salt, &argon2)
 }
 
@@ -116,12 +116,12 @@ mod tests {
 
     #[test]
     fn test_argon2_instance_creation() {
-        let _test_argon2 = SecurityProfile::Test.create_argon2();
-        let _prod_argon2 = SecurityProfile::Production.create_argon2();
+        let _test_argon2 = argon2::Argon2Config::create_argon2(SecurityProfile::Test);
+        let _prod_argon2 = argon2::Argon2Config::create_argon2(SecurityProfile::Production);
 
         // Verify they're different instances with different parameters
-        let test_params = SecurityProfile::Test.argon2_params();
-        let prod_params = SecurityProfile::Production.argon2_params();
+        let test_params = argon2::Argon2Config::params(SecurityProfile::Test);
+        let prod_params = argon2::Argon2Config::params(SecurityProfile::Production);
 
         assert_ne!(test_params.m_cost(), prod_params.m_cost());
         assert_ne!(test_params.t_cost(), prod_params.t_cost());

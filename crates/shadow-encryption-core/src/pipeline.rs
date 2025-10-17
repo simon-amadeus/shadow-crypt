@@ -11,6 +11,7 @@ use shadow_core::{
 use shadow_core::v1::{
     FileHeader, FilenameData, SecurityProfile, derive_key, serialize_header,
     encrypt_content, encrypt_filename,
+    MAGIC, ALGORITHM_XCHACHA20_POLY1305, FILENAME_PLAINTEXT, FILENAME_ENCRYPTED,
 };
 
 /// Encryption pipeline error combining crypto and serialization errors
@@ -52,12 +53,12 @@ pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, Encrypt
 
     // 4. Create file header structure
     let header = FileHeader {
-        magic: *b"SHADOW01",
-        algorithm_id: 0x01, // XChaCha20-Poly1305
+        magic: *MAGIC,
+        algorithm_id: ALGORITHM_XCHACHA20_POLY1305,
         obfuscation_flag: if request.obfuscate_filename {
-            0x01
+            FILENAME_ENCRYPTED
         } else {
-            0x00
+            FILENAME_PLAINTEXT
         },
         content_hash: request.metadata.content_hash,
         filename_data,

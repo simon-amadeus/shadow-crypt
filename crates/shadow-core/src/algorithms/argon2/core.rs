@@ -66,13 +66,14 @@ pub fn derive_filename_key(master_key: &SecureKey) -> Result<SecureKey, CryptoEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::algorithms::argon2::profiles::SecurityProfile;
+    use crate::security::SecurityProfile;
+    use crate::algorithms::argon2::Argon2Config;
 
     #[test]
     fn test_derive_key_basic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
-        let argon2 = SecurityProfile::Test.create_argon2();
+        let argon2 = Argon2Config::create_argon2(SecurityProfile::Test);
 
         let result = derive_key(&password, &salt, &argon2);
         assert!(result.is_ok());
@@ -82,7 +83,7 @@ mod tests {
     fn test_derive_key_deterministic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
-        let argon2 = SecurityProfile::Test.create_argon2();
+        let argon2 = Argon2Config::create_argon2(SecurityProfile::Test);
 
         let key1 = derive_key(&password, &salt, &argon2).unwrap();
         let key2 = derive_key(&password, &salt, &argon2).unwrap();
