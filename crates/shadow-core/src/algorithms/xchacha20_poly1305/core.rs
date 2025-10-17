@@ -1,14 +1,18 @@
 // shadow-core/src/crypto/algorithms/xchacha20_poly1305/core.rs
-// XChaCha20-Poly1305 encryption/decryption functions
-// Pure functions - deterministic with same inputs
+// XChaCha20-Poly1305 encryption implementation
+// Pure crypto functions with no side effects except for randomness generation
 
-use crate::errors::CryptoError;
 use crate::memory::SecureKey;
+use crate::errors::CryptoError;
+use chacha20poly1305::{XChaCha20Poly1305, KeyInit, aead::{Aead, Payload}};
 
-use chacha20poly1305::{
-    XChaCha20Poly1305,
-    aead::{Aead, KeyInit, Payload},
-};
+/// Generate cryptographically secure random nonce for XChaCha20
+/// This function has side effects (uses system randomness)
+pub fn generate_nonce() -> [u8; 24] {
+    let mut nonce = [0u8; 24];
+    rand::fill(&mut nonce);
+    nonce
+}
 
 /// Encrypt content using XChaCha20-Poly1305 with associated data
 /// Pure function - deterministic with same inputs

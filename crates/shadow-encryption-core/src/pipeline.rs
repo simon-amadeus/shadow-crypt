@@ -4,10 +4,13 @@
 
 use crate::types::{EncryptedFile, EncryptionRequest};
 use shadow_core::{
-    CryptoError, SerializationError, encrypt_content, encrypt_filename, generate_nonce, generate_salt,
+    CryptoError, SerializationError,
+    argon2::generate_salt,
+    xchacha20_poly1305::generate_nonce,
 };
 use shadow_core::v1::{
     FileHeader, FilenameData, SecurityProfile, derive_key, serialize_header,
+    encrypt_content, encrypt_filename,
 };
 
 /// Encryption pipeline error combining crypto and serialization errors

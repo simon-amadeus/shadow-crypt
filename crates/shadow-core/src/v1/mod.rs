@@ -19,7 +19,7 @@ pub mod validation;   // V1 format-specific validation
 
 // Re-export main V1 API for convenience
 pub use constants::*;
-pub use crypto::{SecurityProfile, derive_key, hash_content};
+pub use crypto::{SecurityProfile, derive_key, hash_content, encrypt_content, encrypt_filename};
 pub use file_data::{validate_file_content, validate_file_metadata};
 pub use header::{validate_file_header, validate_header_bytes};
 pub use serialization::{deserialize_header, serialize_header};

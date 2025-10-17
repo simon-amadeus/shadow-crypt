@@ -6,8 +6,17 @@ use super::constants::{
     MAX_FILENAME_LENGTH, MIN_HEADER_SIZE,
 };
 use super::{FileHeader, FilenameData};
-use crate::crypto::primitives::constant_time_eq;
 use crate::errors::ValidationError;
+use subtle::ConstantTimeEq;
+
+/// Constant-time equality comparison for security-sensitive data
+/// Pure function that prevents timing attacks
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.ct_eq(b).into()
+}
 
 /// Validate a complete v1 file header structure
 /// Pure function - no side effects

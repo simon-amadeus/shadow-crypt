@@ -2,7 +2,16 @@
 // Duplicate detection and content comparison functions
 // All code related to detecting duplicate content lives here
 
-use crate::crypto::primitives::constant_time_eq;
+use subtle::ConstantTimeEq;
+
+/// Constant-time equality comparison for security-sensitive data
+/// Pure function that prevents timing attacks
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.ct_eq(b).into()
+}
 
 /// Check if a content hash already exists in a list of known hashes
 /// Pure function - no side effects

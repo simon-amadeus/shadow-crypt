@@ -15,8 +15,7 @@ use sha2::{Digest, Sha256};
 
 // Re-export the specific algorithms used by v1
 pub use argon2::SecurityProfile;
-pub use xchacha20_poly1305::{ALGORITHM_ID, KEY_SIZE, NONCE_SIZE};
-pub use argon2::SALT_SIZE;
+pub use xchacha20_poly1305::ALGORITHM_ID;
 
 // === V1 Cryptographic Operations ===
 // These functions define exactly how v1 format uses the algorithms
@@ -99,16 +98,6 @@ pub mod algorithms {
     pub use crate::algorithms::xchacha20_poly1305::ALGORITHM_ID as XCHACHA20_POLY1305;
 }
 
-/// V1 cryptographic parameters  
-pub mod params {
-    /// All sizes are determined by the chosen algorithms
-    pub use crate::algorithms::xchacha20_poly1305::{KEY_SIZE, NONCE_SIZE};
-    pub use crate::algorithms::argon2::SALT_SIZE;
-    
-    /// SHA-256 hash size
-    pub const HASH_SIZE: usize = 32;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,13 +171,5 @@ mod tests {
     #[test]
     fn test_algorithm_constants() {
         assert_eq!(algorithms::XCHACHA20_POLY1305, 0x01);
-    }
-
-    #[test]
-    fn test_param_constants() {
-        assert_eq!(params::KEY_SIZE, 32);
-        assert_eq!(params::NONCE_SIZE, 24);
-        assert_eq!(params::SALT_SIZE, 16);
-        assert_eq!(params::HASH_SIZE, 32);
     }
 }

@@ -1,12 +1,18 @@
-// shadow-core/src/crypto/algorithms/argon2/core.rs
-// Argon2 key derivation functions
-// Pure functions - deterministic with same inputs
+// shadow-core/src/algorithms/argon2/core.rs
+// Argon2 key derivation implementation
+// Pure crypto functions with no side effects except for randomness generation
 
-use crate::errors::CryptoError;
 use crate::memory::{SecureKey, SecureString};
+use crate::errors::CryptoError;
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 
-use argon2::{Argon2, PasswordHasher};
-use argon2::password_hash::SaltString;
+/// Generate cryptographically secure random salt for Argon2
+/// This function has side effects (uses system randomness)
+pub fn generate_salt() -> [u8; 16] {
+    let mut salt = [0u8; 16];
+    rand::fill(&mut salt);
+    salt
+}
 use hkdf::Hkdf;
 use sha2::Sha256;
 
