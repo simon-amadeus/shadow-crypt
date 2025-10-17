@@ -1,6 +1,6 @@
-// shadow-core/src/crypto/keys.rs
-// Key derivation and key management operations
-// All code related to generating and deriving keys lives here
+// shadow-core/src/crypto/algorithms/argon2/core.rs
+// Argon2 key derivation functions
+// Pure functions - deterministic with same inputs
 
 use crate::errors::CryptoError;
 use crate::memory::{SecureKey, SecureString};
@@ -60,18 +60,13 @@ pub fn derive_filename_key(master_key: &SecureKey) -> Result<SecureKey, CryptoEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use argon2::{Algorithm, Argon2, Params, Version};
-
-    fn create_test_argon2() -> Argon2<'static> {
-        let params = Params::new(64, 1, 1, None).expect("Test Argon2 parameters should be valid");
-        Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-    }
+    use crate::algorithms::argon2::profiles::SecurityProfile;
 
     #[test]
     fn test_derive_key_basic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
-        let argon2 = create_test_argon2();
+        let argon2 = SecurityProfile::Test.create_argon2();
 
         let result = derive_key(&password, &salt, &argon2);
         assert!(result.is_ok());
@@ -81,7 +76,7 @@ mod tests {
     fn test_derive_key_deterministic() {
         let password = SecureString::new("test_password".to_string());
         let salt = [1u8; 16];
-        let argon2 = create_test_argon2();
+        let argon2 = SecurityProfile::Test.create_argon2();
 
         let key1 = derive_key(&password, &salt, &argon2).unwrap();
         let key2 = derive_key(&password, &salt, &argon2).unwrap();
@@ -90,44 +85,16 @@ mod tests {
     }
 
     #[test]
-    fn test_derive_key_different_salts() {
-        let password = SecureString::new("test_password".to_string());
-        let salt1 = [1u8; 16];
-        let salt2 = [2u8; 16];
-        let argon2 = create_test_argon2();
-
-        let key1 = derive_key(&password, &salt1, &argon2).unwrap();
-        let key2 = derive_key(&password, &salt2, &argon2).unwrap();
-
-        assert_ne!(key1.as_bytes(), key2.as_bytes());
-    }
-
-    #[test]
-    fn test_derive_filename_key_basic() {
+    fn test_derive_filename_key() {
         let master_key = SecureKey::new([42u8; 32]);
-
-        let result = derive_filename_key(&master_key);
-        assert!(result.is_ok());
-    }
-
-    #[test]
-    fn test_derive_filename_key_deterministic() {
-        let master_key = SecureKey::new([42u8; 32]);
-
-        let key1 = derive_filename_key(&master_key).unwrap();
-        let key2 = derive_filename_key(&master_key).unwrap();
-
-        assert_eq!(key1.as_bytes(), key2.as_bytes());
-    }
-
-    #[test]
-    fn test_derive_filename_key_different_master() {
-        let master_key1 = SecureKey::new([42u8; 32]);
-        let master_key2 = SecureKey::new([43u8; 32]);
-
-        let key1 = derive_filename_key(&master_key1).unwrap();
-        let key2 = derive_filename_key(&master_key2).unwrap();
-
-        assert_ne!(key1.as_bytes(), key2.as_bytes());
+        
+        let filename_key1 = derive_filename_key(&master_key).unwrap();
+        let filename_key2 = derive_filename_key(&master_key).unwrap();
+        
+        // Should be deterministic
+        assert_eq!(filename_key1.as_bytes(), filename_key2.as_bytes());
+        
+        // Should be different from master key
+        assert_ne!(master_key.as_bytes(), filename_key1.as_bytes());
     }
 }

@@ -5,18 +5,17 @@
 // All cryptographic operations, data types, and validation logic
 // are implemented here without any I/O dependencies.
 
-pub mod crypto; // Generic cryptographic operations (version-agnostic)
+pub mod algorithms; // Cryptographic algorithms (vertically sliced by algorithm)
+pub mod crypto; // Generic cryptographic operations (legacy/compatibility)
 pub mod errors; // Error types organized by domain
 pub mod memory; // Secure memory types with zeroization
 pub mod metadata; // File metadata and information
 pub mod validation; // Generic validation functions (version-agnostic)
 pub mod v1; // Version 1.0 format implementation (complete & self-contained)
 
-// Re-export only generic, version-agnostic types and functions
-pub use crypto::{
-    constant_time_eq, decrypt_content, decrypt_filename, derive_filename_key,
-    encrypt_content, encrypt_filename, generate_nonce, generate_salt,
-};
+// Re-export main types and utilities
+pub use algorithms::{argon2, xchacha20_poly1305};
+pub use crypto::{constant_time_eq, generate_nonce, generate_salt};
 pub use errors::{CryptoError, SerializationError, ValidationError};
 pub use memory::{SecureBytes, SecureKey, SecureString};
 pub use metadata::FileMetadata;

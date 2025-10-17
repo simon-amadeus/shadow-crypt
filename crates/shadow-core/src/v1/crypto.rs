@@ -1,168 +1,111 @@
 // shadow-core/src/v1/crypto.rs
-// V1-specific cryptographic algorithms, parameters, and operations
-// Contains all cryptographic choices specific to Shadow format v1.0
+// Shadow v1.0 Format Cryptographic Specification
+//
+// V1.0 uses these specific algorithms:
+// 🔐 Key Derivation: Argon2id with configurable security profiles
+// 🔒 Encryption: XChaCha20-Poly1305 AEAD
+// #️⃣  Hashing: SHA-256 for content integrity
+//
+// This module provides v1-specific convenience functions that use these algorithms.
 
-use argon2::{Algorithm, Argon2, Params, Version};
-use crate::crypto::keys::derive_key as generic_derive_key;
+use crate::algorithms::{argon2, xchacha20_poly1305};
 use crate::errors::CryptoError;
 use crate::memory::{SecureKey, SecureString};
 use sha2::{Digest, Sha256};
 
-/// Security profiles defining cryptographic parameter sets for Shadow v1.0
+// Re-export the specific algorithms used by v1
+pub use argon2::SecurityProfile;
+pub use xchacha20_poly1305::{ALGORITHM_ID, KEY_SIZE, NONCE_SIZE};
+pub use argon2::SALT_SIZE;
+
+// === V1 Cryptographic Operations ===
+// These functions define exactly how v1 format uses the algorithms
+
+/// V1 key derivation: Argon2id with configurable security profiles
 ///
-/// Provides two distinct configurations aligned with KISS and YAGNI principles:
-/// - Test: Fast parameters for development and testing
-/// - Production: Strong parameters for real-world security
-///
-/// These profiles are specific to v1.0 format. Future format versions may
-/// define different parameter sets or even different algorithms.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum SecurityProfile {
-    /// Fast parameters for development/testing only
-    ///
-    /// **WARNING: These parameters provide minimal security and should NEVER be used in production**
-    ///
-    /// Parameters:
-    /// - Memory Cost: 64 KiB
-    /// - Time Cost: 1 iteration  
-    /// - Parallelism: 1 thread
-    Test,
-
-    /// Production-grade security parameters
-    ///
-    /// These parameters provide strong security suitable for protecting real data.
-    /// Based on current cryptographic recommendations as of 2025.
-    ///
-    /// Parameters:
-    /// - Memory Cost: 1 GiB (1,048,576 KiB)
-    /// - Time Cost: 5 iterations
-    /// - Parallelism: 4 threads
-    Production,
-}
-
-impl SecurityProfile {
-    /// Get Argon2 parameters for this security profile
-    ///
-    /// Returns properly configured Argon2 parameters that match the
-    /// security requirements for each profile.
-    ///
-    /// # Panics
-    ///
-    /// Panics if the hardcoded parameters are invalid (should never happen
-    /// in practice as these are well-tested parameter combinations).
-    pub fn argon2_params(&self) -> Params {
-        match self {
-            SecurityProfile::Test => {
-                // Fast parameters - suitable for testing only
-                Params::new(
-                    64,   // m_cost: 64 KiB memory
-                    1,    // t_cost: 1 iteration
-                    1,    // p_cost: 1 thread
-                    None, // output_len: use default (32 bytes)
-                )
-                .expect("Test Argon2 parameters should be valid")
-            }
-            SecurityProfile::Production => {
-                // Strong parameters - suitable for production
-                Params::new(
-                    1_048_576, // m_cost: 1 GiB memory
-                    5,         // t_cost: 5 iterations
-                    4,         // p_cost: 4 threads
-                    None,      // output_len: use default (32 bytes)
-                )
-                .expect("Production Argon2 parameters should be valid")
-            }
-        }
-    }
-
-    /// Create a configured Argon2 instance for this security profile
-    ///
-    /// Returns an Argon2 instance using Argon2id algorithm with parameters
-    /// appropriate for this security profile.
-    pub fn create_argon2(&self) -> Argon2<'static> {
-        let params = self.argon2_params();
-        Argon2::new(Algorithm::Argon2id, Version::V0x13, params)
-    }
-
-    /// Get a human-readable description of this security profile
-    ///
-    /// Useful for logging and user feedback about which security
-    /// profile is being used.
-    pub fn description(&self) -> &'static str {
-        match self {
-            SecurityProfile::Test => "Fast (Test-only)",
-            SecurityProfile::Production => "Secure (Production)",
-        }
-    }
-
-    /// Check if this profile is suitable for production use
-    ///
-    /// Returns `false` for Test profile to help prevent accidental
-    /// use of weak parameters in production environments.
-    pub fn is_production_safe(&self) -> bool {
-        match self {
-            SecurityProfile::Test => false,
-            SecurityProfile::Production => true,
-        }
-    }
-}
-
-/// V1-specific key derivation using configured security profile
-///
-/// This is a convenience wrapper around the generic derive_key function
-/// that uses v1-specific Argon2 parameters based on the security profile.
-///
-/// # Parameters
-///
-/// * `password` - The password to derive the key from
-/// * `salt` - 16-byte salt for key derivation
-/// * `profile` - V1 security profile determining Argon2 parameters
+/// V1 format uses Argon2id for password-based key derivation.
+/// Security profiles allow choosing between fast (test) and secure (production) parameters.
 pub fn derive_key(
     password: &SecureString,
     salt: &[u8; 16],
     profile: SecurityProfile,
 ) -> Result<SecureKey, CryptoError> {
     let argon2 = profile.create_argon2();
-    generic_derive_key(password, salt, &argon2)
+    argon2::derive_key(password, salt, &argon2)
 }
 
-/// V1-specific content hashing using SHA-256
+/// V1 filename key derivation: HKDF-SHA256 from master key
 ///
-/// This function is part of the v1 format specification.
-/// Future versions may use different hash functions.
+/// V1 format derives filename-specific keys from the master key using HKDF.
+pub fn derive_filename_key(master_key: &SecureKey) -> Result<SecureKey, CryptoError> {
+    argon2::derive_filename_key(master_key)
+}
+
+/// V1 content encryption: XChaCha20-Poly1305 with associated data
 ///
-/// Pure function - deterministic with same inputs
+/// V1 format uses XChaCha20-Poly1305 for authenticated encryption.
+pub fn encrypt_content(
+    plaintext: &[u8],
+    key: &SecureKey,
+    nonce: &[u8; 24],
+    aad: &[u8], // header data for authentication
+) -> Result<Vec<u8>, CryptoError> {
+    xchacha20_poly1305::encrypt(plaintext, key, nonce, aad)
+}
+
+/// V1 content decryption: XChaCha20-Poly1305 with associated data
+pub fn decrypt_content(
+    ciphertext: &[u8],
+    key: &SecureKey,
+    nonce: &[u8; 24],
+    aad: &[u8], // header data for authentication
+) -> Result<Vec<u8>, CryptoError> {
+    xchacha20_poly1305::decrypt(ciphertext, key, nonce, aad)
+}
+
+/// V1 filename encryption: XChaCha20-Poly1305 with derived key
+pub fn encrypt_filename(
+    filename: &str,
+    filename_key: &SecureKey,
+    nonce: &[u8; 24],
+) -> Result<Vec<u8>, CryptoError> {
+    xchacha20_poly1305::encrypt_filename(filename, filename_key, nonce)
+}
+
+/// V1 filename decryption: XChaCha20-Poly1305 with derived key
+pub fn decrypt_filename(
+    ciphertext: &[u8],
+    filename_key: &SecureKey,
+    nonce: &[u8; 24],
+) -> Result<String, CryptoError> {
+    xchacha20_poly1305::decrypt_filename(ciphertext, filename_key, nonce)
+}
+
+/// V1 content hashing: SHA-256
+///
+/// V1 format uses SHA-256 for content integrity verification.
 pub fn hash_content(content: &[u8]) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(content);
     hasher.finalize().into()
 }
 
-/// V1-specific cryptographic algorithm identifiers
-///
-/// These constants define which algorithms are supported in v1.0 format.
-/// Future versions may add new algorithms or deprecate existing ones.
+// === V1 Algorithm Constants ===
+// Simple re-exports showing exactly what v1 uses
+
+/// V1 algorithm identifiers
 pub mod algorithms {
-    /// XChaCha20-Poly1305 AEAD cipher
-    /// This is the primary (and currently only) algorithm supported in v1.0
-    pub const XCHACHA20_POLY1305: u8 = 0x01;
+    /// V1 uses XChaCha20-Poly1305 for encryption
+    pub use crate::algorithms::xchacha20_poly1305::ALGORITHM_ID as XCHACHA20_POLY1305;
 }
 
-/// V1-specific cryptographic parameters and sizes
-///
-/// These constants define the cryptographic parameters used throughout
-/// the v1.0 format implementation.
+/// V1 cryptographic parameters  
 pub mod params {
-    /// XChaCha20 key size in bytes
-    pub const KEY_SIZE: usize = 32;
+    /// All sizes are determined by the chosen algorithms
+    pub use crate::algorithms::xchacha20_poly1305::{KEY_SIZE, NONCE_SIZE};
+    pub use crate::algorithms::argon2::SALT_SIZE;
     
-    /// XChaCha20 nonce size in bytes  
-    pub const NONCE_SIZE: usize = 24;
-    
-    /// Argon2id salt size in bytes
-    pub const SALT_SIZE: usize = 16;
-    
-    /// SHA-256 hash size in bytes
+    /// SHA-256 hash size
     pub const HASH_SIZE: usize = 32;
 }
 

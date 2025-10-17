@@ -1,12 +1,8 @@
 // shadow-core/src/crypto/mod.rs
-// Organized cryptographic operations with improved cohesion
-// All crypto operations grouped by their primary purpose
+// Basic cryptographic utilities and primitives
+// Algorithm-specific code is now in src/algorithms/
 
-pub mod encryption; // Encryption and decryption operations
-pub mod keys; // Key derivation and key management operations
 pub mod primitives; // Low-level crypto primitives and utilities
 
-// Re-export the main public API (version-agnostic only)
-pub use encryption::{decrypt_content, decrypt_filename, encrypt_content, encrypt_filename};
-pub use keys::{derive_filename_key, derive_key};
+// Re-export utilities
 pub use primitives::{constant_time_eq, generate_nonce, generate_salt};
