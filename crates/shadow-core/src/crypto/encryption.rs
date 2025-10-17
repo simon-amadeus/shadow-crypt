@@ -2,13 +2,13 @@
 // Encryption and decryption operations
 // All code related to encrypting and decrypting data lives here
 
-use crate::memory::SecureKey;
-use crate::errors::CryptoError;
 use super::keys::derive_filename_key;
+use crate::errors::CryptoError;
+use crate::memory::SecureKey;
 
 use chacha20poly1305::{
-    aead::{Aead, KeyInit, Payload},
     XChaCha20Poly1305,
+    aead::{Aead, KeyInit, Payload},
 };
 
 /// Encrypt content using XChaCha20-Poly1305 with associated data
@@ -19,14 +19,17 @@ pub fn encrypt_content(
     nonce: &[u8; 24],
     aad: &[u8], // associated data (header)
 ) -> Result<Vec<u8>, CryptoError> {
-    let cipher = XChaCha20Poly1305::new_from_slice(key.as_bytes())
-        .map_err(|_| CryptoError::InvalidKey { expected: 32, actual: key.as_bytes().len() })?;
-    
+    let cipher =
+        XChaCha20Poly1305::new_from_slice(key.as_bytes()).map_err(|_| CryptoError::InvalidKey {
+            expected: 32,
+            actual: key.as_bytes().len(),
+        })?;
+
     let payload = Payload {
         msg: plaintext,
         aad,
     };
-    
+
     cipher
         .encrypt(nonce.into(), payload)
         .map_err(|_| CryptoError::Encryption)
@@ -40,15 +43,17 @@ pub fn decrypt_content(
     nonce: &[u8; 24],
     aad: &[u8], // associated data (header)
 ) -> Result<Vec<u8>, CryptoError> {
-    let cipher = XChaCha20Poly1305::new_from_slice(key.as_bytes())
-        .map_err(|_| CryptoError::InvalidKey { expected: 32, actual: key.as_bytes().len() })?;
-    
-    
+    let cipher =
+        XChaCha20Poly1305::new_from_slice(key.as_bytes()).map_err(|_| CryptoError::InvalidKey {
+            expected: 32,
+            actual: key.as_bytes().len(),
+        })?;
+
     let payload = Payload {
         msg: ciphertext,
         aad,
     };
-    
+
     cipher
         .decrypt(nonce.into(), payload)
         .map_err(|_| CryptoError::Decryption)
@@ -63,7 +68,7 @@ pub fn encrypt_filename(
 ) -> Result<Vec<u8>, CryptoError> {
     // Derive filename-specific key
     let filename_key = derive_filename_key(master_key)?;
-    
+
     // Encrypt filename using main function with empty AAD
     encrypt_content(filename.as_bytes(), &filename_key, nonce, &[])
 }
@@ -77,13 +82,12 @@ pub fn decrypt_filename(
 ) -> Result<String, CryptoError> {
     // Derive filename-specific key
     let filename_key = derive_filename_key(master_key)?;
-    
+
     // Decrypt filename using main function with empty AAD
     let plaintext = decrypt_content(ciphertext, &filename_key, nonce, &[])?;
-    
+
     // Convert to string
-    String::from_utf8(plaintext)
-        .map_err(|_| CryptoError::Decryption)
+    String::from_utf8(plaintext).map_err(|_| CryptoError::Decryption)
 }
 
 #[cfg(test)]

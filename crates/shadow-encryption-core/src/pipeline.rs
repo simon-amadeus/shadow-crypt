@@ -2,11 +2,10 @@
 // Pure encryption pipeline - transforms EncryptionRequest to EncryptedFile
 // All functions are pure with no side effects
 
-use crate::types::{EncryptionRequest, EncryptedFile};
+use crate::types::{EncryptedFile, EncryptionRequest};
 use shadow_core::{
-    CryptoError, SerializationError, FilenameData, FileHeader, SecurityProfile,
-    derive_key, encrypt_content, encrypt_filename, generate_nonce, generate_salt,
-    serialize_header,
+    CryptoError, FileHeader, FilenameData, SecurityProfile, SerializationError, derive_key,
+    encrypt_content, encrypt_filename, generate_nonce, generate_salt, serialize_header,
 };
 
 /// Encryption pipeline error combining crypto and serialization errors
@@ -36,11 +35,8 @@ pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, Encrypt
     // 3. Create filename data based on obfuscation setting
     let filename_data = if request.obfuscate_filename {
         let nonce = filename_nonce.unwrap();
-        let encrypted_filename = encrypt_filename(
-            &request.metadata.original_name,
-            &master_key,
-            &nonce,
-        )?;
+        let encrypted_filename =
+            encrypt_filename(&request.metadata.original_name, &master_key, &nonce)?;
         FilenameData::Encrypted {
             ciphertext: encrypted_filename,
             nonce,
@@ -53,7 +49,11 @@ pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, Encrypt
     let header = FileHeader {
         magic: *b"SHADOW01",
         algorithm_id: 0x01, // XChaCha20-Poly1305
-        obfuscation_flag: if request.obfuscate_filename { 0x01 } else { 0x00 },
+        obfuscation_flag: if request.obfuscate_filename {
+            0x01
+        } else {
+            0x00
+        },
         content_hash: request.metadata.content_hash,
         filename_data,
         salt,
@@ -64,12 +64,7 @@ pub fn encrypt_file(request: EncryptionRequest) -> Result<EncryptedFile, Encrypt
     let header_bytes = serialize_header(&header)?;
 
     // 6. Encrypt content with header as AAD using shadow-core crypto
-    let ciphertext = encrypt_content(
-        &request.content,
-        &master_key,
-        &content_nonce,
-        &header_bytes,
-    )?;
+    let ciphertext = encrypt_content(&request.content, &master_key, &content_nonce, &header_bytes)?;
 
     // 7. Generate suggested output filename
     let suggested_filename = if request.obfuscate_filename {
@@ -87,7 +82,7 @@ fn generate_random_filename() -> String {
     // For now, use a deterministic pattern for testing
     use std::collections::hash_map::DefaultHasher;
     use std::hash::{Hash, Hasher};
-    
+
     let mut hasher = DefaultHasher::new();
     std::ptr::addr_of!(hasher).hash(&mut hasher);
     format!("{:016x}.shadow", hasher.finish())
@@ -149,19 +144,22 @@ mod tests {
     fn test_encrypt_file_no_obfuscation() {
         let request = create_test_request();
         let result = encrypt_file(request);
-        
+
         assert!(result.is_ok());
         let encrypted = result.unwrap();
-        
+
         // Check header structure
         assert_eq!(encrypted.header.magic, *b"SHADOW01");
         assert_eq!(encrypted.header.algorithm_id, 0x01);
         assert_eq!(encrypted.header.obfuscation_flag, 0x00);
-        
+
         // Check filename is not obfuscated
-        assert!(matches!(encrypted.header.filename_data, FilenameData::Plaintext(_)));
+        assert!(matches!(
+            encrypted.header.filename_data,
+            FilenameData::Plaintext(_)
+        ));
         assert_eq!(encrypted.suggested_filename, "test.txt.shadow");
-        
+
         // Check we have encrypted content
         assert!(!encrypted.ciphertext.is_empty());
     }
@@ -171,15 +169,18 @@ mod tests {
         let mut request = create_test_request();
         request.obfuscate_filename = true;
         let result = encrypt_file(request);
-        
+
         assert!(result.is_ok());
         let encrypted = result.unwrap();
-        
+
         // Check obfuscation flag is set
         assert_eq!(encrypted.header.obfuscation_flag, 0x01);
-        
+
         // Check filename is obfuscated
-        assert!(matches!(encrypted.header.filename_data, FilenameData::Encrypted { .. }));
+        assert!(matches!(
+            encrypted.header.filename_data,
+            FilenameData::Encrypted { .. }
+        ));
         assert!(encrypted.suggested_filename.ends_with(".shadow"));
         assert_ne!(encrypted.suggested_filename, "test.txt.shadow");
     }
@@ -188,11 +189,11 @@ mod tests {
     fn test_generate_random_filename() {
         let filename1 = generate_random_filename();
         let filename2 = generate_random_filename();
-        
+
         // Both should end with .shadow
         assert!(filename1.ends_with(".shadow"));
         assert!(filename2.ends_with(".shadow"));
-        
+
         // Should be different (with high probability)
         // Note: This test might occasionally fail due to randomness
         // In production, we'd use proper UUID generation
@@ -202,10 +203,10 @@ mod tests {
     fn test_encrypt_file_preserves_content_hash() {
         let request = create_test_request();
         let expected_hash = request.metadata.content_hash;
-        
+
         let result = encrypt_file(request);
         assert!(result.is_ok());
-        
+
         let encrypted = result.unwrap();
         assert_eq!(encrypted.header.content_hash, expected_hash);
     }

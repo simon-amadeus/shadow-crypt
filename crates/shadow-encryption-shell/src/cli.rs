@@ -26,42 +26,42 @@ pub fn parse_args() -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
                 .help("Input files to encrypt")
                 .required(true)
                 .num_args(1..)
-                .value_name("FILE")
+                .value_name("FILE"),
         )
         .arg(
             Arg::new("obfuscate")
                 .long("obfuscate")
                 .short('o')
                 .help("Obfuscate filenames (generate random names)")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("force")
                 .long("force")
                 .short('f')
                 .help("Overwrite existing output files")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("keep")
                 .long("keep")
                 .short('k')
                 .help("Keep original files after encryption")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("quiet")
                 .long("quiet")
                 .short('q')
                 .help("Suppress progress output")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .arg(
             Arg::new("allow_weak_password")
                 .long("allow-weak-password")
                 .short('w')
                 .help("Allow weak password (skip strength validation)")
-                .action(clap::ArgAction::SetTrue)
+                .action(clap::ArgAction::SetTrue),
         )
         .get_matches();
 
@@ -70,7 +70,9 @@ pub fn parse_args() -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
 
 /// Parse CLI arguments from custom matches (for testing)
 /// Pure function - no side effects
-pub fn parse_args_from_matches(matches: &ArgMatches) -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
+pub fn parse_args_from_matches(
+    matches: &ArgMatches,
+) -> Result<EncryptionArgs, Box<dyn std::error::Error>> {
     EncryptionArgs::from_matches(matches)
 }
 
@@ -111,43 +113,45 @@ mod tests {
                     .help("Input files to encrypt")
                     .required(true)
                     .num_args(1..)
-                    .value_name("FILE")
+                    .value_name("FILE"),
             )
             .arg(
                 Arg::new("obfuscate")
                     .long("obfuscate")
                     .short('o')
-                    .action(clap::ArgAction::SetTrue)
+                    .action(clap::ArgAction::SetTrue),
             )
             .arg(
                 Arg::new("force")
                     .long("force")
                     .short('f')
-                    .action(clap::ArgAction::SetTrue)
+                    .action(clap::ArgAction::SetTrue),
             )
             .arg(
                 Arg::new("keep")
                     .long("keep")
                     .short('k')
-                    .action(clap::ArgAction::SetTrue)
+                    .action(clap::ArgAction::SetTrue),
             )
             .arg(
                 Arg::new("quiet")
                     .long("quiet")
                     .short('q')
-                    .action(clap::ArgAction::SetTrue)
+                    .action(clap::ArgAction::SetTrue),
             )
             .arg(
                 Arg::new("allow_weak_password")
                     .long("allow-weak-password")
-                    .action(clap::ArgAction::SetTrue)
+                    .action(clap::ArgAction::SetTrue),
             )
     }
 
     #[test]
     fn test_parse_basic_args() {
         let app = create_test_app();
-        let matches = app.try_get_matches_from(vec!["shadow", "test.txt"]).unwrap();
+        let matches = app
+            .try_get_matches_from(vec!["shadow", "test.txt"])
+            .unwrap();
         let args = parse_args_from_matches(&matches).unwrap();
 
         assert_eq!(args.input_files.len(), 1);
@@ -162,10 +166,18 @@ mod tests {
     #[test]
     fn test_parse_all_flags() {
         let app = create_test_app();
-        let matches = app.try_get_matches_from(vec![
-            "shadow", "test1.txt", "test2.txt", 
-            "--obfuscate", "--force", "--keep", "--quiet", "--allow-weak-password"
-        ]).unwrap();
+        let matches = app
+            .try_get_matches_from(vec![
+                "shadow",
+                "test1.txt",
+                "test2.txt",
+                "--obfuscate",
+                "--force",
+                "--keep",
+                "--quiet",
+                "--allow-weak-password",
+            ])
+            .unwrap();
         let args = parse_args_from_matches(&matches).unwrap();
 
         assert_eq!(args.input_files.len(), 2);
@@ -179,9 +191,9 @@ mod tests {
     #[test]
     fn test_parse_short_flags() {
         let app = create_test_app();
-        let matches = app.try_get_matches_from(vec![
-            "shadow", "test.txt", "-o", "-f", "-k", "-q"
-        ]).unwrap();
+        let matches = app
+            .try_get_matches_from(vec!["shadow", "test.txt", "-o", "-f", "-k", "-q"])
+            .unwrap();
         let args = parse_args_from_matches(&matches).unwrap();
 
         assert!(args.obfuscate);
@@ -201,9 +213,9 @@ mod tests {
     #[test]
     fn test_allow_weak_passwords_flag() {
         let app = create_test_app();
-        let matches = app.try_get_matches_from(vec![
-            "shadow", "test.txt", "--allow-weak-password"
-        ]).unwrap();
+        let matches = app
+            .try_get_matches_from(vec!["shadow", "test.txt", "--allow-weak-password"])
+            .unwrap();
         let args = parse_args_from_matches(&matches).unwrap();
 
         assert_eq!(args.input_files.len(), 1);

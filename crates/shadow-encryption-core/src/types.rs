@@ -2,7 +2,7 @@
 // Encryption-specific types for the functional core
 // Pure data structures with no side effects
 
-use shadow_core::{SecureString, FileMetadata, FileHeader, SecurityProfile};
+use shadow_core::{FileHeader, FileMetadata, SecureString, SecurityProfile};
 
 /// Complete encryption request containing all necessary data
 /// Pure data structure - immutable and serializable
@@ -47,11 +47,7 @@ impl EncryptionRequest {
 impl EncryptedFile {
     /// Create a new encrypted file result
     /// Pure constructor function - no side effects
-    pub fn new(
-        header: FileHeader,
-        ciphertext: Vec<u8>,
-        suggested_filename: String,
-    ) -> Self {
+    pub fn new(header: FileHeader, ciphertext: Vec<u8>, suggested_filename: String) -> Self {
         Self {
             header,
             ciphertext,
@@ -73,9 +69,15 @@ mod tests {
             size: 4,
         };
         let password = SecureString::new("test_password".to_string());
-        
-        let request = EncryptionRequest::new(content.clone(), metadata.clone(), password, false, SecurityProfile::Test);
-        
+
+        let request = EncryptionRequest::new(
+            content.clone(),
+            metadata.clone(),
+            password,
+            false,
+            SecurityProfile::Test,
+        );
+
         assert_eq!(request.content, content);
         assert_eq!(request.metadata.original_name, "test.txt");
         assert_eq!(request.obfuscate_filename, false);
@@ -94,9 +96,9 @@ mod tests {
         };
         let ciphertext = vec![5, 6, 7, 8];
         let filename = "test.txt.shadow".to_string();
-        
+
         let encrypted = EncryptedFile::new(header.clone(), ciphertext.clone(), filename.clone());
-        
+
         assert_eq!(encrypted.ciphertext, ciphertext);
         assert_eq!(encrypted.suggested_filename, filename);
         assert_eq!(encrypted.header.magic, *b"SHADOW01");

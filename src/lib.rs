@@ -1,5 +1,5 @@
 //! Shadow Crypt - Secure file encryption with obfuscation
-//! 
+//!
 //! This crate provides secure file encryption with optional filename obfuscation.
 //! Built with a functional core / imperative shell architecture.
 

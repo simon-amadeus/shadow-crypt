@@ -18,7 +18,7 @@ pub const MAX_FILENAME_LENGTH: usize = 255;
 pub const MIN_HEADER_SIZE: usize = 8 + 1 + 1 + 32 + 1 + 16 + 24; // Without filename data
 
 /// Cryptographic parameters for version 1.0
-pub const KEY_SIZE: usize = 32;      // XChaCha20 key size
-pub const NONCE_SIZE: usize = 24;    // XChaCha20 nonce size  
-pub const SALT_SIZE: usize = 16;     // Argon2id salt size
-pub const HASH_SIZE: usize = 32;     // SHA-256 hash size
+pub const KEY_SIZE: usize = 32; // XChaCha20 key size
+pub const NONCE_SIZE: usize = 24; // XChaCha20 nonce size  
+pub const SALT_SIZE: usize = 16; // Argon2id salt size
+pub const HASH_SIZE: usize = 32; // SHA-256 hash size

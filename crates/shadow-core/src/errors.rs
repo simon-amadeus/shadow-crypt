@@ -9,28 +9,28 @@ use thiserror::Error;
 pub enum CryptoError {
     #[error("Key derivation failed")]
     KeyDerivation,
-    
+
     #[error("Encryption failed")]
     Encryption,
-    
+
     #[error("Decryption failed")]
     Decryption,
-    
+
     #[error("Invalid nonce size: expected {expected}, got {actual}")]
     InvalidNonce { expected: usize, actual: usize },
-    
+
     #[error("Invalid key size: expected {expected}, got {actual}")]
     InvalidKey { expected: usize, actual: usize },
-    
+
     #[error("Invalid salt size: expected {expected}, got {actual}")]
     InvalidSalt { expected: usize, actual: usize },
-    
+
     #[error("Random number generation failed")]
     RandomGeneration,
-    
+
     #[error("HKDF key derivation failed")]
     HkdfDerivation,
-    
+
     #[error("Authentication tag verification failed")]
     AuthenticationFailed,
 }
@@ -40,34 +40,37 @@ pub enum CryptoError {
 pub enum ValidationError {
     #[error("Empty password provided")]
     EmptyPassword,
-    
+
     #[error("Weak password: {reason}")]
     WeakPassword { reason: String },
-    
+
     #[error("Empty file content")]
     EmptyFile,
-    
+
     #[error("Invalid header format")]
     InvalidHeader,
-    
+
     #[error("Invalid magic bytes: expected {expected:?}, got {actual:?}")]
     InvalidMagic { expected: [u8; 8], actual: [u8; 8] },
-    
+
     #[error("Unsupported algorithm ID: {0}")]
     UnsupportedAlgorithm(u8),
-    
+
     #[error("Invalid obfuscation flag: {0}")]
     InvalidObfuscationFlag(u8),
-    
+
     #[error("Content hash mismatch: expected {expected:x?}, got {actual:x?}")]
-    ContentHashMismatch { expected: [u8; 32], actual: [u8; 32] },
-    
+    ContentHashMismatch {
+        expected: [u8; 32],
+        actual: [u8; 32],
+    },
+
     #[error("Invalid filename data")]
     InvalidFilenameData,
-    
+
     #[error("Header too short: expected at least {expected} bytes, got {actual}")]
     HeaderTooShort { expected: usize, actual: usize },
-    
+
     #[error("Invalid file size: {0}")]
     InvalidFileSize(u64),
 }
@@ -77,28 +80,32 @@ pub enum ValidationError {
 pub enum SerializationError {
     #[error("Failed to serialize header")]
     HeaderSerialization,
-    
+
     #[error("Failed to deserialize header")]
     HeaderDeserialization,
-    
+
     #[error("Invalid data length for field '{field}': expected {expected}, got {actual}")]
-    InvalidLength { field: String, expected: usize, actual: usize },
-    
+    InvalidLength {
+        field: String,
+        expected: usize,
+        actual: usize,
+    },
+
     #[error("Buffer overflow: trying to write {requested} bytes, but only {available} available")]
     BufferOverflow { requested: usize, available: usize },
-    
+
     #[error("Buffer underflow: trying to read {requested} bytes, but only {available} available")]
     BufferUnderflow { requested: usize, available: usize },
-    
+
     #[error("Invalid UTF-8 string")]
     InvalidUtf8,
-    
+
     #[error("Filename too long: {length} bytes, maximum is {max}")]
     FilenameTooLong { length: usize, max: usize },
-    
+
     #[error("Invalid magic bytes")]
     InvalidMagicBytes,
-    
+
     #[error("Invalid obfuscation flag: {0}")]
     InvalidObfuscationFlag(u8),
 }
@@ -108,10 +115,10 @@ pub enum SerializationError {
 pub enum CoreError {
     #[error("Crypto error: {0}")]
     Crypto(#[from] CryptoError),
-    
+
     #[error("Validation error: {0}")]
     Validation(#[from] ValidationError),
-    
+
     #[error("Serialization error: {0}")]
     Serialization(#[from] SerializationError),
 }
@@ -128,7 +135,10 @@ mod tests {
 
     #[test]
     fn test_crypto_error_invalid_nonce() {
-        let err = CryptoError::InvalidNonce { expected: 24, actual: 12 };
+        let err = CryptoError::InvalidNonce {
+            expected: 24,
+            actual: 12,
+        };
         assert_eq!(err.to_string(), "Invalid nonce size: expected 24, got 12");
     }
 
@@ -154,12 +164,15 @@ mod tests {
 
     #[test]
     fn test_serialization_error_invalid_length() {
-        let err = SerializationError::InvalidLength { 
+        let err = SerializationError::InvalidLength {
             field: "test_field".to_string(),
-            expected: 100, 
-            actual: 50 
+            expected: 100,
+            actual: 50,
         };
-        assert_eq!(err.to_string(), "Invalid data length for field 'test_field': expected 100, got 50");
+        assert_eq!(
+            err.to_string(),
+            "Invalid data length for field 'test_field': expected 100, got 50"
+        );
     }
 
     #[test]
@@ -167,7 +180,7 @@ mod tests {
         let crypto_err = CryptoError::Encryption;
         let core_err: CoreError = crypto_err.into();
         match core_err {
-            CoreError::Crypto(CryptoError::Encryption) => {},
+            CoreError::Crypto(CryptoError::Encryption) => {}
             _ => panic!("Expected crypto encryption error"),
         }
     }
@@ -177,7 +190,7 @@ mod tests {
         let validation_err = ValidationError::EmptyFile;
         let core_err: CoreError = validation_err.into();
         match core_err {
-            CoreError::Validation(ValidationError::EmptyFile) => {},
+            CoreError::Validation(ValidationError::EmptyFile) => {}
             _ => panic!("Expected validation empty file error"),
         }
     }
@@ -187,7 +200,7 @@ mod tests {
         let serialization_err = SerializationError::HeaderDeserialization;
         let core_err: CoreError = serialization_err.into();
         match core_err {
-            CoreError::Serialization(SerializationError::HeaderDeserialization) => {},
+            CoreError::Serialization(SerializationError::HeaderDeserialization) => {}
             _ => panic!("Expected serialization header deserialization error"),
         }
     }
@@ -197,7 +210,7 @@ mod tests {
         let err1 = CryptoError::KeyDerivation;
         let err2 = CryptoError::KeyDerivation;
         let err3 = CryptoError::Encryption;
-        
+
         assert_eq!(err1, err2);
         assert_ne!(err1, err3);
     }

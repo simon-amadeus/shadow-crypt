@@ -13,12 +13,12 @@ impl SecureString {
     pub fn new(s: String) -> Self {
         Self(Zeroizing::new(s))
     }
-    
+
     /// Get a string slice of the contents
     pub fn as_str(&self) -> &str {
         self.0.as_str()
     }
-    
+
     /// Check if the string is empty
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
@@ -40,7 +40,7 @@ impl SecureKey {
     pub fn new(key: [u8; 32]) -> Self {
         Self(Zeroizing::new(key))
     }
-    
+
     /// Get a slice of the key bytes
     pub fn as_bytes(&self) -> &[u8; 32] {
         &self.0
@@ -56,7 +56,7 @@ impl SecureBytes {
     pub fn new(data: Vec<u8>) -> Self {
         Self(Zeroizing::new(data))
     }
-    
+
     /// Get a slice of the bytes
     pub fn as_slice(&self) -> &[u8] {
         &self.0
@@ -72,7 +72,7 @@ mod tests {
         let s = SecureString::new("test_password".to_string());
         assert_eq!(s.as_str(), "test_password");
         assert!(!s.is_empty());
-        
+
         let empty = SecureString::new(String::new());
         assert!(empty.is_empty());
     }

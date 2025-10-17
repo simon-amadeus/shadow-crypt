@@ -2,10 +2,9 @@
 // File content and metadata validation functions
 // All code related to validating file data and requests lives here
 
-use crate::metadata::FileMetadata;
 use crate::errors::ValidationError;
 use crate::format::{MAX_FILE_SIZE, MAX_FILENAME_LENGTH};
-
+use crate::metadata::FileMetadata;
 
 /// Validate file content requirements
 /// Pure function - no side effects
@@ -13,40 +12,40 @@ pub fn validate_file_content(content: &[u8]) -> Result<(), ValidationError> {
     if content.is_empty() {
         return Err(ValidationError::EmptyFile);
     }
-    
+
     if content.len() as u64 > MAX_FILE_SIZE {
         return Err(ValidationError::InvalidFileSize(content.len() as u64));
     }
-    
+
     Ok(())
 }
 
 /// Validate file metadata consistency and requirements
 /// Pure function - no side effects  
-pub fn validate_file_metadata(metadata: &FileMetadata, actual_content_size: u64) -> Result<(), ValidationError> {
+pub fn validate_file_metadata(
+    metadata: &FileMetadata,
+    actual_content_size: u64,
+) -> Result<(), ValidationError> {
     // Check filename
     if metadata.original_name.is_empty() {
         return Err(ValidationError::InvalidFilenameData);
     }
-    
+
     if metadata.original_name.len() > MAX_FILENAME_LENGTH {
         return Err(ValidationError::InvalidFilenameData);
     }
-    
+
     // Check size consistency
     if metadata.size != actual_content_size {
         return Err(ValidationError::InvalidFileSize(metadata.size));
     }
-    
+
     Ok(())
 }
-
-
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
 
     #[test]
     fn test_validate_file_content_empty() {
@@ -115,6 +114,4 @@ mod tests {
         let result = validate_file_metadata(&metadata, 100);
         assert!(result.is_ok());
     }
-
-
 }

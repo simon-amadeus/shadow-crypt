@@ -19,8 +19,6 @@ rpassword = { workspace = true }
 tempfile = { workspace = true }
 colored = { workspace = true }
 thiserror = { workspace = true }
-atty = { workspace = true }
-uuid = { workspace = true }
 
 # Additional I/O dependencies
 hex = { workspace = true }

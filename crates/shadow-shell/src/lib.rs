@@ -4,27 +4,19 @@
 // This crate handles all side effects including file I/O,
 // user interaction, CLI parsing, and progress reporting.
 
-pub mod file_ops;
 pub mod cli_helpers;
-pub mod ui;
 pub mod errors;
+pub mod file_ops;
+pub mod ui;
 
 // Re-export commonly used items
-pub use file_ops::{
-    read_file_safely, write_file_atomically,
-    scan_shadow_files, validate_input_paths
-};
-pub use cli_helpers::{
-    parse_glob_patterns, prompt_for_password,
-    confirm_overwrite
-};
-pub use ui::{
-    display_progress, display_error, display_success
-};
+pub use cli_helpers::{confirm_overwrite, parse_glob_patterns, prompt_for_password};
 pub use errors::ShellError;
+pub use file_ops::{read_file_safely, validate_input_paths, write_file_atomically};
+pub use ui::{display_error, display_progress, display_success};
 
 // Re-export core types for convenience
 pub use shadow_core::{
-    SecureString, SecureKey, FileHeader, FilenameData,
-    CryptoError, ValidationError, SerializationError
+    CryptoError, FileHeader, FilenameData, SecureKey, SecureString, SerializationError,
+    ValidationError,
 };

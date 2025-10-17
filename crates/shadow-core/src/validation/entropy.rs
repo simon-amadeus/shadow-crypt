@@ -2,14 +2,14 @@
 // Password strength validation using zxcvbn
 // Industry-standard password strength estimation
 
-use crate::memory::SecureString;
 use crate::errors::ValidationError;
+use crate::memory::SecureString;
 
 /// Validate password strength using zxcvbn industry-standard algorithm
 /// Pure function - no side effects
 pub fn validate_password_entropy(password: &SecureString) -> Result<(), ValidationError> {
     let estimate = zxcvbn::zxcvbn(password.as_str(), &[]);
-    
+
     // Score 3 = "Safely unguessable: moderate protection from offline slow-hash scenario"
     if estimate.score() < zxcvbn::Score::Three {
         let feedback_msg = format_feedback(&estimate);
@@ -22,7 +22,7 @@ pub fn validate_password_entropy(password: &SecureString) -> Result<(), Validati
             ),
         });
     }
-    
+
     Ok(())
 }
 
@@ -30,17 +30,13 @@ pub fn validate_password_entropy(password: &SecureString) -> Result<(), Validati
 fn format_feedback(estimate: &zxcvbn::Entropy) -> String {
     if let Some(feedback) = estimate.feedback() {
         let mut suggestions = Vec::new();
-        
+
         if let Some(warning) = feedback.warning() {
             suggestions.push(warning.to_string());
         }
-        
-        suggestions.extend(
-            feedback.suggestions()
-                .iter()
-                .map(|s| s.to_string())
-        );
-        
+
+        suggestions.extend(feedback.suggestions().iter().map(|s| s.to_string()));
+
         if suggestions.is_empty() {
             "Use a stronger password".to_string()
         } else {
@@ -95,10 +91,10 @@ mod tests {
     fn test_entropy_calculation() {
         let weak = SecureString::new("password".to_string());
         let strong = SecureString::new("Tr0ub4dor&3".to_string());
-        
+
         let weak_result = validate_password_entropy(&weak);
         let strong_result = validate_password_entropy(&strong);
-        
+
         assert!(matches!(weak_result, Err(_)));
         assert!(strong_result.is_ok());
     }

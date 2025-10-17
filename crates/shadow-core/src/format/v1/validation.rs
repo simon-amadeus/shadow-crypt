@@ -1,14 +1,13 @@
 // shadow-core/src/format/v1/validation.rs
 // V1 format-specific validation functions
 
-use super::{FileHeader, FilenameData};
 use super::constants::{
-    MAGIC, ALGORITHM_XCHACHA20_POLY1305,
-    FILENAME_PLAINTEXT, FILENAME_ENCRYPTED,
-    MAX_FILENAME_LENGTH, MIN_HEADER_SIZE
+    ALGORITHM_XCHACHA20_POLY1305, FILENAME_ENCRYPTED, FILENAME_PLAINTEXT, MAGIC,
+    MAX_FILENAME_LENGTH, MIN_HEADER_SIZE,
 };
-use crate::errors::ValidationError;
+use super::{FileHeader, FilenameData};
 use crate::crypto::primitives::constant_time_eq;
+use crate::errors::ValidationError;
 
 /// Validate a complete v1 file header structure
 /// Pure function - no side effects
@@ -20,24 +19,28 @@ pub fn validate_file_header(header: &FileHeader) -> Result<(), ValidationError> 
             actual: header.magic,
         });
     }
-    
+
     // Check algorithm ID
     if header.algorithm_id != ALGORITHM_XCHACHA20_POLY1305 {
         return Err(ValidationError::UnsupportedAlgorithm(header.algorithm_id));
     }
-    
+
     // Check obfuscation flag
     match header.obfuscation_flag {
         FILENAME_PLAINTEXT | FILENAME_ENCRYPTED => {}
-        _ => return Err(ValidationError::InvalidObfuscationFlag(header.obfuscation_flag)),
+        _ => {
+            return Err(ValidationError::InvalidObfuscationFlag(
+                header.obfuscation_flag,
+            ));
+        }
     }
-    
+
     // Validate filename data consistency with obfuscation flag
     validate_filename_data_consistency(&header.filename_data, header.obfuscation_flag)?;
-    
+
     // Validate filename data content
     validate_filename_data_content(&header.filename_data)?;
-    
+
     Ok(())
 }
 
@@ -47,7 +50,7 @@ pub fn validate_header_bytes(data: &[u8]) -> Result<(), ValidationError> {
     if data.len() < MIN_HEADER_SIZE {
         return Err(ValidationError::InvalidHeader);
     }
-    
+
     // Check magic bytes at the start
     if data.len() >= 8 {
         let magic_slice = &data[0..8];
@@ -62,15 +65,15 @@ pub fn validate_header_bytes(data: &[u8]) -> Result<(), ValidationError> {
             });
         }
     }
-    
+
     Ok(())
 }
 
 /// Validate that filename data is consistent with obfuscation flag
 /// Pure function - no side effects
 fn validate_filename_data_consistency(
-    filename_data: &FilenameData, 
-    obfuscation_flag: u8
+    filename_data: &FilenameData,
+    obfuscation_flag: u8,
 ) -> Result<(), ValidationError> {
     match (filename_data, obfuscation_flag) {
         (FilenameData::Plaintext(_), FILENAME_PLAINTEXT) => Ok(()),
@@ -133,7 +136,10 @@ mod tests {
         let mut header = create_valid_header();
         header.algorithm_id = 0xFF;
         let result = validate_file_header(&header);
-        assert!(matches!(result, Err(ValidationError::UnsupportedAlgorithm(_))));
+        assert!(matches!(
+            result,
+            Err(ValidationError::UnsupportedAlgorithm(_))
+        ));
     }
 
     #[test]
@@ -141,7 +147,10 @@ mod tests {
         let mut header = create_valid_header();
         header.obfuscation_flag = 0xFF;
         let result = validate_file_header(&header);
-        assert!(matches!(result, Err(ValidationError::InvalidObfuscationFlag(_))));
+        assert!(matches!(
+            result,
+            Err(ValidationError::InvalidObfuscationFlag(_))
+        ));
     }
 
     #[test]

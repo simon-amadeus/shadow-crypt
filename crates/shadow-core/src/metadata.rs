@@ -6,7 +6,7 @@
 #[derive(Debug, Clone)]
 pub struct FileMetadata {
     pub original_name: String,
-    pub content_hash: [u8; 32],  // SHA-256
+    pub content_hash: [u8; 32], // SHA-256
     pub size: u64,
 }
 

@@ -10,29 +10,29 @@ use shadow_core::{ValidationError, validate_password_strength};
 pub fn validate_encryption_request(request: &EncryptionRequest) -> Result<(), ValidationError> {
     // Validate password strength using shadow-core
     validate_password_strength(&request.password)?;
-    
+
     // Validate content
     if request.content.is_empty() {
         return Err(ValidationError::EmptyFile);
     }
-    
+
     // Validate metadata
     if request.metadata.original_name.is_empty() {
         return Err(ValidationError::InvalidFilenameData);
     }
-    
+
     // Validate file size limits
     if request.metadata.size != request.content.len() as u64 {
         return Err(ValidationError::InvalidFileSize(request.metadata.size));
     }
-    
+
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_core::{SecureString, FileMetadata};
+    use shadow_core::{FileMetadata, SecureString};
 
     fn create_valid_request() -> EncryptionRequest {
         EncryptionRequest {

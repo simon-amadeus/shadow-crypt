@@ -5,10 +5,10 @@
 /// Complete file header as defined in SHADOW_SPECIFICATION_v1.0.md
 #[derive(Debug, Clone)]
 pub struct FileHeader {
-    pub magic: [u8; 8],          // "SHADOW01"
-    pub algorithm_id: u8,        // 0x01 for XChaCha20-Poly1305
-    pub obfuscation_flag: u8,    // 0x00 or 0x01
-    pub content_hash: [u8; 32],  // SHA-256 of original content
+    pub magic: [u8; 8],         // "SHADOW01"
+    pub algorithm_id: u8,       // 0x01 for XChaCha20-Poly1305
+    pub obfuscation_flag: u8,   // 0x00 or 0x01
+    pub content_hash: [u8; 32], // SHA-256 of original content
     pub filename_data: FilenameData,
     pub salt: [u8; 16],          // Argon2id salt
     pub content_nonce: [u8; 24], // XChaCha20-Poly1305 nonce
@@ -49,7 +49,7 @@ mod tests {
             salt: [0u8; 16],
             content_nonce: [0u8; 24],
         };
-        
+
         assert_eq!(header.magic, *b"SHADOW01");
         assert_eq!(header.algorithm_id, 0x01);
     }
@@ -57,7 +57,7 @@ mod tests {
     #[test]
     fn test_filename_data_plaintext() {
         let filename_data = FilenameData::Plaintext("document.pdf".to_string());
-        
+
         match filename_data {
             FilenameData::Plaintext(name) => {
                 assert_eq!(name, "document.pdf");
@@ -74,9 +74,12 @@ mod tests {
             ciphertext: ciphertext.clone(),
             nonce,
         };
-        
+
         match filename_data {
-            FilenameData::Encrypted { ciphertext: ct, nonce: n } => {
+            FilenameData::Encrypted {
+                ciphertext: ct,
+                nonce: n,
+            } => {
                 assert_eq!(ct, ciphertext);
                 assert_eq!(n, nonce);
             }

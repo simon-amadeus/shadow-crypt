@@ -11,7 +11,7 @@ pub fn display_progress(current: u64, total: u64, _file: &str) {
     if total == 0 {
         return;
     }
-    
+
     println!("Processing file {} of {}", current, total);
 }
 
@@ -25,7 +25,7 @@ pub fn display_success(message: &str) {
 /// Side effect: Terminal output
 pub fn display_error(error: &ShellError) {
     eprintln!("{} {}", "✗".red().bold(), error.to_string().red());
-    
+
     // Add helpful hints for common errors
     display_error_hint(error);
 }
@@ -34,15 +34,11 @@ pub fn display_error(error: &ShellError) {
 /// Side effect: Terminal output
 fn display_error_hint(error: &ShellError) {
     let hint = match error {
-        ShellError::OutputExists(_) => {
-            Some("Use --force to overwrite existing files".dimmed())
-        }
+        ShellError::OutputExists(_) => Some("Use --force to overwrite existing files".dimmed()),
         ShellError::PermissionDenied(_) => {
             Some("Check file permissions or run with appropriate privileges".dimmed())
         }
-        ShellError::PasswordMismatch => {
-            Some("Passwords must match exactly. Try again.".dimmed())
-        }
+        ShellError::PasswordMismatch => Some("Passwords must match exactly. Try again.".dimmed()),
         ShellError::DuplicateContent { .. } => {
             Some("Use --force to encrypt anyway, or delete existing encrypted file".dimmed())
         }
@@ -52,28 +48,13 @@ fn display_error_hint(error: &ShellError) {
         ShellError::TooManyFiles { limit, .. } => {
             Some(format!("Maximum {} files can be processed at once", limit).dimmed())
         }
-        ShellError::InsufficientDiskSpace => {
-            Some("Free up disk space or choose a different output location".dimmed())
-        }
         _ => None,
     };
-    
+
     if let Some(hint) = hint {
         eprintln!("  {}", hint);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -89,7 +70,7 @@ mod tests {
     #[test]
     fn test_shell_error_hints() {
         use std::path::PathBuf;
-        
+
         // Test that error display doesn't panic
         let errors = vec![
             ShellError::OutputExists(PathBuf::from("test.txt")),
@@ -99,12 +80,17 @@ mod tests {
                 original_file: PathBuf::from("test.txt"),
                 content_hash: "abc123".to_string(),
             },
-            ShellError::FileTooLarge { size: 1000, limit: 500 },
-            ShellError::TooManyFiles { count: 1001, limit: 1000 },
-            ShellError::InsufficientDiskSpace,
+            ShellError::FileTooLarge {
+                size: 1000,
+                limit: 500,
+            },
+            ShellError::TooManyFiles {
+                count: 1001,
+                limit: 1000,
+            },
             ShellError::Cancelled,
         ];
-        
+
         for error in errors {
             display_error(&error);
         }

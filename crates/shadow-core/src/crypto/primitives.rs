@@ -2,7 +2,7 @@
 // Low-level cryptographic primitives and utilities
 // All code related to basic crypto utilities lives here
 
-use sha2::{Sha256, Digest};
+use sha2::{Digest, Sha256};
 use subtle::ConstantTimeEq;
 
 /// Hash content using SHA-256
@@ -35,7 +35,7 @@ pub fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
     }
-    
+
     a.ct_eq(b).into()
 }
 
@@ -46,10 +46,10 @@ mod tests {
     #[test]
     fn test_hash_content_deterministic() {
         let content = b"Hello, World!";
-        
+
         let hash1 = hash_content(content);
         let hash2 = hash_content(content);
-        
+
         assert_eq!(hash1, hash2);
     }
 
@@ -57,10 +57,10 @@ mod tests {
     fn test_hash_content_different_inputs() {
         let content1 = b"Hello, World!";
         let content2 = b"Hello, World?";
-        
+
         let hash1 = hash_content(content1);
         let hash2 = hash_content(content2);
-        
+
         assert_ne!(hash1, hash2);
     }
 

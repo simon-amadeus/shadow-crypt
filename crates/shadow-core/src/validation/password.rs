@@ -2,8 +2,8 @@
 // Professional password validation based purely on entropy
 // No arbitrary length requirements - only cryptographic security matters
 
-use crate::memory::SecureString;
 use crate::errors::ValidationError;
+use crate::memory::SecureString;
 
 pub use super::entropy::validate_password_entropy;
 
@@ -13,7 +13,7 @@ pub fn validate_password_format(password: &SecureString) -> Result<(), Validatio
     if password.is_empty() {
         return Err(ValidationError::EmptyPassword);
     }
-    
+
     // No other format requirements - entropy is what matters for security
     Ok(())
 }
@@ -24,10 +24,10 @@ pub fn validate_password_format(password: &SecureString) -> Result<(), Validatio
 pub fn validate_password_strength(password: &SecureString) -> Result<(), ValidationError> {
     // Basic format check
     validate_password_format(password)?;
-    
+
     // Professional entropy validation (the only security requirement that matters)
     validate_password_entropy(password)?;
-    
+
     Ok(())
 }
 
@@ -49,7 +49,7 @@ mod tests {
         assert!(result.is_ok());
     }
 
-    #[test] 
+    #[test]
     fn test_validate_password_strength_delegates_to_entropy() {
         // This test verifies that strength validation uses entropy checking
         let weak_password = SecureString::new("abc".to_string());
