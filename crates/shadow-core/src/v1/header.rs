@@ -1,54 +1,180 @@
-// shadow-core/src/v1/header.rs
-// V1-specific file header validation functions
+use std::mem;
 
-use crate::errors::ValidationError;
-use super::validation;
-use super::types::FileHeader;
+use crate::v1::key::KeyDerivationParams;
 
-/// Validate a complete file header structure
-/// V1-specific validation implementation
-pub fn validate_file_header(header: &FileHeader) -> Result<(), ValidationError> {
-    validation::validate_file_header(header)
+/// Complete v1 file header
+#[derive(Debug, Clone)]
+pub struct FileHeader {
+    pub magic: ShadowMagic,                    // 6 bytes: "SHADOW"
+    pub version: FileVersion,                  // 2 bytes: Version (fixed to 1)
+    pub size: HeaderSize,                      // 4 bytes: Total header size
+    pub salt: Argon2idSalt,                    // 16 bytes: Salt for key derivation
+    pub params: KeyDerivationParams,           // Argon2id parameters for key derivation
+    pub content_nonce: XChaCha20Nonce,         // 24 bytes: Nonce for content encryption
+    pub content_tag: Poly1305Tag,              // 16 bytes: Authentication tag for content
+    pub encrypted_filename: EncryptedFileName, // Variable size: Encrypted filename
 }
 
-/// Validate raw header bytes for basic structure requirements
-/// V1-specific validation implementation
-pub fn validate_header_bytes(data: &[u8]) -> Result<(), ValidationError> {
-    validation::validate_header_bytes(data)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::v1::constants::{
-        ALGORITHM_XCHACHA20_POLY1305, FILENAME_PLAINTEXT, MAGIC,
-    };
-    use crate::v1::types::{FileHeader, FilenameData};
-
-    fn create_valid_header() -> FileHeader {
-        FileHeader {
-            magic: *MAGIC,
-            algorithm_id: ALGORITHM_XCHACHA20_POLY1305,
-            obfuscation_flag: FILENAME_PLAINTEXT,
-            content_hash: [0u8; 32],
-            filename_data: FilenameData::Plaintext("test.txt".to_string()),
-            salt: [1u8; 16],
-            content_nonce: [2u8; 24],
+impl FileHeader {
+    pub fn new(
+        salt: Argon2idSalt,
+        params: KeyDerivationParams,
+        content_nonce: XChaCha20Nonce,
+        content_tag: Poly1305Tag,
+        encrypted_filename: EncryptedFileName,
+    ) -> Self {
+        let calc_size = Argon2idSalt::size()
+            + KeyDerivationParams::size()
+            + XChaCha20Nonce::size()
+            + Poly1305Tag::size()
+            + encrypted_filename.size()
+            + ShadowMagic::size()
+            + FileVersion::size();
+        let size = HeaderSize(calc_size as u32);
+        Self {
+            magic: ShadowMagic,
+            version: FileVersion,
+            size,
+            salt,
+            params,
+            content_nonce,
+            content_tag,
+            encrypted_filename,
         }
     }
 
-    #[test]
-    fn test_validate_file_header_delegates_to_v1() {
-        let header = create_valid_header();
-        let result = validate_file_header(&header);
-        assert!(result.is_ok());
+    // Returns length of all fixed-size fields in the header
+    // This only excludes the variable-size filename ciphertext
+    pub fn min_size() -> usize {
+        ShadowMagic::size()
+            + FileVersion::size()
+            + Argon2idSalt::size()
+            + KeyDerivationParams::size()
+            + XChaCha20Nonce::size()
+            + Poly1305Tag::size()
+            + EncryptedFileName::min_size()
     }
 
-    #[test]
-    fn test_validate_header_bytes_delegates_to_v1() {
-        let mut data = vec![0u8; 100]; // Sufficient size
-        data[0..8].copy_from_slice(MAGIC);
-        let result = validate_header_bytes(&data);
-        assert!(result.is_ok());
+    pub fn size(&self) -> usize {
+        ShadowMagic::size()
+            + FileVersion::size()
+            + Argon2idSalt::size()
+            + XChaCha20Nonce::size()
+            + Poly1305Tag::size()
+            + self.encrypted_filename.size()
+    }
+}
+
+/// Encrypted filename with nonce and authentication tag
+#[derive(Debug, Clone)]
+pub struct EncryptedFileName {
+    nonce: XChaCha20Nonce, // Nonce for filename encryption
+    tag: Poly1305Tag,      // Authentication tag for filename
+    ciphertext_size: u16,  // Size of encrypted filename
+    ciphertext: Vec<u8>,   // Encrypted filename
+}
+
+impl EncryptedFileName {
+    pub fn new(nonce: XChaCha20Nonce, tag: Poly1305Tag, ciphertext: Vec<u8>) -> Self {
+        Self {
+            nonce,
+            tag,
+            ciphertext_size: ciphertext.len() as u16,
+            ciphertext,
+        }
+    }
+    pub fn get_offset_to_ciphertext_size() -> usize {
+        XChaCha20Nonce::size() + Poly1305Tag::size()
+    }
+    pub fn min_size() -> usize {
+        XChaCha20Nonce::size() + Poly1305Tag::size() + mem::size_of::<u16>()
+    }
+    pub fn size(&self) -> usize {
+        EncryptedFileName::min_size() + self.ciphertext.len()
+    }
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut output = Vec::new();
+        output.extend_from_slice(self.nonce.as_bytes());
+        output.extend_from_slice(self.tag.as_bytes());
+        output.extend_from_slice(&self.ciphertext_size.to_le_bytes());
+        output.extend_from_slice(&self.ciphertext);
+        output
+    }
+}
+
+/// Magic bytes to identify the v1 file format
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShadowMagic;
+impl ShadowMagic {
+    pub const BYTES: [u8; 6] = *b"SHADOW";
+    pub fn size() -> usize {
+        Self::BYTES.len()
+    }
+}
+
+/// File format version, fixed to 1 for this implementation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileVersion;
+impl FileVersion {
+    pub const VALUE: u16 = 1;
+    pub fn as_u16() -> u16 {
+        Self::VALUE
+    }
+    pub fn size() -> usize {
+        mem::size_of::<u16>()
+    }
+}
+
+/// Salt for Argon2id key derivation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Argon2idSalt([u8; 16]);
+impl Argon2idSalt {
+    pub fn new(salt: [u8; 16]) -> Self {
+        Self(salt)
+    }
+    pub fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
+    }
+    pub fn size() -> usize {
+        mem::size_of::<[u8; 16]>()
+    }
+}
+
+/// Nonce for XChaCha20-Poly1305 encryption
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct XChaCha20Nonce([u8; 24]);
+impl XChaCha20Nonce {
+    pub fn new(nonce: [u8; 24]) -> Self {
+        Self(nonce)
+    }
+    pub fn as_bytes(&self) -> &[u8; 24] {
+        &self.0
+    }
+    pub fn size() -> usize {
+        mem::size_of::<[u8; 24]>()
+    }
+}
+
+/// Authentication tag for XChaCha20-Poly1305
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Poly1305Tag([u8; 16]);
+impl Poly1305Tag {
+    pub fn new(tag: [u8; 16]) -> Self {
+        Self(tag)
+    }
+    pub fn as_bytes(&self) -> &[u8; 16] {
+        &self.0
+    }
+    pub fn size() -> usize {
+        mem::size_of::<[u8; 16]>()
+    }
+}
+
+/// Total header size in bytes
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct HeaderSize(pub u32);
+impl HeaderSize {
+    pub fn get(&self) -> u32 {
+        self.0
     }
 }

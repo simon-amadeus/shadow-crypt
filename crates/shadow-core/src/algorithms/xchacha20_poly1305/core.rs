@@ -2,9 +2,12 @@
 // XChaCha20-Poly1305 encryption implementation
 // Pure crypto functions with no side effects except for randomness generation
 
-use crate::memory::SecureKey;
 use crate::errors::CryptoError;
-use chacha20poly1305::{XChaCha20Poly1305, KeyInit, aead::{Aead, Payload}};
+use crate::memory::SecureKey;
+use chacha20poly1305::{
+    KeyInit, XChaCha20Poly1305,
+    aead::{Aead, Payload},
+};
 
 /// Generate cryptographically secure random nonce for XChaCha20
 /// This function has side effects (uses system randomness)

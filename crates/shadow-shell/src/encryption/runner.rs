@@ -2,11 +2,11 @@
 // Main encryption workflow runner
 // Side effects: coordinates file I/O, user interaction, and progress display
 
+use shadow_core::memory::SecureString;
+
 use super::cli::EncryptionArgs;
 use super::file_ops::process_single_file;
-use super::EncryptionError;
-use shadow_core::SecureString;
-use crate::{display_progress, display_success, prompt_for_password};
+use crate::{display_progress, display_success};
 use std::path::PathBuf;
 
 /// Main encryption runner - coordinates the entire encryption workflow

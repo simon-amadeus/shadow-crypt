@@ -2,11 +2,11 @@
 // File I/O operations for encryption
 // All functions have side effects - interact with file system
 
-use shadow_core::SecureString;
-use shadow_core::v1::{SecurityProfile, encrypt_file, EncryptFileRequest, serialize_header};
-use shadow_core::v1::file_operations::EncryptedFile;
-use crate::{ShellError, read_file_safely, write_file_atomically};
 use super::EncryptionError;
+use crate::{ShellError, read_file_safely, write_file_atomically};
+use shadow_core::SecureString;
+use shadow_core::v1::file_operations::EncryptedFile;
+use shadow_core::v1::{EncryptFileRequest, SecurityProfile, encrypt_file, serialize_header};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -89,7 +89,7 @@ pub fn write_encrypted_file(
 ) -> Result<(), EncryptionError> {
     // Serialize header to bytes for file format
     let header_bytes = serialize_header(&encrypted.header)?;
-    
+
     // Create complete file data (header + ciphertext)
     let mut file_data = header_bytes;
     file_data.extend_from_slice(&encrypted.ciphertext);
@@ -128,9 +128,7 @@ pub fn check_for_duplicate_content(
 
 /// Scan directory for existing .shadow files and extract their content hashes with file paths
 /// Side effect: reads from file system
-fn scan_existing_shadow_files(
-    dir: &Path,
-) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionError> {
+fn scan_existing_shadow_files(dir: &Path) -> Result<HashMap<[u8; 32], PathBuf>, EncryptionError> {
     let mut hash_to_file = HashMap::new();
 
     if !dir.exists() || !dir.is_dir() {

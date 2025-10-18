@@ -40,7 +40,10 @@ mod tests {
     #[test]
     fn test_security_profile_descriptions() {
         assert_eq!(SecurityProfile::Test.description(), "Fast (Test-only)");
-        assert_eq!(SecurityProfile::Production.description(), "Secure (Production)");
+        assert_eq!(
+            SecurityProfile::Production.description(),
+            "Secure (Production)"
+        );
     }
 
     #[test]

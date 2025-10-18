@@ -2,9 +2,9 @@
 // Argon2 key derivation implementation
 // Pure crypto functions with no side effects except for randomness generation
 
-use crate::memory::{SecureKey, SecureString};
 use crate::errors::CryptoError;
-use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
+use crate::memory::{SecureKey, SecureString};
+use argon2::{Argon2, PasswordHasher, password_hash::SaltString};
 
 /// Generate cryptographically secure random salt for Argon2
 /// This function has side effects (uses system randomness)
@@ -66,8 +66,8 @@ pub fn derive_filename_key(master_key: &SecureKey) -> Result<SecureKey, CryptoEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::security::SecurityProfile;
     use crate::algorithms::argon2::Argon2Config;
+    use crate::security::SecurityProfile;
 
     #[test]
     fn test_derive_key_basic() {
@@ -94,13 +94,13 @@ mod tests {
     #[test]
     fn test_derive_filename_key() {
         let master_key = SecureKey::new([42u8; 32]);
-        
+
         let filename_key1 = derive_filename_key(&master_key).unwrap();
         let filename_key2 = derive_filename_key(&master_key).unwrap();
-        
+
         // Should be deterministic
         assert_eq!(filename_key1.as_bytes(), filename_key2.as_bytes());
-        
+
         // Should be different from master key
         assert_ne!(master_key.as_bytes(), filename_key1.as_bytes());
     }

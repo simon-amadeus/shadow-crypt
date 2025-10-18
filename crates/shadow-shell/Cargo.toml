@@ -19,6 +19,8 @@ rpassword = { workspace = true }
 tempfile = { workspace = true }
 colored = { workspace = true }
 thiserror = { workspace = true }
+subtle = { workspace = true }
+zxcvbn = { workspace = true }
 
 # Additional I/O dependencies
 hex = { workspace = true }

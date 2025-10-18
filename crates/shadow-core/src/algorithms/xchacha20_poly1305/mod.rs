@@ -2,10 +2,10 @@
 // XChaCha20-Poly1305 algorithm vertical slice
 // All XChaCha20-Poly1305 related functionality in one place
 
-pub mod core;
+// pub mod core;
 
-// Re-export main functionality
-pub use core::{encrypt, decrypt, encrypt_filename, decrypt_filename, generate_nonce};
+// // Re-export main functionality
+// pub use core::{decrypt, decrypt_filename, encrypt, encrypt_filename, generate_nonce};
 
 // Simple algorithm constants - hardcoded for simplicity
 pub const ALGORITHM_ID: u8 = 0x01;
