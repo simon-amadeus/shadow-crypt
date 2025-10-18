@@ -5,9 +5,12 @@ use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
+// /// Convenience type for shell operation results
+pub type EncryptionResult<T> = Result<T, EncryptionError>;
+
 /// Shell-level errors that may involve I/O side effects
 #[derive(Debug, Error)]
-pub enum ApplicationError {
+pub enum EncryptionError {
     #[error("No input files provided")]
     NoFilesProvided,
 
@@ -29,9 +32,12 @@ pub enum ApplicationError {
     #[error("User input error: {0}")]
     UserInput(String),
 
+    #[error("Password cannot be empty")]
+    EmptyPassword,
+
+    #[error("Passwords do not match")]
+    PasswordsDoNotMatch,
+
     #[error("Password error: {0}")]
     Password(String),
 }
-
-/// Convenience type for shell operation results
-pub type AppResult<T> = Result<T, ApplicationError>;

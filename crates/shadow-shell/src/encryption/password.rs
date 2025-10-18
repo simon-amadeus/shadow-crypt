@@ -5,37 +5,33 @@ use rpassword;
 use shadow_core::memory::SecureString;
 use std::io::{self, Write};
 
-use crate::errors::{AppResult, ApplicationError};
+use crate::errors::{EncryptionError, EncryptionResult};
 
 /// Prompt user for password with confirmation
 /// Side effect: User interaction via stdin/stdout
-pub fn prompt_for_password(allow_weak: bool) -> AppResult<SecureString> {
+pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> EncryptionResult<SecureString> {
     print!("Enter password: ");
     io::stdout()
         .flush()
-        .map_err(|e| ApplicationError::UserInput(format!("Failed to flush stdout: {}", e)))?;
+        .map_err(|e| EncryptionError::UserInput(format!("Failed to flush stdout: {}", e)))?;
 
     let password1 = rpassword::read_password()
-        .map_err(|e| ApplicationError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| EncryptionError::UserInput(format!("Failed to read password: {}", e)))?;
 
     print!("Confirm password: ");
     io::stdout()
         .flush()
-        .map_err(|e| ApplicationError::UserInput(format!("Failed to flush stdout: {}", e)))?;
+        .map_err(|e| EncryptionError::UserInput(format!("Failed to flush stdout: {}", e)))?;
 
     let password2 = rpassword::read_password()
-        .map_err(|e| ApplicationError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| EncryptionError::UserInput(format!("Failed to read password: {}", e)))?;
 
     if password1 != password2 {
-        return Err(ApplicationError::Password(
-            "Passwords do not match".to_string(),
-        ));
+        return Err(EncryptionError::PasswordsDoNotMatch);
     }
 
     if password1.is_empty() {
-        return Err(ApplicationError::UserInput(
-            "Empty password not allowed".to_string(),
-        ));
+        return Err(EncryptionError::EmptyPassword);
     }
 
     // Convert to SecureString for validation
@@ -44,7 +40,7 @@ pub fn prompt_for_password(allow_weak: bool) -> AppResult<SecureString> {
     // Validate password strength only if not allowing weak passwords
     if !allow_weak {
         validate_password_strength(&secure_password)
-            .map_err(|e| ApplicationError::Password(e.to_string()))?;
+            .map_err(|e| EncryptionError::Password(e.to_string()))?;
     }
 
     Ok(SecureString::new(password1))
@@ -52,11 +48,9 @@ pub fn prompt_for_password(allow_weak: bool) -> AppResult<SecureString> {
 
 /// Validate password format (basic structural requirements only)
 /// Pure function - no side effects
-pub fn validate_password_format(password: &SecureString) -> Result<(), ApplicationError> {
+pub fn validate_password_format(password: &SecureString) -> Result<(), EncryptionError> {
     if password.is_empty() {
-        return Err(ApplicationError::Password(
-            "Password cannot be empty".to_string(),
-        ));
+        return Err(EncryptionError::EmptyPassword);
     }
 
     // No other format requirements - entropy is what matters for security
@@ -66,7 +60,7 @@ pub fn validate_password_format(password: &SecureString) -> Result<(), Applicati
 /// Validate password strength using professional entropy analysis
 /// This is the main validation function that should be used
 /// Pure function - no side effects
-pub fn validate_password_strength(password: &SecureString) -> Result<(), ApplicationError> {
+pub fn validate_password_strength(password: &SecureString) -> Result<(), EncryptionError> {
     // Basic format check
     validate_password_format(password)?;
 
@@ -78,13 +72,13 @@ pub fn validate_password_strength(password: &SecureString) -> Result<(), Applica
 
 /// Validate password strength using zxcvbn industry-standard algorithm
 /// Pure function - no side effects
-fn validate_password_entropy(password: &SecureString) -> Result<(), ApplicationError> {
+fn validate_password_entropy(password: &SecureString) -> Result<(), EncryptionError> {
     let estimate = zxcvbn::zxcvbn(password.as_str(), &[]);
 
     // Score 3 = "Safely unguessable: moderate protection from offline slow-hash scenario"
     if estimate.score() < zxcvbn::Score::Three {
         let feedback_msg = format_feedback(&estimate);
-        return Err(ApplicationError::Password(format!(
+        return Err(EncryptionError::Password(format!(
             "Password strength insufficient (score {}/4). {}. Estimated crack time: {}",
             estimate.score(),
             feedback_msg,

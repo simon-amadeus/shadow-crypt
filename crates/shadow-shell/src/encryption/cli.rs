@@ -5,19 +5,18 @@
 use clap::{Arg, ArgMatches, Command};
 use std::path::PathBuf;
 
-use crate::errors::ApplicationError;
+use crate::errors::{EncryptionError, EncryptionResult};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
 pub struct EncryptionArgs {
     pub input_files: Vec<String>,
-    pub quiet: bool,
     pub weak_password: bool,
 }
 
 /// Parse encryption command line arguments
 /// Side effect: reads from command line
-pub fn parse_args() -> Result<EncryptionArgs, ApplicationError> {
+pub fn parse_args() -> EncryptionResult<EncryptionArgs> {
     let matches = Command::new("shadow")
         .about("Encrypt files using Shadow format")
         .arg(
@@ -41,14 +40,14 @@ pub fn parse_args() -> Result<EncryptionArgs, ApplicationError> {
 
 /// Parse CLI arguments from custom matches (for testing)
 /// Pure function - no side effects
-pub fn parse_args_from_matches(matches: &ArgMatches) -> Result<EncryptionArgs, ApplicationError> {
+pub fn parse_args_from_matches(matches: &ArgMatches) -> EncryptionResult<EncryptionArgs> {
     EncryptionArgs::from_matches(matches)
 }
 
 impl EncryptionArgs {
     /// Create EncryptionArgs from ArgMatches
     /// Pure function - no side effects
-    fn from_matches(matches: &ArgMatches) -> Result<Self, ApplicationError> {
+    fn from_matches(matches: &ArgMatches) -> EncryptionResult<EncryptionArgs> {
         let input_files: Vec<String> = matches
             .get_many::<String>("files")
             .unwrap_or_default()
@@ -57,12 +56,11 @@ impl EncryptionArgs {
 
         if input_files.is_empty() {
             let msg = "No input files specified";
-            return Err(ApplicationError::Password(msg.to_string()));
+            return Err(EncryptionError::Password(msg.to_string()));
         }
 
         Ok(EncryptionArgs {
             input_files,
-            quiet: matches.get_flag("quiet"),
             weak_password: matches.get_flag("weak_password"),
         })
     }
@@ -75,31 +73,29 @@ pub struct EncryptableFile {
 
 pub struct ValidEncryptionInput {
     pub files: Vec<EncryptableFile>,
-    pub quiet: bool,
     pub weak_password: bool,
 }
 
-pub fn validate_input(input: EncryptionArgs) -> Result<ValidEncryptionInput, ApplicationError> {
+pub fn validate_input(input: EncryptionArgs) -> EncryptionResult<ValidEncryptionInput> {
     let mut files = Vec::new();
 
     if input.input_files.is_empty() {
-        return Err(ApplicationError::NoFilesProvided);
+        return Err(EncryptionError::NoFilesProvided);
     }
 
     for file_str in input.input_files {
         let path = PathBuf::from(file_str);
         if !path.exists() {
-            return Err(ApplicationError::FileNotFound(path));
+            return Err(EncryptionError::FileNotFound(path));
         }
         if !path.is_file() {
-            return Err(ApplicationError::NotAFile(path));
+            return Err(EncryptionError::NotAFile(path));
         }
         files.push(EncryptableFile { path });
     }
 
     Ok(ValidEncryptionInput {
         files,
-        quiet: input.quiet,
         weak_password: input.weak_password,
     })
 }
