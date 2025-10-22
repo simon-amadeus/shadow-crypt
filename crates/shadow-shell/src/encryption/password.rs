@@ -5,33 +5,33 @@ use rpassword;
 use shadow_core::memory::SecureString;
 use std::io::{self, Write};
 
-use crate::errors::{EncryptionError, EncryptionResult};
+use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Prompt user for password with confirmation
 /// Side effect: User interaction via stdin/stdout
-pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> EncryptionResult<SecureString> {
+pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> WorkflowResult<SecureString> {
     print!("Enter password: ");
     io::stdout()
         .flush()
-        .map_err(|e| EncryptionError::UserInput(format!("Failed to flush stdout: {}", e)))?;
+        .map_err(|e| WorkflowError::UserInput(format!("Failed to flush stdout: {}", e)))?;
 
     let password1 = rpassword::read_password()
-        .map_err(|e| EncryptionError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
 
     print!("Confirm password: ");
     io::stdout()
         .flush()
-        .map_err(|e| EncryptionError::UserInput(format!("Failed to flush stdout: {}", e)))?;
+        .map_err(|e| WorkflowError::UserInput(format!("Failed to flush stdout: {}", e)))?;
 
     let password2 = rpassword::read_password()
-        .map_err(|e| EncryptionError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
 
     if password1 != password2 {
-        return Err(EncryptionError::PasswordsDoNotMatch);
+        return Err(WorkflowError::PasswordsDoNotMatch);
     }
 
     if password1.is_empty() {
-        return Err(EncryptionError::EmptyPassword);
+        return Err(WorkflowError::EmptyPassword);
     }
 
     // Convert to SecureString for validation
@@ -40,7 +40,7 @@ pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> EncryptionResu
     // Validate password strength only if not allowing weak passwords
     if !allow_weak {
         validate_password_strength(&secure_password)
-            .map_err(|e| EncryptionError::Password(e.to_string()))?;
+            .map_err(|e| WorkflowError::Password(e.to_string()))?;
     }
 
     Ok(SecureString::new(password1))
@@ -48,9 +48,9 @@ pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> EncryptionResu
 
 /// Validate password format (basic structural requirements only)
 /// Pure function - no side effects
-pub fn validate_password_format(password: &SecureString) -> Result<(), EncryptionError> {
+pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowError> {
     if password.is_empty() {
-        return Err(EncryptionError::EmptyPassword);
+        return Err(WorkflowError::EmptyPassword);
     }
 
     // No other format requirements - entropy is what matters for security
@@ -60,7 +60,7 @@ pub fn validate_password_format(password: &SecureString) -> Result<(), Encryptio
 /// Validate password strength using professional entropy analysis
 /// This is the main validation function that should be used
 /// Pure function - no side effects
-pub fn validate_password_strength(password: &SecureString) -> Result<(), EncryptionError> {
+pub fn validate_password_strength(password: &SecureString) -> Result<(), WorkflowError> {
     // Basic format check
     validate_password_format(password)?;
 
@@ -72,13 +72,13 @@ pub fn validate_password_strength(password: &SecureString) -> Result<(), Encrypt
 
 /// Validate password strength using zxcvbn industry-standard algorithm
 /// Pure function - no side effects
-fn validate_password_entropy(password: &SecureString) -> Result<(), EncryptionError> {
+fn validate_password_entropy(password: &SecureString) -> Result<(), WorkflowError> {
     let estimate = zxcvbn::zxcvbn(password.as_str(), &[]);
 
     // Score 3 = "Safely unguessable: moderate protection from offline slow-hash scenario"
     if estimate.score() < zxcvbn::Score::Three {
         let feedback_msg = format_feedback(&estimate);
-        return Err(EncryptionError::Password(format!(
+        return Err(WorkflowError::Password(format!(
             "Password strength insufficient (score {}/4). {}. Estimated crack time: {}",
             estimate.score(),
             feedback_msg,

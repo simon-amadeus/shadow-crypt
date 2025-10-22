@@ -1,39 +1,24 @@
 use std::process;
 
 use shadow_shell::{
-    display_error,
-    encryption::{
-        cli::{ValidEncryptionInput, parse_args, validate_input},
-        password::prompt_for_password_with_confirmation,
-    },
-    memory::SecureString,
+    display_error, encryption::{
+        cli::{parse_cli_args, validate_input, ValidEncryptionInput},
+        password::prompt_for_password_with_confirmation, workflow::{run_workflow, EncryptionRequest},
+    }, errors::WorkflowError, memory::SecureString
 };
 
+fn run() -> Result<(), WorkflowError> {
+    let args = parse_cli_args()?;
+    let input: ValidEncryptionInput = validate_input(args)?;
+    let password: SecureString = prompt_for_password_with_confirmation(input.weak_password)?;
+    let request = EncryptionRequest::new(input.files, password);
+    run_workflow(request)?;
+    Ok(())
+}
+
 fn main() {
-    // Parse command line arguments
-    let args = match parse_args() {
-        Ok(args) => args,
-        Err(error) => {
-            display_error(error);
-            process::exit(1);
-        }
-    };
-
-    let input: ValidEncryptionInput = match validate_input(args) {
-        Ok(input) => input,
-        Err(error) => {
-            display_error(error);
-            process::exit(1);
-        }
-    };
-
-    let _password: SecureString = match prompt_for_password_with_confirmation(input.weak_password) {
-        Ok(pw) => pw,
-        Err(error) => {
-            display_error(error);
-            process::exit(1);
-        }
-    };
-
-    // Run encryption workflow
+    if let Err(error) = run() {
+        display_error(error);
+        process::exit(1);
+    }
 }

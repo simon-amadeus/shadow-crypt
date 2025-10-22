@@ -6,11 +6,11 @@ use std::path::PathBuf;
 use thiserror::Error;
 
 // /// Convenience type for shell operation results
-pub type EncryptionResult<T> = Result<T, EncryptionError>;
+pub type WorkflowResult<T> = Result<T, WorkflowError>;
 
 /// Shell-level errors that may involve I/O side effects
 #[derive(Debug, Error)]
-pub enum EncryptionError {
+pub enum WorkflowError {
     #[error("No input files provided")]
     NoFilesProvided,
 

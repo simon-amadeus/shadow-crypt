@@ -1,6 +1,6 @@
 use colored::Colorize;
 
-use crate::errors::EncryptionError;
+use crate::errors::WorkflowError;
 
 /// Display simple progress for file operations
 pub fn display_progress(current: u64, total: u64, _file: &str) {
@@ -17,6 +17,6 @@ pub fn display_success(message: &str) {
 }
 
 /// Display error message with appropriate formatting
-pub fn display_error(error: EncryptionError) {
+pub fn display_error(error: WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }

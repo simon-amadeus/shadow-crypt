@@ -5,7 +5,7 @@
 use clap::{Arg, ArgMatches, Command};
 use std::path::PathBuf;
 
-use crate::errors::{EncryptionError, EncryptionResult};
+use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
@@ -16,7 +16,7 @@ pub struct EncryptionArgs {
 
 /// Parse encryption command line arguments
 /// Side effect: reads from command line
-pub fn parse_args() -> EncryptionResult<EncryptionArgs> {
+pub fn parse_cli_args() -> WorkflowResult<EncryptionArgs> {
     let matches = Command::new("shadow")
         .about("Encrypt files using Shadow format")
         .arg(
@@ -40,14 +40,14 @@ pub fn parse_args() -> EncryptionResult<EncryptionArgs> {
 
 /// Parse CLI arguments from custom matches (for testing)
 /// Pure function - no side effects
-pub fn parse_args_from_matches(matches: &ArgMatches) -> EncryptionResult<EncryptionArgs> {
+pub fn parse_args_from_matches(matches: &ArgMatches) -> WorkflowResult<EncryptionArgs> {
     EncryptionArgs::from_matches(matches)
 }
 
 impl EncryptionArgs {
     /// Create EncryptionArgs from ArgMatches
     /// Pure function - no side effects
-    fn from_matches(matches: &ArgMatches) -> EncryptionResult<EncryptionArgs> {
+    fn from_matches(matches: &ArgMatches) -> WorkflowResult<EncryptionArgs> {
         let input_files: Vec<String> = matches
             .get_many::<String>("files")
             .unwrap_or_default()
@@ -56,7 +56,7 @@ impl EncryptionArgs {
 
         if input_files.is_empty() {
             let msg = "No input files specified";
-            return Err(EncryptionError::Password(msg.to_string()));
+            return Err(WorkflowError::Password(msg.to_string()));
         }
 
         Ok(EncryptionArgs {
@@ -76,20 +76,20 @@ pub struct ValidEncryptionInput {
     pub weak_password: bool,
 }
 
-pub fn validate_input(input: EncryptionArgs) -> EncryptionResult<ValidEncryptionInput> {
+pub fn validate_input(input: EncryptionArgs) -> WorkflowResult<ValidEncryptionInput> {
     let mut files = Vec::new();
 
     if input.input_files.is_empty() {
-        return Err(EncryptionError::NoFilesProvided);
+        return Err(WorkflowError::NoFilesProvided);
     }
 
     for file_str in input.input_files {
         let path = PathBuf::from(file_str);
         if !path.exists() {
-            return Err(EncryptionError::FileNotFound(path));
+            return Err(WorkflowError::FileNotFound(path));
         }
         if !path.is_file() {
-            return Err(EncryptionError::NotAFile(path));
+            return Err(WorkflowError::NotAFile(path));
         }
         files.push(EncryptableFile { path });
     }
