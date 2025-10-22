@@ -3,20 +3,21 @@
 // Side effects: parses command line arguments
 
 use clap::{Arg, ArgMatches, Command};
+use shadow_core::encryption::input::{EncryptableFile, ValidEncryptionArgs};
 use std::path::PathBuf;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
-pub struct EncryptionArgs {
+pub struct CliArgs {
     pub input_files: Vec<String>,
     pub weak_password: bool,
 }
 
 /// Parse encryption command line arguments
 /// Side effect: reads from command line
-pub fn parse_cli_args() -> WorkflowResult<EncryptionArgs> {
+pub fn parse_cli_args() -> WorkflowResult<CliArgs> {
     let matches = Command::new("shadow")
         .about("Encrypt files using Shadow format")
         .arg(
@@ -35,19 +36,19 @@ pub fn parse_cli_args() -> WorkflowResult<EncryptionArgs> {
         )
         .get_matches();
 
-    Ok(EncryptionArgs::from_matches(&matches)?)
+    Ok(CliArgs::from_matches(&matches)?)
 }
 
 /// Parse CLI arguments from custom matches (for testing)
 /// Pure function - no side effects
-pub fn parse_args_from_matches(matches: &ArgMatches) -> WorkflowResult<EncryptionArgs> {
-    EncryptionArgs::from_matches(matches)
+pub fn parse_args_from_matches(matches: &ArgMatches) -> WorkflowResult<CliArgs> {
+    CliArgs::from_matches(matches)
 }
 
-impl EncryptionArgs {
+impl CliArgs {
     /// Create EncryptionArgs from ArgMatches
     /// Pure function - no side effects
-    fn from_matches(matches: &ArgMatches) -> WorkflowResult<EncryptionArgs> {
+    fn from_matches(matches: &ArgMatches) -> WorkflowResult<CliArgs> {
         let input_files: Vec<String> = matches
             .get_many::<String>("files")
             .unwrap_or_default()
@@ -59,24 +60,14 @@ impl EncryptionArgs {
             return Err(WorkflowError::Password(msg.to_string()));
         }
 
-        Ok(EncryptionArgs {
+        Ok(CliArgs {
             input_files,
             weak_password: matches.get_flag("weak_password"),
         })
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct EncryptableFile {
-    pub path: PathBuf,
-}
-
-pub struct ValidEncryptionInput {
-    pub files: Vec<EncryptableFile>,
-    pub weak_password: bool,
-}
-
-pub fn validate_input(input: EncryptionArgs) -> WorkflowResult<ValidEncryptionInput> {
+pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
     let mut files = Vec::new();
 
     if input.input_files.is_empty() {
@@ -94,7 +85,7 @@ pub fn validate_input(input: EncryptionArgs) -> WorkflowResult<ValidEncryptionIn
         files.push(EncryptableFile { path });
     }
 
-    Ok(ValidEncryptionInput {
+    Ok(ValidEncryptionArgs {
         files,
         weak_password: input.weak_password,
     })

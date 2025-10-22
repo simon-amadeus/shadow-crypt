@@ -1,14 +1,10 @@
-// shadow-shell/src/errors.rs
-// Error types for the shell layer - may involve side effects
-
 use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
 
-// /// Convenience type for shell operation results
+/// Convenience type for workflow results.
 pub type WorkflowResult<T> = Result<T, WorkflowError>;
 
-/// Shell-level errors that may involve I/O side effects
 #[derive(Debug, Error)]
 pub enum WorkflowError {
     #[error("No input files provided")]
@@ -40,4 +36,10 @@ pub enum WorkflowError {
 
     #[error("Password error: {0}")]
     Password(String),
+
+    #[error("Key derivation error: {0}")]
+    KeyDerivation(String),
+
+    #[error("Salt generation error: {0}")]
+    SaltGeneration(String),
 }

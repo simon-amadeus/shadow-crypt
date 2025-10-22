@@ -5,176 +5,91 @@ use crate::v1::key::KeyDerivationParams;
 /// Complete v1 file header
 #[derive(Debug, Clone)]
 pub struct FileHeader {
-    pub magic: ShadowMagic,                    // 6 bytes: "SHADOW"
-    pub version: FileVersion,                  // 2 bytes: Version (fixed to 1)
-    pub size: HeaderSize,                      // 4 bytes: Total header size
-    pub salt: Argon2idSalt,                    // 16 bytes: Salt for key derivation
-    pub params: KeyDerivationParams,           // Argon2id parameters for key derivation
-    pub content_nonce: XChaCha20Nonce,         // 24 bytes: Nonce for content encryption
-    pub content_tag: Poly1305Tag,              // 16 bytes: Authentication tag for content
-    pub encrypted_filename: EncryptedFileName, // Variable size: Encrypted filename
+    pub magic: [u8; 6],                  // 6 bytes: "SHADOW"
+    pub version: u8,                     // 1 byte: Version number (1)
+    pub header_size: u32,                // 4 byte: Total header size
+    pub salt: [u8; 16],                  // 16 bytes: Argon2id salt
+    pub kdf_memory: u32,                 // 4 bytes: Argon2id memory parameter
+    pub kdf_iterations: u32,             // 4 bytes: Argon2id iterations parameter
+    pub kdf_parallelism: u32,            // 4 bytes: Argon2id parallelism parameter
+    pub kdf_key_length: u8,              // 1 byte: XChaCha20 key length
+    pub content_nonce: [u8; 24],         // 24 bytes: XChaCha20 nonce
+    pub content_tag: [u8; 16],           // 16 bytes: Poly1305 auth tag for content
+    pub filename_nonce: [u8; 24],        // 24 bytes: XChaCha20 nonce for filename
+    pub filename_tag: [u8; 16],          // 16 bytes: Poly1305 auth tag for filename
+    pub filename_ciphertext_length: u16, // 2 bytes: Length of encrypted filename ciphertext
+    pub filename_ciphertext: Vec<u8>,    // Encrypted filename ciphertext (variable length)
 }
 
 impl FileHeader {
     pub fn new(
-        salt: Argon2idSalt,
-        params: KeyDerivationParams,
-        content_nonce: XChaCha20Nonce,
-        content_tag: Poly1305Tag,
-        encrypted_filename: EncryptedFileName,
+        salt: [u8; 16],
+        kdf_params: KeyDerivationParams,
+        content_nonce: [u8; 24],
+        content_tag: [u8; 16],
+        filename_nonce: [u8; 24],
+        filename_tag: [u8; 16],
+        filename_ciphertext: Vec<u8>,
     ) -> Self {
-        let calc_size = Argon2idSalt::size()
-            + KeyDerivationParams::size()
-            + XChaCha20Nonce::size()
-            + Poly1305Tag::size()
-            + encrypted_filename.size()
-            + ShadowMagic::size()
-            + FileVersion::size();
-        let size = HeaderSize(calc_size as u32);
-        Self {
-            magic: ShadowMagic,
-            version: FileVersion,
-            size,
+        let filename_ciphertext_length = filename_ciphertext.len() as u16;
+        let size =
+            mem::size_of::<FileHeader>() + filename_ciphertext.len() - mem::size_of::<Vec<u8>>();
+
+        FileHeader {
+            magic: *b"SHADOW",
+            version: 1,
+            header_size: size as u32,
             salt,
-            params,
+            kdf_memory: kdf_params.memory_cost,
+            kdf_iterations: kdf_params.time_cost,
+            kdf_parallelism: kdf_params.parallelism,
+            kdf_key_length: kdf_params.key_size,
             content_nonce,
             content_tag,
-            encrypted_filename,
+            filename_nonce,
+            filename_tag,
+            filename_ciphertext_length,
+            filename_ciphertext,
         }
     }
-
-    // Returns length of all fixed-size fields in the header
-    // This only excludes the variable-size filename ciphertext
-    pub fn min_size() -> usize {
-        ShadowMagic::size()
-            + FileVersion::size()
-            + Argon2idSalt::size()
-            + KeyDerivationParams::size()
-            + XChaCha20Nonce::size()
-            + Poly1305Tag::size()
-            + EncryptedFileName::min_size()
-    }
-
-    pub fn size(&self) -> usize {
-        ShadowMagic::size()
-            + FileVersion::size()
-            + Argon2idSalt::size()
-            + XChaCha20Nonce::size()
-            + Poly1305Tag::size()
-            + self.encrypted_filename.size()
-    }
 }
 
-/// Encrypted filename with nonce and authentication tag
-#[derive(Debug, Clone)]
-pub struct EncryptedFileName {
-    nonce: XChaCha20Nonce, // Nonce for filename encryption
-    tag: Poly1305Tag,      // Authentication tag for filename
-    ciphertext_size: u16,  // Size of encrypted filename
-    ciphertext: Vec<u8>,   // Encrypted filename
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-impl EncryptedFileName {
-    pub fn new(nonce: XChaCha20Nonce, tag: Poly1305Tag, ciphertext: Vec<u8>) -> Self {
-        Self {
-            nonce,
-            tag,
-            ciphertext_size: ciphertext.len() as u16,
-            ciphertext,
-        }
-    }
-    pub fn get_offset_to_ciphertext_size() -> usize {
-        XChaCha20Nonce::size() + Poly1305Tag::size()
-    }
-    pub fn min_size() -> usize {
-        XChaCha20Nonce::size() + Poly1305Tag::size() + mem::size_of::<u16>()
-    }
-    pub fn size(&self) -> usize {
-        EncryptedFileName::min_size() + self.ciphertext.len()
-    }
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut output = Vec::new();
-        output.extend_from_slice(self.nonce.as_bytes());
-        output.extend_from_slice(self.tag.as_bytes());
-        output.extend_from_slice(&self.ciphertext_size.to_le_bytes());
-        output.extend_from_slice(&self.ciphertext);
-        output
-    }
-}
+    #[test]
+    fn default_values_are_correct() {
+        let header = FileHeader::new(
+            [0u8; 16],
+            KeyDerivationParams::test_defaults(),
+            [0u8; 24],
+            [0u8; 16],
+            [0u8; 24],
+            [0u8; 16],
+            vec![1, 2, 3, 4],
+        );
 
-/// Magic bytes to identify the v1 file format
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShadowMagic;
-impl ShadowMagic {
-    pub const BYTES: [u8; 6] = *b"SHADOW";
-    pub fn size() -> usize {
-        Self::BYTES.len()
+        assert_eq!(&header.magic, b"SHADOW");
+        assert_eq!(header.version, 1);
     }
-}
 
-/// File format version, fixed to 1 for this implementation
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct FileVersion;
-impl FileVersion {
-    pub const VALUE: u16 = 1;
-    pub fn as_u16() -> u16 {
-        Self::VALUE
-    }
-    pub fn size() -> usize {
-        mem::size_of::<u16>()
-    }
-}
+    #[test]
+    fn header_size_is_calculated_correctly() {
+        let filename_ciphertext = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+        let header = FileHeader::new(
+            [0u8; 16],
+            KeyDerivationParams::test_defaults(),
+            [0u8; 24],
+            [0u8; 16],
+            [0u8; 24],
+            [0u8; 16],
+            filename_ciphertext.clone(),
+        );
 
-/// Salt for Argon2id key derivation
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Argon2idSalt([u8; 16]);
-impl Argon2idSalt {
-    pub fn new(salt: [u8; 16]) -> Self {
-        Self(salt)
-    }
-    pub fn as_bytes(&self) -> &[u8; 16] {
-        &self.0
-    }
-    pub fn size() -> usize {
-        mem::size_of::<[u8; 16]>()
-    }
-}
+        let expected_size = (mem::size_of::<FileHeader>() + filename_ciphertext.len()
+            - mem::size_of::<Vec<u8>>()) as u32;
 
-/// Nonce for XChaCha20-Poly1305 encryption
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct XChaCha20Nonce([u8; 24]);
-impl XChaCha20Nonce {
-    pub fn new(nonce: [u8; 24]) -> Self {
-        Self(nonce)
-    }
-    pub fn as_bytes(&self) -> &[u8; 24] {
-        &self.0
-    }
-    pub fn size() -> usize {
-        mem::size_of::<[u8; 24]>()
-    }
-}
-
-/// Authentication tag for XChaCha20-Poly1305
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Poly1305Tag([u8; 16]);
-impl Poly1305Tag {
-    pub fn new(tag: [u8; 16]) -> Self {
-        Self(tag)
-    }
-    pub fn as_bytes(&self) -> &[u8; 16] {
-        &self.0
-    }
-    pub fn size() -> usize {
-        mem::size_of::<[u8; 16]>()
-    }
-}
-
-/// Total header size in bytes
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct HeaderSize(pub u32);
-impl HeaderSize {
-    pub fn get(&self) -> u32 {
-        self.0
+        assert_eq!(header.header_size, expected_size);
     }
 }

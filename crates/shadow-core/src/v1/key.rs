@@ -1,15 +1,14 @@
-use std::mem;
-
-/// Argon2id parameters
+/// Argon2id parameters for XChacha20-Poly1305 key derivation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyDerivationParams {
-    pub memory_cost: u32,
-    pub time_cost: u32,
-    pub parallelism: u32,
-    pub key_size: u32,
+    pub memory_cost: u32, // Memory cost in kibibytes (KiB)
+    pub time_cost: u32,   // Number of iterations
+    pub parallelism: u32, // Number of parallel threads
+    pub key_size: u8,     // Output key size in bytes
 }
+
 impl KeyDerivationParams {
-    pub fn new(memory_cost: u32, time_cost: u32, parallelism: u32, key_size: u32) -> Self {
+    pub fn new(memory_cost: u32, time_cost: u32, parallelism: u32, key_size: u8) -> Self {
         Self {
             memory_cost,
             time_cost,
@@ -18,20 +17,41 @@ impl KeyDerivationParams {
         }
     }
 
-    pub fn size() -> usize {
-        mem::size_of::<u32>() * 4
+    pub fn production_defaults() -> Self {
+        Self {
+            memory_cost: 4 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
+            time_cost: 10,                // 10 iterations
+            parallelism: 4,               // 4 threads
+            key_size: 32,                 // 32 bytes (256 bits)
+        }
     }
 
-    pub fn from_bytes(bytes: [u8; 16]) -> Option<Self> {
-        let memory_cost = u32::from_le_bytes(bytes[0..4].try_into().ok()?);
-        let time_cost = u32::from_le_bytes(bytes[4..8].try_into().ok()?);
-        let parallelism = u32::from_le_bytes(bytes[8..12].try_into().ok()?);
-        let key_size = u32::from_le_bytes(bytes[12..16].try_into().ok()?);
-        Some(Self {
-            memory_cost,
-            time_cost,
-            parallelism,
-            key_size,
-        })
+    pub fn test_defaults() -> Self {
+        Self {
+            memory_cost: 64 * 1024, // 65,536 KiB (64 MiB)
+            time_cost: 1,           // 1 iteration
+            parallelism: 1,         // 1 thread
+            key_size: 32,           // 32 bytes (256 bits)
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_key_derivation_params_defaults() {
+        let prod = KeyDerivationParams::production_defaults();
+        assert_eq!(prod.memory_cost, 4 * 1024 * 1024);
+        assert_eq!(prod.time_cost, 10);
+        assert_eq!(prod.parallelism, 4);
+        assert_eq!(prod.key_size, 32);
+
+        let test = KeyDerivationParams::test_defaults();
+        assert_eq!(test.memory_cost, 64 * 1024);
+        assert_eq!(test.time_cost, 1);
+        assert_eq!(test.parallelism, 1);
+        assert_eq!(test.key_size, 32);
     }
 }

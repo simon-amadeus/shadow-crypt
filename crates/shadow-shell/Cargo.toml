@@ -14,7 +14,9 @@ categories.workspace = true
 shadow-core = { path = "../shadow-core" }
 
 # I/O and CLI utilities that shells can use
+argon2 = { workspace = true }
 clap = { workspace = true }
+rand = { workspace = true }
 rpassword = { workspace = true }
 tempfile = { workspace = true }
 colored = { workspace = true }

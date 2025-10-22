@@ -13,15 +13,3 @@ categories.workspace = true
 # ONLY pure dependencies - no file I/O, no CLI
 zeroize = { workspace = true }
 chacha20poly1305 = { workspace = true }
-argon2 = { workspace = true }
-sha2 = { workspace = true }
-hkdf = { workspace = true }
-getrandom = { workspace = true }
-uuid = { workspace = true }
-thiserror = { workspace = true }
-rand = { workspace = true }
-
-[dev-dependencies]
-hex = { workspace = true }
-proptest = { workspace = true }
-criterion = { workspace = true }

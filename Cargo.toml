@@ -53,7 +53,7 @@ hkdf = "0.12"
 getrandom = "0.3"
 subtle = "2.5"
 uuid = { version = "1.10", features = ["v4", "rng"] }
-rand = "0.9"
+rand = { version = "0.9", features = ["os_rng"] }
 zxcvbn = "3"
 
 # I/O and CLI dependencies for shadow-shell
