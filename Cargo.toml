@@ -26,11 +26,6 @@ resolver = "2"
 members = [
     "crates/shadow-core",              # Pure shared foundation (crypto, types, validation)
     "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers) + encryption module
-    # Future crates will be added in subsequent phases:
-    # "crates/shadow-decryption-core",   # Pure decryption business logic
-    # "crates/shadow-decryption-shell",  # Decryption I/O and CLI
-    # "crates/shadow-listing-core",      # Pure listing business logic
-    # "crates/shadow-listing-shell",     # Listing I/O and CLI
 ]
 
 [workspace.package]
@@ -48,26 +43,16 @@ categories = ["command-line-utilities", "cryptography"]
 zeroize = "1.6"
 chacha20poly1305 = "0.10"
 argon2 = "0.5"
-sha2 = "0.10"
-hkdf = "0.12"
-getrandom = "0.3"
-subtle = "2.5"
 uuid = { version = "1.10", features = ["v4", "rng"] }
 rand = { version = "0.9", features = ["os_rng"] }
-zxcvbn = "3"
+subtle = "2"
 
 # I/O and CLI dependencies for shadow-shell
 clap = { version = "4", features = ["derive"] }
 rpassword = "7.2"
+zxcvbn = "3"
 tempfile = "3"
 colored = "3.0"
-atty = "0.2"
 
 # Error handling
 thiserror = "2.0"
-
-# Development dependencies
-criterion = "0.7"
-proptest = "1.0"
-hex = "0.4"
-serde_json = "1.0"

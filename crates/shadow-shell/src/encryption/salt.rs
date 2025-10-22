@@ -10,3 +10,21 @@ pub fn generate_salt() -> WorkflowResult<[u8; 16]> {
 
     Ok(buffer)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::generate_salt;
+
+    #[test]
+    fn test_generate_salt_length() {
+        let salt = generate_salt().expect("Failed to generate salt");
+        assert_eq!(salt.len(), 16);
+    }
+
+    #[test]
+    fn test_generate_salt_uniqueness() {
+        let salt1 = generate_salt().expect("Failed to generate salt");
+        let salt2 = generate_salt().expect("Failed to generate salt");
+        assert_ne!(salt1, salt2, "Generated salts should be unique");
+    }
+}

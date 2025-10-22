@@ -61,6 +61,11 @@ impl SecureBytes {
     pub fn as_slice(&self) -> &[u8] {
         &self.0
     }
+
+    /// Create SecureBytes with specified capacity
+    pub fn with_capacity(capacity: usize) -> Self {
+        Self(Zeroizing::new(Vec::with_capacity(capacity)))
+    }
 }
 
 #[cfg(test)]

@@ -3,7 +3,7 @@ use crate::memory::SecureBytes;
 use super::header::FileHeader;
 
 /// Represents a complete encrypted file with header and content
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct EncryptedFile {
     filename: String,
     header: FileHeader,
@@ -30,7 +30,7 @@ impl EncryptedFile {
 }
 
 /// Represents a plaintext file with filename and content
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct PlaintextFile {
     filename: String,     // Decrypted filename
     content: SecureBytes, // Decrypted file content

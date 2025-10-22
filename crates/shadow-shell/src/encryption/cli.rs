@@ -3,10 +3,12 @@
 // Side effects: parses command line arguments
 
 use clap::{Arg, ArgMatches, Command};
-use shadow_core::encryption::input::{EncryptableFile, ValidEncryptionArgs};
 use std::path::PathBuf;
 
-use crate::errors::{WorkflowError, WorkflowResult};
+use crate::{
+    encryption::input::{InputFile, ValidEncryptionArgs},
+    errors::{WorkflowError, WorkflowResult},
+};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
@@ -82,7 +84,21 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
         if !path.is_file() {
             return Err(WorkflowError::NotAFile(path));
         }
-        files.push(EncryptableFile { path });
+        let name: String = path
+            .file_name()
+            .and_then(|n| n.to_str())
+            .ok_or_else(|| WorkflowError::InvalidFilename(path.clone()))?
+            .to_string();
+        let size: u64 = path
+            .metadata()
+            .map_err(|_| WorkflowError::FileMetadataError(path.clone()))?
+            .len();
+
+        files.push(InputFile {
+            path,
+            filename: name,
+            size,
+        });
     }
 
     Ok(ValidEncryptionArgs {

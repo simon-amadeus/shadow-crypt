@@ -1,9 +1,10 @@
 use std::process;
 
 use shadow_shell::{
-    EncryptionInput, display_error,
+    display_error,
     encryption::{
         cli::{parse_cli_args, validate_input},
+        input::EncryptionInput,
         password::prompt_for_password_with_confirmation,
         workflow::run_workflow,
     },

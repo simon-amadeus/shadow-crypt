@@ -23,9 +23,8 @@ colored = { workspace = true }
 thiserror = { workspace = true }
 subtle = { workspace = true }
 zxcvbn = { workspace = true }
-
-# Additional I/O dependencies
-hex = { workspace = true }
+rayon = "1"
+zeroize = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }

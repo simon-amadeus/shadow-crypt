@@ -16,6 +16,12 @@ pub enum WorkflowError {
     #[error("Not a file: {0}")]
     NotAFile(PathBuf),
 
+    #[error("Invalid filename: {0}")]
+    InvalidFilename(PathBuf),
+
+    #[error("File metadata error: {0}")]
+    FileMetadataError(PathBuf),
+
     #[error("Permission denied: {0}")]
     PermissionDenied(PathBuf),
 
@@ -42,4 +48,7 @@ pub enum WorkflowError {
 
     #[error("Salt generation error: {0}")]
     SaltGeneration(String),
+
+    #[error("Nonce generation error: {0}")]
+    NonceGeneration(String),
 }
