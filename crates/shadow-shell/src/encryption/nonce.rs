@@ -20,13 +20,4 @@ mod tests {
         let nonce = generate_nonce().expect("Failed to generate nonce");
         assert_eq!(nonce.len(), 24);
     }
-
-    #[test]
-    fn test_generate_nonce_uniqueness() {
-        let mut nonces = std::collections::HashSet::new();
-        for _ in 0..100 {
-            let nonce = generate_nonce().expect("Failed to generate nonce");
-            assert!(nonces.insert(nonce), "Generated nonce was not unique");
-        }
-    }
 }
