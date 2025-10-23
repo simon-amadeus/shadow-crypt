@@ -43,3 +43,84 @@ pub fn derive_key(
 
     Ok((key, report))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{profile::SecurityProfile, v1::key::KeyDerivationParams};
+
+    fn get_test_params() -> KeyDerivationParams {
+        let profile = SecurityProfile::Test;
+        KeyDerivationParams::from(profile)
+    }
+
+    #[test]
+    fn test_derive_key_success() {
+        let password = b"test_password";
+        let salt = b"test_salt_16_bytes";
+        let params = get_test_params();
+
+        let result = derive_key(password, salt, &params);
+        assert!(result.is_ok());
+
+        let (key, report) = result.unwrap();
+        assert_eq!(key.as_bytes().len(), 32);
+        assert_eq!(report.algorithm, "Argon2id");
+        assert_eq!(report.algorithm_version, "19");
+        assert_eq!(report.memory_cost_kib, params.memory_cost);
+        assert_eq!(report.time_cost_iterations, params.time_cost);
+        assert_eq!(report.parallelism, params.parallelism);
+        assert_eq!(report.key_size_bytes, params.key_size);
+        assert!(report.duration.as_nanos() > 0);
+    }
+
+    #[test]
+    fn test_derive_key_deterministic() {
+        let password = b"test_password";
+        let salt = b"test_salt_16_bytes";
+        let params = get_test_params();
+
+        let (key1, _) = derive_key(password, salt, &params).unwrap();
+        let (key2, _) = derive_key(password, salt, &params).unwrap();
+
+        assert_eq!(key1.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_derive_key_different_passwords() {
+        let salt = b"test_salt_16_bytes";
+        let params = get_test_params();
+
+        let (key1, _) = derive_key(b"password1", salt, &params).unwrap();
+        let (key2, _) = derive_key(b"password2", salt, &params).unwrap();
+
+        assert_ne!(key1.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_derive_key_different_salts() {
+        let password = b"test_password";
+        let params = get_test_params();
+
+        let (key1, _) = derive_key(password, b"salt1_16_bytes_!", &params).unwrap();
+        let (key2, _) = derive_key(password, b"salt2_16_bytes_!", &params).unwrap();
+
+        assert_ne!(key1.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_derive_key_invalid_parameters() {
+        let password = b"test_password";
+        let salt = b"test_salt_16_bytes";
+
+        // Test with memory_cost = 0 (invalid)
+        let invalid_params = KeyDerivationParams::new(0, 1, 1, 32);
+        let result = derive_key(password, salt, &invalid_params);
+        assert!(result.is_err());
+        if let Err(KeyDerivationError::InvalidParameters(_)) = result {
+            // Expected error
+        } else {
+            panic!("Expected InvalidParameters error");
+        }
+    }
+}

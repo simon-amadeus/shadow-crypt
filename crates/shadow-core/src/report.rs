@@ -24,6 +24,7 @@ impl EncryptionReport {
     }
 }
 
+#[derive(Debug)]
 pub struct KeyDerivationReport {
     pub algorithm: String,
     pub algorithm_version: String,
