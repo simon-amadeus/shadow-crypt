@@ -11,11 +11,6 @@ pub struct InputFile {
     pub size: u64,
 }
 
-pub struct ValidEncryptionArgs {
-    pub files: Vec<InputFile>,
-    pub test_mode: bool,
-}
-
 pub struct EncryptionInput {
     pub files: Vec<InputFile>,
     pub password: SecureString,
@@ -33,4 +28,9 @@ impl EncryptionInput {
             security_profile,
         }
     }
+}
+
+pub struct OutputFile {
+    pub path: PathBuf,
+    pub filename: String,
 }

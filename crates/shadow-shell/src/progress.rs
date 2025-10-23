@@ -1,13 +1,13 @@
-use crate::display_file_progress;
+use std::sync::Mutex;
 
 pub struct ProgressCounter {
-    current: std::sync::Mutex<u64>,
+    current: Mutex<u64>,
     total: u64,
 }
 impl ProgressCounter {
     pub fn new(total: u64) -> Self {
         Self {
-            current: std::sync::Mutex::new(0),
+            current: Mutex::new(0),
             total,
         }
     }
@@ -15,6 +15,12 @@ impl ProgressCounter {
     pub fn increment(&self) {
         let mut current = self.current.lock().unwrap();
         *current += 1;
-        display_file_progress(*current, self.total);
+    }
+    pub fn get_current(&self) -> u64 {
+        let current = self.current.lock().unwrap();
+        *current
+    }
+    pub fn get_total(&self) -> u64 {
+        self.total
     }
 }

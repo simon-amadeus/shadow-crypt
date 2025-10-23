@@ -10,21 +10,19 @@ use shadow_core::{
 };
 
 use crate::{
-    encryption::{input::InputFile, output::OutputFile},
+    encryption::file::{InputFile, OutputFile},
     errors::{WorkflowError, WorkflowResult},
 };
 
-pub fn store_encrypted_file(
-    output_file: &OutputFile,
-    encrypted_file: &EncryptedFile,
-) -> WorkflowResult<()> {
+pub fn store_encrypted_file(encrypted_file: &EncryptedFile) -> WorkflowResult<OutputFile> {
+    let output_file = create_output_file()?;
     let mut f = std::fs::File::create(&output_file.path)?;
     let serialized_header: Vec<u8> =
         shadow_core::v1::header_ops::serialize(encrypted_file.header());
     f.write_all(&serialized_header)?;
     f.write_all(encrypted_file.ciphertext())?;
 
-    Ok(())
+    Ok(output_file)
 }
 
 pub fn load_file(file: &InputFile) -> WorkflowResult<PlaintextFile> {
@@ -51,7 +49,7 @@ fn generate_output_filename() -> WorkflowResult<String> {
     Ok(Alphabetic.sample_string(&mut rng, len))
 }
 
-pub fn create_output_file() -> WorkflowResult<OutputFile> {
+fn create_output_file() -> WorkflowResult<OutputFile> {
     let filename = generate_output_filename()?;
 
     let mut path = PathBuf::from(&filename);

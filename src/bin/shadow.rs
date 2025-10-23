@@ -4,7 +4,7 @@ use shadow_shell::{
     SecurityProfile, display_error,
     encryption::{
         cli::{parse_cli_args, validate_input},
-        input::EncryptionInput,
+        file::EncryptionInput,
         password::prompt_for_password_with_confirmation,
         workflow::run_workflow,
     },

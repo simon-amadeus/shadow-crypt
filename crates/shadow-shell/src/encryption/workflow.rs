@@ -12,16 +12,16 @@ use shadow_core::{
 
 use crate::{
     encryption::{
-        fs::{create_output_file, load_file, store_encrypted_file},
-        input::{EncryptionInput, InputFile},
+        file::{EncryptionInput, InputFile, OutputFile},
+        file_ops::{load_file, store_encrypted_file},
         nonce::generate_nonce,
-        output::{EncryptionReport, OutputFile},
         salt::generate_salt,
     },
     errors::WorkflowResult,
     key::{KeyDerivationReport, derive_key},
     progress::ProgressCounter,
-    ui::{display_encryption_report, display_key_derivation_report},
+    report::CryptoReport,
+    ui::{display_key_derivation_report, display_progress, display_report},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
@@ -34,14 +34,16 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
 
     let counter = ProgressCounter::new(input.files.len() as u64);
 
-    // Process files in parallel using Rayon
+    // Process files in parallel using rayon
     input
         .files
         .par_iter()
         .map(|input_file| {
-            process_file_encryption(input_file.to_owned(), &key, &salt, &params, &counter)
+            counter.increment();
+            display_progress(&counter);
+            process_file_encryption(input_file.to_owned(), &key, &salt, &params)
         })
-        .for_each(display_encryption_report);
+        .for_each(display_report);
 
     Ok(())
 }
@@ -51,13 +53,10 @@ fn process_file_encryption(
     key: &SecureKey,
     salt: &[u8; 16],
     kdf_params: &KeyDerivationParams,
-    counter: &ProgressCounter,
-) -> WorkflowResult<EncryptionReport> {
+) -> WorkflowResult<CryptoReport> {
     let start_time = std::time::Instant::now();
-    counter.increment();
 
     let input_file: InputFile = file;
-    let output_file: OutputFile = create_output_file()?;
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;
@@ -85,11 +84,11 @@ fn process_file_encryption(
 
     let encrypted_file = EncryptedFile::new(header, content_ciphertext);
 
-    store_encrypted_file(&output_file, &encrypted_file)?;
+    let output_file: OutputFile = store_encrypted_file(&encrypted_file)?;
 
     let duration = start_time.elapsed();
 
-    Ok(EncryptionReport::new(
+    Ok(CryptoReport::new(
         input_file.filename,
         output_file.filename,
         duration,

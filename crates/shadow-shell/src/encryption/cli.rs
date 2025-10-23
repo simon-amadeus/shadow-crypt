@@ -6,7 +6,7 @@ use clap::{Arg, ArgMatches, Command};
 use std::path::PathBuf;
 
 use crate::{
-    encryption::input::{InputFile, ValidEncryptionArgs},
+    encryption::file::InputFile,
     errors::{WorkflowError, WorkflowResult},
 };
 
@@ -15,6 +15,11 @@ use crate::{
 pub struct CliArgs {
     pub input_files: Vec<String>,
     pub test_mode: bool, // If true, use SecurityProfile::Test
+}
+
+pub struct ValidEncryptionArgs {
+    pub files: Vec<InputFile>,
+    pub test_mode: bool,
 }
 
 /// Parse encryption command line arguments
