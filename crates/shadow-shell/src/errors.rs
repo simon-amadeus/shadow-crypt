@@ -1,4 +1,4 @@
-use shadow_core::errors::{EncryptionError, HeaderError, KeyDerivationError};
+use shadow_core::errors::{CryptError, HeaderError, KeyDerivationError};
 use std::io;
 use thiserror::Error;
 
@@ -28,8 +28,8 @@ pub enum WorkflowError {
     #[error("Nonce generation error: {0}")]
     NonceGeneration(String),
 
-    #[error("Encryption error: {0}")]
-    EncryptionError(#[from] EncryptionError),
+    #[error("Cryptography error: {0}")]
+    CryptographyError(#[from] CryptError),
 
     #[error("Header error: {0}")]
     HeaderError(#[from] HeaderError),

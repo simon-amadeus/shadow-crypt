@@ -35,16 +35,18 @@ impl std::fmt::Display for KeyDerivationError {
 impl std::error::Error for KeyDerivationError {}
 
 #[derive(Debug)]
-pub enum EncryptionError {
+pub enum CryptError {
     EncryptionError(String),
+    DecryptionError(String),
 }
 
-impl Display for EncryptionError {
+impl Display for CryptError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            EncryptionError::EncryptionError(msg) => write!(f, "{}", msg),
+            CryptError::EncryptionError(msg) => write!(f, "Encryption error: {}", msg),
+            CryptError::DecryptionError(msg) => write!(f, "Decryption error: {}", msg),
         }
     }
 }
 
-impl Error for EncryptionError {}
+impl Error for CryptError {}

@@ -1,4 +1,4 @@
-pub mod encryption;
+pub mod crypt;
 pub mod file;
 pub mod header;
 pub mod header_ops;

@@ -5,7 +5,7 @@ use shadow_core::{
     progress::ProgressCounter,
     report::{EncryptionReport, KeyDerivationReport},
     v1::{
-        encryption::encrypt_bytes,
+        crypt::encrypt_bytes,
         file::{EncryptedFile, PlaintextFile},
         header::FileHeader,
         key::KeyDerivationParams,
