@@ -18,7 +18,6 @@ argon2 = { workspace = true }
 clap = { workspace = true }
 rand = { workspace = true }
 rpassword = { workspace = true }
-tempfile = { workspace = true }
 colored = { workspace = true }
 thiserror = { workspace = true }
 subtle = { workspace = true }

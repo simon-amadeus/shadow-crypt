@@ -24,8 +24,8 @@ shadow-shell = { path = "crates/shadow-shell" }
 [workspace]
 resolver = "2"
 members = [
-    "crates/shadow-core",              # Pure shared foundation (crypto, types, validation)
-    "crates/shadow-shell",             # Shared I/O utilities (file ops, CLI helpers) + encryption module
+    "crates/shadow-core",
+    "crates/shadow-shell",
 ]
 
 [workspace.package]
@@ -39,20 +39,21 @@ keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 
 [workspace.dependencies]
-# Cryptographic dependencies for shadow-core
-zeroize = "1.6"
+zeroize = "1"
 chacha20poly1305 = "0.10"
 argon2 = "0.5"
-uuid = { version = "1.10", features = ["v4", "rng"] }
+uuid = { version = "1", features = ["v4", "rng"] }
 rand = { version = "0.9", features = ["os_rng"] }
 subtle = "2"
 
 # I/O and CLI dependencies for shadow-shell
 clap = { version = "4", features = ["derive"] }
-rpassword = "7.2"
+rpassword = "7"
 zxcvbn = "3"
-tempfile = "3"
-colored = "3.0"
+colored = "3"
 
 # Error handling
-thiserror = "2.0"
+thiserror = "2"
+
+# Testing
+tempfile = "3"
