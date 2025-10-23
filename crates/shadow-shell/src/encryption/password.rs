@@ -1,11 +1,13 @@
 use rpassword;
-use shadow_core::memory::SecureString;
+use shadow_core::{memory::SecureString, profile::SecurityProfile};
 use zeroize::Zeroize;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Prompt user for password with confirmation
-pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> WorkflowResult<SecureString> {
+pub fn prompt_for_password_with_confirmation(
+    security_profile: &SecurityProfile,
+) -> WorkflowResult<SecureString> {
     let mut password1 = rpassword::prompt_password("Enter password: ")
         .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
     let secure_password1 = SecureString::new(password1.clone());
@@ -23,7 +25,7 @@ pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> WorkflowResult
     .then_some(())
     .ok_or(WorkflowError::PasswordMismatch)?;
 
-    validate_password_requirements(&secure_password1, allow_weak)
+    validate_password_requirements(&secure_password1, security_profile)
         .map_err(|e| WorkflowError::Password(e.to_string()))?;
 
     Ok(SecureString::new(password1))
@@ -39,17 +41,16 @@ pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowE
 
 fn validate_password_requirements(
     password: &SecureString,
-    allow_weak: bool,
+    security_profile: &SecurityProfile,
 ) -> Result<(), WorkflowError> {
     // Basic format check
     validate_password_format(password)?;
 
     // Professional entropy validation (the only security requirement that matters)
-    if !allow_weak {
-        validate_password_entropy(password)?;
+    match security_profile {
+        SecurityProfile::Test => Ok(()), // Skip entropy check in test mode
+        SecurityProfile::Production => validate_password_entropy(password),
     }
-
-    Ok(())
 }
 
 /// Validate password strength using zxcvbn industry-standard algorithm

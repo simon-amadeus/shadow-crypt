@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use shadow_core::profile::SecurityProfile;
+
 use crate::memory::SecureString;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -11,15 +13,24 @@ pub struct InputFile {
 
 pub struct ValidEncryptionArgs {
     pub files: Vec<InputFile>,
-    pub weak_password: bool,
+    pub test_mode: bool,
 }
 
 pub struct EncryptionInput {
     pub files: Vec<InputFile>,
     pub password: SecureString,
+    pub security_profile: SecurityProfile,
 }
 impl EncryptionInput {
-    pub fn new(files: Vec<InputFile>, password: SecureString) -> Self {
-        Self { files, password }
+    pub fn new(
+        files: Vec<InputFile>,
+        password: SecureString,
+        security_profile: SecurityProfile,
+    ) -> Self {
+        Self {
+            files,
+            password,
+            security_profile,
+        }
     }
 }

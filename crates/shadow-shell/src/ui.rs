@@ -3,10 +3,10 @@ use colored::Colorize;
 use crate::{
     encryption::output::EncryptionReport,
     errors::{WorkflowError, WorkflowResult},
+    key::KeyDerivationReport,
 };
 
-/// Display simple progress for file operations
-pub fn display_progress(current: u64, total: u64) {
+pub fn display_file_progress(current: u64, total: u64) {
     if total == 0 {
         return;
     }
@@ -14,23 +14,20 @@ pub fn display_progress(current: u64, total: u64) {
     println!("Processing file {} of {}", current, total);
 }
 
-/// Display success message
 pub fn display_success(message: &str) {
     println!("{} {}", "✓".green().bold(), message);
 }
 
-/// Display error message with appropriate formatting
 pub fn display_error(error: WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }
 
-pub fn display_report(result: WorkflowResult<EncryptionReport>) {
-    // display success and errors
+pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
     match result {
         Ok(report) => {
             let msg = format!(
-                "Encrypted '{}' -> '{}' in {:#?}",
-                report.input_filename, report.output_filename, report.duration
+                "Encrypted '{}' -> '{}' in {:#?} using {}",
+                report.input_filename, report.output_filename, report.duration, report.algorithm
             );
             display_success(&msg);
         }
@@ -38,4 +35,18 @@ pub fn display_report(result: WorkflowResult<EncryptionReport>) {
             display_error(err);
         }
     }
+}
+
+pub fn display_key_derivation_report(report: &KeyDerivationReport) {
+    println!("Derived key in {:#?}:", report.duration);
+    println!("  Algorithm: {}", report.algorithm);
+    println!("  Version: {}", report.algorithm_version);
+    println!(
+        "  Memory Cost (KiB): {} ({} MiB)",
+        report.memory_cost_kib,
+        report.memory_cost_kib / 1024
+    );
+    println!("  Time Cost (Iterations): {}", report.time_cost_iterations);
+    println!("  Parallelism: {}", report.parallelism);
+    println!("  Key Size (Bytes): {}", report.key_size_bytes);
 }

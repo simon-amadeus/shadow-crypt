@@ -1,3 +1,5 @@
+use crate::profile::SecurityProfile;
+
 /// Argon2id parameters for XChacha20-Poly1305 key derivation.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KeyDerivationParams {
@@ -17,21 +19,30 @@ impl KeyDerivationParams {
         }
     }
 
-    pub fn production_defaults() -> Self {
+    fn production_defaults() -> Self {
         Self {
-            memory_cost: 1 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
+            memory_cost: 4 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
             time_cost: 10,                // 10 iterations
             parallelism: 4,               // 4 threads
             key_size: 32,                 // 32 bytes (256 bits)
         }
     }
 
-    pub fn test_defaults() -> Self {
+    fn test_defaults() -> Self {
         Self {
             memory_cost: 64 * 1024, // 65,536 KiB (64 MiB)
             time_cost: 1,           // 1 iteration
             parallelism: 1,         // 1 thread
             key_size: 32,           // 32 bytes (256 bits)
+        }
+    }
+}
+
+impl From<SecurityProfile> for KeyDerivationParams {
+    fn from(profile: SecurityProfile) -> Self {
+        match profile {
+            SecurityProfile::Production => KeyDerivationParams::production_defaults(),
+            SecurityProfile::Test => KeyDerivationParams::test_defaults(),
         }
     }
 }

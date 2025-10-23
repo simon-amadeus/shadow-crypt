@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 use shadow_core::{
+    algorithm::Algorithm,
     memory::SecureKey,
     v1::{
         encryption::encrypt_bytes,
@@ -18,16 +19,18 @@ use crate::{
         salt::generate_salt,
     },
     errors::WorkflowResult,
-    key::derive_key,
+    key::{KeyDerivationReport, derive_key},
     progress::ProgressCounter,
-    ui::display_report,
+    ui::{display_encryption_report, display_key_derivation_report},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
     let salt: [u8; 16] = generate_salt()?;
 
-    let params = KeyDerivationParams::production_defaults();
-    let key: SecureKey = derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
+    let params = KeyDerivationParams::from(input.security_profile);
+    let (key, report): (SecureKey, KeyDerivationReport) =
+        derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
+    display_key_derivation_report(&report);
 
     let counter = ProgressCounter::new(input.files.len() as u64);
 
@@ -38,7 +41,7 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
         .map(|input_file| {
             process_file_encryption(input_file.to_owned(), &key, &salt, &params, &counter)
         })
-        .for_each(display_report);
+        .for_each(display_encryption_report);
 
     Ok(())
 }
@@ -60,20 +63,20 @@ fn process_file_encryption(
     let content_nonce: [u8; 24] = generate_nonce()?;
     let plaintext_file: PlaintextFile = load_file(&input_file)?;
 
-    let filename_ciphertext: Vec<u8> = encrypt_bytes(
+    let (filename_ciphertext, _): (Vec<u8>, Algorithm) = encrypt_bytes(
         input_file.filename.as_bytes(),
         key.as_bytes(),
         &filename_nonce,
     )?;
 
-    let content_ciphertext: Vec<u8> = encrypt_bytes(
+    let (content_ciphertext, algorithm): (Vec<u8>, Algorithm) = encrypt_bytes(
         plaintext_file.content().as_slice(),
         key.as_bytes(),
         &content_nonce,
     )?;
 
     let header = FileHeader::new(
-        salt.clone(),
+        *salt,
         kdf_params.clone(),
         content_nonce,
         filename_nonce,
@@ -90,5 +93,6 @@ fn process_file_encryption(
         input_file.filename,
         output_file.filename,
         duration,
+        algorithm,
     ))
 }

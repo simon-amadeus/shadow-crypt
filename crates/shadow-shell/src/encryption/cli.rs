@@ -14,11 +14,10 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct CliArgs {
     pub input_files: Vec<String>,
-    pub weak_password: bool,
+    pub test_mode: bool, // If true, use SecurityProfile::Test
 }
 
 /// Parse encryption command line arguments
-/// Side effect: reads from command line
 pub fn parse_cli_args() -> WorkflowResult<CliArgs> {
     let matches = Command::new("shadow")
         .about("Encrypt files using Shadow format")
@@ -30,26 +29,18 @@ pub fn parse_cli_args() -> WorkflowResult<CliArgs> {
                 .value_name("FILE"),
         )
         .arg(
-            Arg::new("weak_password")
-                .long("weak-password")
-                .short('w')
-                .help("Allow weak password (skip strength validation)")
+            Arg::new("test_mode")
+                .long("test-mode")
+                .short('t')
+                .help("Use test security profile for faster key derivation (not recommended for production)")
                 .action(clap::ArgAction::SetTrue),
         )
         .get_matches();
 
-    Ok(CliArgs::from_matches(&matches)?)
-}
-
-/// Parse CLI arguments from custom matches (for testing)
-/// Pure function - no side effects
-pub fn parse_args_from_matches(matches: &ArgMatches) -> WorkflowResult<CliArgs> {
-    CliArgs::from_matches(matches)
+    CliArgs::from_matches(&matches)
 }
 
 impl CliArgs {
-    /// Create EncryptionArgs from ArgMatches
-    /// Pure function - no side effects
     fn from_matches(matches: &ArgMatches) -> WorkflowResult<CliArgs> {
         let input_files: Vec<String> = matches
             .get_many::<String>("files")
@@ -64,7 +55,7 @@ impl CliArgs {
 
         Ok(CliArgs {
             input_files,
-            weak_password: matches.get_flag("weak_password"),
+            test_mode: matches.get_flag("test_mode"),
         })
     }
 }
@@ -103,6 +94,6 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
 
     Ok(ValidEncryptionArgs {
         files,
-        weak_password: input.weak_password,
+        test_mode: input.test_mode,
     })
 }

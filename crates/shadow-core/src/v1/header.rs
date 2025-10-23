@@ -50,13 +50,20 @@ impl FileHeader {
 
 #[cfg(test)]
 mod tests {
+    use crate::profile;
+
     use super::*;
+
+    fn get_test_params() -> KeyDerivationParams {
+        let profile = profile::SecurityProfile::Test;
+        KeyDerivationParams::from(profile)
+    }
 
     #[test]
     fn default_values_are_correct() {
         let header = FileHeader::new(
             [0u8; 16],
-            KeyDerivationParams::test_defaults(),
+            get_test_params(),
             [0u8; 24],
             [0u8; 24],
             vec![1, 2, 3, 4],
@@ -71,7 +78,7 @@ mod tests {
         let filename_ciphertext = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
         let header = FileHeader::new(
             [0u8; 16],
-            KeyDerivationParams::test_defaults(),
+            get_test_params(),
             [0u8; 24],
             [0u8; 24],
             filename_ciphertext.clone(),

@@ -12,4 +12,5 @@ pub mod ui;
 
 // Re-export commonly used items
 pub use shadow_core::memory;
-pub use ui::{display_error, display_progress, display_success};
+pub use shadow_core::profile::SecurityProfile;
+pub use ui::{display_error, display_file_progress, display_success};
