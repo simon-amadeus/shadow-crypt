@@ -23,8 +23,10 @@ mod tests {
 
     #[test]
     fn test_generate_salt_uniqueness() {
-        let salt1 = generate_salt().expect("Failed to generate salt");
-        let salt2 = generate_salt().expect("Failed to generate salt");
-        assert_ne!(salt1, salt2, "Generated salts should be unique");
+        let mut salts = std::collections::HashSet::new();
+        for _ in 0..100 {
+            let salt = generate_salt().expect("Failed to generate salt");
+            assert!(salts.insert(salt), "Generated salt was not unique");
+        }
     }
 }
