@@ -62,3 +62,117 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
         test_mode: input.test_mode,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Write;
+    use tempfile::NamedTempFile;
+
+    #[test]
+    fn test_validate_input_no_files() {
+        let input = CliArgs {
+            input_files: vec![],
+            test_mode: false,
+        };
+        let result = validate_input(input);
+        assert!(result.is_err());
+        if let Err(WorkflowError::UserInput(msg)) = result {
+            assert_eq!(msg, "No input files provided");
+        } else {
+            panic!("Expected UserInput error");
+        }
+    }
+
+    #[test]
+    fn test_validate_input_file_does_not_exist() {
+        let input = CliArgs {
+            input_files: vec!["nonexistent_file.txt".to_string()],
+            test_mode: false,
+        };
+        let result = validate_input(input);
+        assert!(result.is_err());
+        if let Err(WorkflowError::UserInput(msg)) = result {
+            assert!(msg.contains("Input file does not exist"));
+        } else {
+            panic!("Expected UserInput error");
+        }
+    }
+
+    #[test]
+    fn test_validate_input_path_is_directory() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let input = CliArgs {
+            input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
+            test_mode: false,
+        };
+        let result = validate_input(input);
+        assert!(result.is_err());
+        if let Err(WorkflowError::UserInput(msg)) = result {
+            assert!(msg.contains("Input path is not a file"));
+        } else {
+            panic!("Expected UserInput error");
+        }
+    }
+
+    #[test]
+    fn test_validate_input_valid_file() {
+        let mut temp_file = NamedTempFile::new().unwrap();
+        let content = b"Hello, world!";
+        temp_file.write_all(content).unwrap();
+        let file_path = temp_file.path().to_path_buf();
+
+        let input = CliArgs {
+            input_files: vec![file_path.to_str().unwrap().to_string()],
+            test_mode: true,
+        };
+        let result = validate_input(input);
+        assert!(result.is_ok());
+        let valid_args = result.unwrap();
+        assert_eq!(valid_args.files.len(), 1);
+        assert_eq!(valid_args.test_mode, true);
+        let file = &valid_args.files[0];
+        assert_eq!(file.path, file_path);
+        assert_eq!(
+            file.filename,
+            file_path.file_name().unwrap().to_str().unwrap()
+        );
+        assert_eq!(file.size, content.len() as u64);
+    }
+
+    #[test]
+    fn test_validate_input_multiple_files() {
+        let mut temp_file1 = NamedTempFile::new().unwrap();
+        temp_file1.write_all(b"File 1").unwrap();
+        let path1 = temp_file1.path().to_path_buf();
+
+        let mut temp_file2 = NamedTempFile::new().unwrap();
+        temp_file2.write_all(b"File 2 content").unwrap();
+        let path2 = temp_file2.path().to_path_buf();
+
+        let input = CliArgs {
+            input_files: vec![
+                path1.to_str().unwrap().to_string(),
+                path2.to_str().unwrap().to_string(),
+            ],
+            test_mode: false,
+        };
+        let result = validate_input(input);
+        assert!(result.is_ok());
+        let valid_args = result.unwrap();
+        assert_eq!(valid_args.files.len(), 2);
+        assert_eq!(valid_args.test_mode, false);
+
+        // Check first file
+        let file1 = &valid_args.files[0];
+        assert_eq!(file1.path, path1);
+        assert_eq!(file1.filename, path1.file_name().unwrap().to_str().unwrap());
+        assert_eq!(file1.size, 6); // "File 1".len()
+
+        // Check second file
+        let file2 = &valid_args.files[1];
+        assert_eq!(file2.path, path2);
+        assert_eq!(file2.filename, path2.file_name().unwrap().to_str().unwrap());
+        assert_eq!(file2.size, 14); // "File 2 content".len()
+    }
+}
