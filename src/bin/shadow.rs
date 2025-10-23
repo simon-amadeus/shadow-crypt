@@ -3,7 +3,7 @@ use std::process;
 use shadow_shell::{
     SecurityProfile, display_error,
     encryption::{
-        cli::{get_security_profile, parse_cli_args},
+        cli::{get_cli_args, get_security_profile},
         file::EncryptionInput,
         password::prompt_for_password_with_confirmation,
         validation::{ValidEncryptionArgs, validate_input},
@@ -14,7 +14,8 @@ use shadow_shell::{
 };
 
 fn run() -> Result<(), WorkflowError> {
-    let input: ValidEncryptionArgs = parse_cli_args().and_then(validate_input)?;
+    let input: ValidEncryptionArgs =
+        get_cli_args(std::env::args().collect()).and_then(validate_input)?;
     let security_profile: SecurityProfile = get_security_profile(input.test_mode);
     let password: SecureString = prompt_for_password_with_confirmation(&security_profile)?;
     let encryption_input = EncryptionInput::new(input.files, password, security_profile);
