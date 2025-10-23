@@ -1,3 +1,4 @@
+use shadow_core::v1::encryption::EncryptionError;
 use std::io;
 use std::path::PathBuf;
 use thiserror::Error;
@@ -38,7 +39,7 @@ pub enum WorkflowError {
     EmptyPassword,
 
     #[error("Passwords do not match")]
-    PasswordsDoNotMatch,
+    PasswordMismatch,
 
     #[error("Password error: {0}")]
     Password(String),
@@ -51,4 +52,15 @@ pub enum WorkflowError {
 
     #[error("Nonce generation error: {0}")]
     NonceGeneration(String),
+
+    #[error("Encryption error: {0}")]
+    EncryptionError(String),
+}
+
+impl From<EncryptionError> for WorkflowError {
+    fn from(err: EncryptionError) -> Self {
+        match err {
+            EncryptionError::EncryptionError(msg) => WorkflowError::EncryptionError(msg),
+        }
+    }
 }

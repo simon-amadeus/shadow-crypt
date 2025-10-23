@@ -5,21 +5,13 @@ use super::header::FileHeader;
 /// Represents a complete encrypted file with header and content
 #[derive(Debug)]
 pub struct EncryptedFile {
-    filename: String,
     header: FileHeader,
     ciphertext: Vec<u8>,
 }
 
 impl EncryptedFile {
-    pub fn new(filename: String, header: FileHeader, ciphertext: Vec<u8>) -> Self {
-        Self {
-            filename,
-            header,
-            ciphertext,
-        }
-    }
-    pub fn filename(&self) -> &String {
-        &self.filename
+    pub fn new(header: FileHeader, ciphertext: Vec<u8>) -> Self {
+        Self { header, ciphertext }
     }
     pub fn header(&self) -> &FileHeader {
         &self.header

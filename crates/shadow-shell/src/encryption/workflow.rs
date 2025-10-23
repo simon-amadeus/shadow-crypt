@@ -1,100 +1,94 @@
-use std::{io::Read, path::PathBuf};
-
-use rand::Rng;
+use rayon::prelude::*;
 use shadow_core::{
-    memory::SecureBytes,
+    memory::SecureKey,
     v1::{
-        file::{self, EncryptedFile, PlaintextFile},
+        encryption::encrypt_bytes,
+        file::{EncryptedFile, PlaintextFile},
+        header::FileHeader,
         key::KeyDerivationParams,
     },
 };
 
 use crate::{
     encryption::{
-        input::{EncryptionInput, InputFile, OutputFile},
+        fs::{create_output_file, load_file, store_encrypted_file},
+        input::{EncryptionInput, InputFile},
         nonce::generate_nonce,
+        output::{EncryptionReport, OutputFile},
         salt::generate_salt,
     },
     errors::WorkflowResult,
     key::derive_key,
+    progress::ProgressCounter,
+    ui::display_report,
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
-    // 1. generate salt
     let salt: [u8; 16] = generate_salt()?;
 
-    // 2. generate key derivation params
     let params = KeyDerivationParams::production_defaults();
+    let key: SecureKey = derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
 
-    // 3. derive key
-    let _key: [u8; 32] = derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
+    let counter = ProgressCounter::new(input.files.len() as u64);
 
-    // for each file in input.files
-    // 4. generate filename nonce <- io
-    // 5. load file content <- io
-    // 6. encrypt filename <- deterministic
-    // 7. generate content nonce <- io
-    // 8. encrypt content <- deterministic
-    // 9. create header <- deterministic
-    // 10. create encrypted file structure <- deterministic
-    // 11. store encrypted file <- io
-
-    use rayon::prelude::*;
-    let _results: Vec<WorkflowResult<()>> = input.files.par_iter().map(process_file).collect();
+    // Process files in parallel using Rayon
+    input
+        .files
+        .par_iter()
+        .map(|input_file| {
+            process_file_encryption(input_file.to_owned(), &key, &salt, &params, &counter)
+        })
+        .for_each(display_report);
 
     Ok(())
 }
 
-fn process_file(file: &InputFile) -> WorkflowResult<()> {
-    // Placeholder for file processing logic
-    println!("Processing file: {}", file.filename);
+fn process_file_encryption(
+    file: InputFile,
+    key: &SecureKey,
+    salt: &[u8; 16],
+    kdf_params: &KeyDerivationParams,
+    counter: &ProgressCounter,
+) -> WorkflowResult<EncryptionReport> {
+    let start_time = std::time::Instant::now();
+    counter.increment();
 
-    let input_filename = file.filename.clone();
-    let output_filename = generate_random_filename()?;
-    let output_file = create_output_file()?;
+    let input_file: InputFile = file;
+    let output_file: OutputFile = create_output_file()?;
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;
-    let plaintext_file: PlaintextFile = load_file(file)?;
+    let plaintext_file: PlaintextFile = load_file(&input_file)?;
 
-    Ok(())
-}
+    let filename_ciphertext: Vec<u8> = encrypt_bytes(
+        input_file.filename.as_bytes(),
+        key.as_bytes(),
+        &filename_nonce,
+    )?;
 
-fn load_file(file: &InputFile) -> WorkflowResult<PlaintextFile> {
-    let filename = file.filename.clone();
-    let size: usize = file.size as usize;
+    let content_ciphertext: Vec<u8> = encrypt_bytes(
+        plaintext_file.content().as_slice(),
+        key.as_bytes(),
+        &content_nonce,
+    )?;
 
-    let mut f = std::fs::File::open(&file.path)?;
-    let mut buffer: Vec<u8> = Vec::with_capacity(size);
+    let header = FileHeader::new(
+        salt.clone(),
+        kdf_params.clone(),
+        content_nonce,
+        filename_nonce,
+        filename_ciphertext,
+    );
 
-    f.read_to_end(&mut buffer)?;
+    let encrypted_file = EncryptedFile::new(header, content_ciphertext);
 
-    let content = SecureBytes::new(buffer.clone());
+    store_encrypted_file(&output_file, &encrypted_file)?;
 
-    use zeroize::Zeroize;
-    buffer.zeroize(); // Clear the temporary buffer
+    let duration = start_time.elapsed();
 
-    Ok(PlaintextFile::new(filename, content))
-}
-
-fn generate_random_filename() -> WorkflowResult<String> {
-    let mut rng = rand::rng();
-    let range = rand::distr::Alphabetic;
-
-    Ok(rng.sample(range).to_string())
-}
-
-fn create_output_file() -> WorkflowResult<OutputFile> {
-    let filename = generate_random_filename()?;
-    let mut path = PathBuf::from(&filename);
-
-    path.set_extension("shadow");
-    path = std::env::current_dir()?.join(path);
-
-    Ok(OutputFile { path, filename })
-}
-
-struct EncryptionResult {
-    ciphertext: Vec<u8>,
-    authentication_tag: [u8; 16],
+    Ok(EncryptionReport::new(
+        input_file.filename,
+        output_file.filename,
+        duration,
+    ))
 }

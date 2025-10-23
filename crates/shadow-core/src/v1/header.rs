@@ -7,16 +7,14 @@ use crate::v1::key::KeyDerivationParams;
 pub struct FileHeader {
     pub magic: [u8; 6],                  // 6 bytes: "SHADOW"
     pub version: u8,                     // 1 byte: Version number (1)
-    pub header_size: u32,                // 4 byte: Total header size
+    pub header_length: u32,              // 4 byte: Total header size
     pub salt: [u8; 16],                  // 16 bytes: Argon2id salt
     pub kdf_memory: u32,                 // 4 bytes: Argon2id memory parameter
     pub kdf_iterations: u32,             // 4 bytes: Argon2id iterations parameter
     pub kdf_parallelism: u32,            // 4 bytes: Argon2id parallelism parameter
     pub kdf_key_length: u8,              // 1 byte: XChaCha20 key length
     pub content_nonce: [u8; 24],         // 24 bytes: XChaCha20 nonce
-    pub content_tag: [u8; 16],           // 16 bytes: Poly1305 auth tag for content
     pub filename_nonce: [u8; 24],        // 24 bytes: XChaCha20 nonce for filename
-    pub filename_tag: [u8; 16],          // 16 bytes: Poly1305 auth tag for filename
     pub filename_ciphertext_length: u16, // 2 bytes: Length of encrypted filename ciphertext
     pub filename_ciphertext: Vec<u8>,    // Encrypted filename ciphertext (variable length)
 }
@@ -26,9 +24,7 @@ impl FileHeader {
         salt: [u8; 16],
         kdf_params: KeyDerivationParams,
         content_nonce: [u8; 24],
-        content_tag: [u8; 16],
         filename_nonce: [u8; 24],
-        filename_tag: [u8; 16],
         filename_ciphertext: Vec<u8>,
     ) -> Self {
         let filename_ciphertext_length = filename_ciphertext.len() as u16;
@@ -38,19 +34,36 @@ impl FileHeader {
         FileHeader {
             magic: *b"SHADOW",
             version: 1,
-            header_size: size as u32,
+            header_length: size as u32,
             salt,
             kdf_memory: kdf_params.memory_cost,
             kdf_iterations: kdf_params.time_cost,
             kdf_parallelism: kdf_params.parallelism,
             kdf_key_length: kdf_params.key_size,
             content_nonce,
-            content_tag,
             filename_nonce,
-            filename_tag,
             filename_ciphertext_length,
             filename_ciphertext,
         }
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(&self.magic);
+        bytes.push(self.version);
+        bytes.extend_from_slice(&self.header_length.to_le_bytes());
+        bytes.extend_from_slice(&self.salt);
+        bytes.extend_from_slice(&self.kdf_memory.to_le_bytes());
+        bytes.extend_from_slice(&self.kdf_iterations.to_le_bytes());
+        bytes.extend_from_slice(&self.kdf_parallelism.to_le_bytes());
+        bytes.push(self.kdf_key_length);
+        bytes.extend_from_slice(&self.content_nonce);
+        bytes.extend_from_slice(&self.filename_nonce);
+        bytes.extend_from_slice(&self.filename_ciphertext_length.to_le_bytes());
+        bytes.extend_from_slice(&self.filename_ciphertext);
+
+        bytes
     }
 }
 
@@ -64,9 +77,7 @@ mod tests {
             [0u8; 16],
             KeyDerivationParams::test_defaults(),
             [0u8; 24],
-            [0u8; 16],
             [0u8; 24],
-            [0u8; 16],
             vec![1, 2, 3, 4],
         );
 
@@ -81,15 +92,13 @@ mod tests {
             [0u8; 16],
             KeyDerivationParams::test_defaults(),
             [0u8; 24],
-            [0u8; 16],
             [0u8; 24],
-            [0u8; 16],
             filename_ciphertext.clone(),
         );
 
         let expected_size = (mem::size_of::<FileHeader>() + filename_ciphertext.len()
             - mem::size_of::<Vec<u8>>()) as u32;
 
-        assert_eq!(header.header_size, expected_size);
+        assert_eq!(header.header_length, expected_size);
     }
 }

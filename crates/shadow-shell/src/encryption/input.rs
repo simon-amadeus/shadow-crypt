@@ -23,8 +23,3 @@ impl EncryptionInput {
         Self { files, password }
     }
 }
-
-pub struct OutputFile {
-    pub path: PathBuf,
-    pub filename: String,
-}

@@ -19,7 +19,7 @@ impl KeyDerivationParams {
 
     pub fn production_defaults() -> Self {
         Self {
-            memory_cost: 4 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
+            memory_cost: 1 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
             time_cost: 10,                // 10 iterations
             parallelism: 4,               // 4 threads
             key_size: 32,                 // 32 bytes (256 bits)

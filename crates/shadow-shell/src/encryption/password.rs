@@ -1,71 +1,53 @@
-// shadow-shell/src/cli_helpers.rs
-// CLI parsing and user interaction utilities
-
 use rpassword;
 use shadow_core::memory::SecureString;
-use std::io::{self, Write};
+use zeroize::Zeroize;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Prompt user for password with confirmation
-/// Side effect: User interaction via stdin/stdout
 pub fn prompt_for_password_with_confirmation(allow_weak: bool) -> WorkflowResult<SecureString> {
-    print!("Enter password: ");
-    io::stdout()
-        .flush()
-        .map_err(|e| WorkflowError::UserInput(format!("Failed to flush stdout: {}", e)))?;
-
-    let password1 = rpassword::read_password()
+    let mut password1 = rpassword::prompt_password("Enter password: ")
         .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
+    let secure_password1 = SecureString::new(password1.clone());
+    password1.zeroize(); // Clear plain password from memory
 
-    print!("Confirm password: ");
-    io::stdout()
-        .flush()
-        .map_err(|e| WorkflowError::UserInput(format!("Failed to flush stdout: {}", e)))?;
-
-    let password2 = rpassword::read_password()
+    let mut password2 = rpassword::prompt_password("Confirm password: ")
         .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
+    let secure_password2 = SecureString::new(password2.clone());
+    password2.zeroize(); // Clear plain password from memory
 
-    if password1 != password2 {
-        return Err(WorkflowError::PasswordsDoNotMatch);
-    }
+    constant_time_eq(
+        secure_password1.as_str().as_bytes(),
+        secure_password2.as_str().as_bytes(),
+    )
+    .then_some(())
+    .ok_or(WorkflowError::PasswordMismatch)?;
 
-    if password1.is_empty() {
-        return Err(WorkflowError::EmptyPassword);
-    }
-
-    // Convert to SecureString for validation
-    let secure_password = SecureString::new(password1.clone());
-
-    // Validate password strength only if not allowing weak passwords
-    if !allow_weak {
-        validate_password_strength(&secure_password)
-            .map_err(|e| WorkflowError::Password(e.to_string()))?;
-    }
+    validate_password_requirements(&secure_password1, allow_weak)
+        .map_err(|e| WorkflowError::Password(e.to_string()))?;
 
     Ok(SecureString::new(password1))
 }
 
-/// Validate password format (basic structural requirements only)
-/// Pure function - no side effects
 pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowError> {
     if password.is_empty() {
         return Err(WorkflowError::EmptyPassword);
     }
 
-    // No other format requirements - entropy is what matters for security
     Ok(())
 }
 
-/// Validate password strength using professional entropy analysis
-/// This is the main validation function that should be used
-/// Pure function - no side effects
-pub fn validate_password_strength(password: &SecureString) -> Result<(), WorkflowError> {
+fn validate_password_requirements(
+    password: &SecureString,
+    allow_weak: bool,
+) -> Result<(), WorkflowError> {
     // Basic format check
     validate_password_format(password)?;
 
     // Professional entropy validation (the only security requirement that matters)
-    validate_password_entropy(password)?;
+    if !allow_weak {
+        validate_password_entropy(password)?;
+    }
 
     Ok(())
 }
@@ -108,4 +90,14 @@ fn format_feedback(estimate: &zxcvbn::Entropy) -> String {
     } else {
         "Use a stronger password".to_string()
     }
+}
+
+use subtle::ConstantTimeEq;
+
+/// Constant-time equality comparison for security-sensitive data
+fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
+    if a.len() != b.len() {
+        return false;
+    }
+    a.ct_eq(b).into()
 }
