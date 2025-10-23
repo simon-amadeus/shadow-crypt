@@ -111,3 +111,314 @@ fn deserialize(bytes: &[u8]) -> Option<FileHeader> {
         filename_ciphertext,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::profile;
+    use crate::v1::key::KeyDerivationParams;
+
+    fn create_test_header() -> FileHeader {
+        let salt = [1u8; 16];
+        let kdf_params = KeyDerivationParams::from(profile::SecurityProfile::Test);
+        let content_nonce = [2u8; 24];
+        let filename_nonce = [3u8; 24];
+        let filename_ciphertext = vec![4, 5, 6, 7, 8];
+
+        FileHeader::new(
+            salt,
+            kdf_params,
+            content_nonce,
+            filename_nonce,
+            filename_ciphertext,
+        )
+    }
+
+    #[test]
+    fn test_serialize() {
+        let header = create_test_header();
+        let serialized = serialize(&header);
+
+        // Check that the serialized data has the correct length
+        assert_eq!(serialized.len(), header.header_length as usize);
+
+        // Check magic bytes
+        assert_eq!(&serialized[0..6], b"SHADOW");
+
+        // Check version
+        assert_eq!(serialized[6], 1);
+
+        // Check header length (little endian)
+        let header_len_bytes = &serialized[7..11];
+        let header_len = u32::from_le_bytes(header_len_bytes.try_into().unwrap());
+        assert_eq!(header_len, header.header_length);
+
+        // Check salt
+        assert_eq!(&serialized[11..27], &header.salt);
+
+        // Check KDF parameters
+        let kdf_memory_bytes = &serialized[27..31];
+        let kdf_memory = u32::from_le_bytes(kdf_memory_bytes.try_into().unwrap());
+        assert_eq!(kdf_memory, header.kdf_memory);
+
+        let kdf_iterations_bytes = &serialized[31..35];
+        let kdf_iterations = u32::from_le_bytes(kdf_iterations_bytes.try_into().unwrap());
+        assert_eq!(kdf_iterations, header.kdf_iterations);
+
+        let kdf_parallelism_bytes = &serialized[35..39];
+        let kdf_parallelism = u32::from_le_bytes(kdf_parallelism_bytes.try_into().unwrap());
+        assert_eq!(kdf_parallelism, header.kdf_parallelism);
+
+        // Check key length
+        assert_eq!(serialized[39], header.kdf_key_length);
+
+        // Check nonces
+        assert_eq!(&serialized[40..64], &header.content_nonce);
+        assert_eq!(&serialized[64..88], &header.filename_nonce);
+
+        // Check filename ciphertext length
+        let filename_len_bytes = &serialized[88..90];
+        let filename_len = u16::from_le_bytes(filename_len_bytes.try_into().unwrap());
+        assert_eq!(filename_len, header.filename_ciphertext_length);
+
+        // Check filename ciphertext
+        let filename_start = FileHeader::min_length();
+        let filename_end = filename_start + header.filename_ciphertext.len();
+        assert_eq!(
+            &serialized[filename_start..filename_end],
+            &header.filename_ciphertext[..]
+        );
+    }
+
+    #[test]
+    fn test_is_shadow_file_valid() {
+        let header = create_test_header();
+        let serialized = serialize(&header);
+
+        let result = is_shadow_file(&serialized);
+        assert!(result.is_ok());
+        assert!(result.unwrap());
+    }
+
+    #[test]
+    fn test_is_shadow_file_invalid_magic() {
+        let mut bytes = vec![0u8; 100];
+        bytes[0..6].copy_from_slice(b"NOTSHD");
+
+        let result = is_shadow_file(&bytes);
+        assert!(result.is_ok());
+        assert!(!result.unwrap());
+    }
+
+    #[test]
+    fn test_is_shadow_file_insufficient_bytes() {
+        let bytes = vec![0u8; 5]; // Less than 6 bytes
+
+        let result = is_shadow_file(&bytes);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HeaderError::InsufficientBytes
+        ));
+    }
+
+    #[test]
+    fn test_try_deserialize_valid() {
+        let original_header = create_test_header();
+        let serialized = serialize(&original_header);
+
+        let result = try_deserialize(&serialized);
+        assert!(result.is_ok());
+
+        let deserialized_header = result.unwrap();
+        assert_eq!(deserialized_header.magic, original_header.magic);
+        assert_eq!(deserialized_header.version, original_header.version);
+        assert_eq!(
+            deserialized_header.header_length,
+            original_header.header_length
+        );
+        assert_eq!(deserialized_header.salt, original_header.salt);
+        assert_eq!(deserialized_header.kdf_memory, original_header.kdf_memory);
+        assert_eq!(
+            deserialized_header.kdf_iterations,
+            original_header.kdf_iterations
+        );
+        assert_eq!(
+            deserialized_header.kdf_parallelism,
+            original_header.kdf_parallelism
+        );
+        assert_eq!(
+            deserialized_header.kdf_key_length,
+            original_header.kdf_key_length
+        );
+        assert_eq!(
+            deserialized_header.content_nonce,
+            original_header.content_nonce
+        );
+        assert_eq!(
+            deserialized_header.filename_nonce,
+            original_header.filename_nonce
+        );
+        assert_eq!(
+            deserialized_header.filename_ciphertext_length,
+            original_header.filename_ciphertext_length
+        );
+        assert_eq!(
+            deserialized_header.filename_ciphertext,
+            original_header.filename_ciphertext
+        );
+    }
+
+    #[test]
+    fn test_try_deserialize_insufficient_bytes() {
+        let bytes = vec![0u8; 50]; // Less than min_length
+
+        let result = try_deserialize(&bytes);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HeaderError::InsufficientBytes
+        ));
+    }
+
+    #[test]
+    fn test_try_deserialize_invalid_data() {
+        let mut bytes = vec![0u8; 100];
+        // Set invalid header length (too small)
+        bytes[7..11].copy_from_slice(&(50u32.to_le_bytes())); // Header length smaller than min
+
+        let result = try_deserialize(&bytes);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), HeaderError::InvalidData));
+    }
+
+    #[test]
+    fn test_round_trip_serialization() {
+        let original_header = create_test_header();
+        let serialized = serialize(&original_header);
+        let deserialized_result = try_deserialize(&serialized);
+
+        assert!(deserialized_result.is_ok());
+        let deserialized_header = deserialized_result.unwrap();
+
+        // Ensure all fields match
+        assert_eq!(original_header.magic, deserialized_header.magic);
+        assert_eq!(original_header.version, deserialized_header.version);
+        assert_eq!(
+            original_header.header_length,
+            deserialized_header.header_length
+        );
+        assert_eq!(original_header.salt, deserialized_header.salt);
+        assert_eq!(original_header.kdf_memory, deserialized_header.kdf_memory);
+        assert_eq!(
+            original_header.kdf_iterations,
+            deserialized_header.kdf_iterations
+        );
+        assert_eq!(
+            original_header.kdf_parallelism,
+            deserialized_header.kdf_parallelism
+        );
+        assert_eq!(
+            original_header.kdf_key_length,
+            deserialized_header.kdf_key_length
+        );
+        assert_eq!(
+            original_header.content_nonce,
+            deserialized_header.content_nonce
+        );
+        assert_eq!(
+            original_header.filename_nonce,
+            deserialized_header.filename_nonce
+        );
+        assert_eq!(
+            original_header.filename_ciphertext_length,
+            deserialized_header.filename_ciphertext_length
+        );
+        assert_eq!(
+            original_header.filename_ciphertext,
+            deserialized_header.filename_ciphertext
+        );
+    }
+
+    #[test]
+    fn test_empty_filename_ciphertext() {
+        let salt = [1u8; 16];
+        let kdf_params = KeyDerivationParams::from(profile::SecurityProfile::Test);
+        let content_nonce = [2u8; 24];
+        let filename_nonce = [3u8; 24];
+        let filename_ciphertext = vec![]; // Empty filename
+
+        let header = FileHeader::new(
+            salt,
+            kdf_params,
+            content_nonce,
+            filename_nonce,
+            filename_ciphertext,
+        );
+
+        let serialized = serialize(&header);
+        let deserialized_result = try_deserialize(&serialized);
+
+        assert!(deserialized_result.is_ok());
+        let deserialized_header = deserialized_result.unwrap();
+        assert_eq!(header.magic, deserialized_header.magic);
+        assert_eq!(header.version, deserialized_header.version);
+        assert_eq!(header.header_length, deserialized_header.header_length);
+        assert_eq!(header.salt, deserialized_header.salt);
+        assert_eq!(header.kdf_memory, deserialized_header.kdf_memory);
+        assert_eq!(header.kdf_iterations, deserialized_header.kdf_iterations);
+        assert_eq!(header.kdf_parallelism, deserialized_header.kdf_parallelism);
+        assert_eq!(header.kdf_key_length, deserialized_header.kdf_key_length);
+        assert_eq!(header.content_nonce, deserialized_header.content_nonce);
+        assert_eq!(header.filename_nonce, deserialized_header.filename_nonce);
+        assert_eq!(
+            header.filename_ciphertext_length,
+            deserialized_header.filename_ciphertext_length
+        );
+        assert_eq!(
+            header.filename_ciphertext,
+            deserialized_header.filename_ciphertext
+        );
+    }
+
+    #[test]
+    fn test_large_filename_ciphertext() {
+        let salt = [1u8; 16];
+        let kdf_params = KeyDerivationParams::from(profile::SecurityProfile::Test);
+        let content_nonce = [2u8; 24];
+        let filename_nonce = [3u8; 24];
+        let filename_ciphertext = vec![4u8; 1000]; // Large filename
+
+        let header = FileHeader::new(
+            salt,
+            kdf_params,
+            content_nonce,
+            filename_nonce,
+            filename_ciphertext,
+        );
+
+        let serialized = serialize(&header);
+        let deserialized_result = try_deserialize(&serialized);
+
+        assert!(deserialized_result.is_ok());
+        let deserialized_header = deserialized_result.unwrap();
+        assert_eq!(header.magic, deserialized_header.magic);
+        assert_eq!(header.version, deserialized_header.version);
+        assert_eq!(header.header_length, deserialized_header.header_length);
+        assert_eq!(header.salt, deserialized_header.salt);
+        assert_eq!(header.kdf_memory, deserialized_header.kdf_memory);
+        assert_eq!(header.kdf_iterations, deserialized_header.kdf_iterations);
+        assert_eq!(header.kdf_parallelism, deserialized_header.kdf_parallelism);
+        assert_eq!(header.kdf_key_length, deserialized_header.kdf_key_length);
+        assert_eq!(header.content_nonce, deserialized_header.content_nonce);
+        assert_eq!(header.filename_nonce, deserialized_header.filename_nonce);
+        assert_eq!(
+            header.filename_ciphertext_length,
+            deserialized_header.filename_ciphertext_length
+        );
+        assert_eq!(
+            header.filename_ciphertext,
+            deserialized_header.filename_ciphertext
+        );
+    }
+}
