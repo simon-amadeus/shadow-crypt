@@ -110,4 +110,12 @@ mod tests {
         let secure_data = SecureBytes::new(data.clone());
         assert_eq!(secure_data.as_slice(), data.as_slice());
     }
+
+    #[test]
+    fn test_secure_bytes_with_capacity() {
+        let capacity = 100;
+        let secure_data = SecureBytes::with_capacity(capacity);
+        assert!(secure_data.as_slice().is_empty());
+        // Note: We can't directly check capacity, but we can ensure it's empty initially
+    }
 }
