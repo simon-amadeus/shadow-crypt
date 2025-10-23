@@ -1,4 +1,4 @@
-use shadow_core::v1::{encryption::EncryptionError, key_ops::KeyDerivationError};
+use shadow_core::errors::{EncryptionError, HeaderError, KeyDerivationError};
 use std::io;
 use thiserror::Error;
 
@@ -30,4 +30,7 @@ pub enum WorkflowError {
 
     #[error("Encryption error: {0}")]
     EncryptionError(#[from] EncryptionError),
+
+    #[error("Header error: {0}")]
+    HeaderError(#[from] HeaderError),
 }

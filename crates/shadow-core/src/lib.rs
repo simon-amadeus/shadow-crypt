@@ -2,6 +2,7 @@
 // Core cryptographic functionality for the Shadow file encryption format
 
 pub mod algorithm;
+pub mod errors;
 pub mod memory;
 pub mod profile;
 pub mod progress;

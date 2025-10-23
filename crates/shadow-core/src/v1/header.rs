@@ -1,5 +1,3 @@
-use std::mem;
-
 use crate::v1::key::KeyDerivationParams;
 
 /// Complete v1 file header
@@ -28,8 +26,7 @@ impl FileHeader {
         filename_ciphertext: Vec<u8>,
     ) -> Self {
         let filename_ciphertext_length = filename_ciphertext.len() as u16;
-        let size =
-            mem::size_of::<FileHeader>() + filename_ciphertext.len() - mem::size_of::<Vec<u8>>();
+        let size = Self::min_length() + filename_ciphertext.len();
 
         FileHeader {
             magic: *b"SHADOW",
@@ -45,6 +42,11 @@ impl FileHeader {
             filename_ciphertext_length,
             filename_ciphertext,
         }
+    }
+
+    /// Minimum length of the header without the variable-length filename ciphertext
+    pub fn min_length() -> usize {
+        90 // Fixed length of the header without the variable-length filename ciphertext
     }
 }
 
@@ -84,8 +86,7 @@ mod tests {
             filename_ciphertext.clone(),
         );
 
-        let expected_size = (mem::size_of::<FileHeader>() + filename_ciphertext.len()
-            - mem::size_of::<Vec<u8>>()) as u32;
+        let expected_size: u32 = 90 + filename_ciphertext.len() as u32;
 
         assert_eq!(header.header_length, expected_size);
     }
