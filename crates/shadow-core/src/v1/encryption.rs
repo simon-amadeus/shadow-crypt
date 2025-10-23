@@ -1,3 +1,5 @@
+use std::{error::Error, fmt::Display};
+
 use chacha20poly1305::{KeyInit, XChaCha20Poly1305, aead::Aead};
 
 use crate::algorithm::Algorithm;
@@ -15,6 +17,17 @@ pub fn encrypt_bytes(
     Ok((ciphertext, Algorithm::XChaCha20Poly1305))
 }
 
+#[derive(Debug)]
 pub enum EncryptionError {
     EncryptionError(String),
 }
+
+impl Display for EncryptionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            EncryptionError::EncryptionError(msg) => write!(f, "{}", msg),
+        }
+    }
+}
+
+impl Error for EncryptionError {}

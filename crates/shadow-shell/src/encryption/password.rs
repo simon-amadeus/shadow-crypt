@@ -9,12 +9,12 @@ pub fn prompt_for_password_with_confirmation(
     security_profile: &SecurityProfile,
 ) -> WorkflowResult<SecureString> {
     let mut password1 = rpassword::prompt_password("Enter password: ")
-        .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))?;
     let secure_password1 = SecureString::new(password1.clone());
     password1.zeroize(); // Clear plain password from memory
 
     let mut password2 = rpassword::prompt_password("Confirm password: ")
-        .map_err(|e| WorkflowError::UserInput(format!("Failed to read password: {}", e)))?;
+        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))?;
     let secure_password2 = SecureString::new(password2.clone());
     password2.zeroize(); // Clear plain password from memory
 
@@ -23,7 +23,9 @@ pub fn prompt_for_password_with_confirmation(
         secure_password2.as_str().as_bytes(),
     )
     .then_some(())
-    .ok_or(WorkflowError::PasswordMismatch)?;
+    .ok_or(WorkflowError::Password(
+        "Passwords do not match".to_string(),
+    ))?;
 
     validate_password_requirements(&secure_password1, security_profile)
         .map_err(|e| WorkflowError::Password(e.to_string()))?;
@@ -33,7 +35,9 @@ pub fn prompt_for_password_with_confirmation(
 
 pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowError> {
     if password.is_empty() {
-        return Err(WorkflowError::EmptyPassword);
+        return Err(WorkflowError::Password(
+            "Password cannot be empty".to_string(),
+        ));
     }
 
     Ok(())

@@ -64,25 +64,40 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
     let mut files = Vec::new();
 
     if input.input_files.is_empty() {
-        return Err(WorkflowError::NoFilesProvided);
+        return Err(WorkflowError::UserInput(
+            "No input files provided".to_string(),
+        ));
     }
 
     for file_str in input.input_files {
         let path = PathBuf::from(file_str);
         if !path.exists() {
-            return Err(WorkflowError::FileNotFound(path));
+            return Err(WorkflowError::UserInput(format!(
+                "Input file does not exist: {}",
+                path.display()
+            )));
         }
         if !path.is_file() {
-            return Err(WorkflowError::NotAFile(path));
+            return Err(WorkflowError::UserInput(format!(
+                "Input path is not a file: {}",
+                path.display()
+            )));
         }
         let name: String = path
             .file_name()
             .and_then(|n| n.to_str())
-            .ok_or_else(|| WorkflowError::InvalidFilename(path.clone()))?
+            .ok_or_else(|| {
+                WorkflowError::UserInput(format!("Invalid filename for path: {}", path.display()))
+            })?
             .to_string();
         let size: u64 = path
             .metadata()
-            .map_err(|_| WorkflowError::FileMetadataError(path.clone()))?
+            .map_err(|_| {
+                WorkflowError::UserInput(format!(
+                    "Unable to read metadata for file: {}",
+                    path.display()
+                ))
+            })?
             .len();
 
         files.push(InputFile {

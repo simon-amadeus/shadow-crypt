@@ -59,7 +59,7 @@ pub fn create_output_file() -> WorkflowResult<OutputFile> {
 
     let filename = path
         .to_str()
-        .ok_or_else(|| WorkflowError::InvalidFilename(path.clone()))?
+        .ok_or_else(|| WorkflowError::File("Invalid output filename".to_string()))?
         .to_string();
 
     path = std::env::current_dir()?.join(path);
