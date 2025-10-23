@@ -4,6 +4,7 @@
 // This crate handles all side effects including file I/O,
 // user interaction, CLI parsing, and progress reporting.
 
+pub mod decryption;
 pub mod encryption;
 pub mod errors;
 pub mod ui;

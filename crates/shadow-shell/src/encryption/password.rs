@@ -30,7 +30,7 @@ pub fn prompt_for_password_with_confirmation(
     validate_password_requirements(&secure_password1, security_profile)
         .map_err(|e| WorkflowError::Password(e.to_string()))?;
 
-    Ok(SecureString::new(password1))
+    Ok(secure_password1)
 }
 
 pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowError> {
