@@ -106,3 +106,82 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     }
     a.ct_eq(b).into()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shadow_core::profile::SecurityProfile;
+
+    #[test]
+    fn test_validate_password_format_empty() {
+        let empty = SecureString::new(String::new());
+        assert!(validate_password_format(&empty).is_err());
+    }
+
+    #[test]
+    fn test_validate_password_format_non_empty() {
+        let password = SecureString::new("test".to_string());
+        assert!(validate_password_format(&password).is_ok());
+    }
+
+    #[test]
+    fn test_validate_password_requirements_test_profile() {
+        let password = SecureString::new("weak".to_string());
+        assert!(validate_password_requirements(&password, &SecurityProfile::Test).is_ok());
+    }
+
+    #[test]
+    fn test_validate_password_requirements_production_weak() {
+        let password = SecureString::new("password".to_string());
+        assert!(validate_password_requirements(&password, &SecurityProfile::Production).is_err());
+    }
+
+    #[test]
+    fn test_validate_password_requirements_production_strong() {
+        let password = SecureString::new("Tr0ub4dour&3!".to_string());
+        assert!(validate_password_requirements(&password, &SecurityProfile::Production).is_ok());
+    }
+
+    #[test]
+    fn test_validate_password_entropy_weak() {
+        let password = SecureString::new("123456".to_string());
+        assert!(validate_password_entropy(&password).is_err());
+    }
+
+    #[test]
+    fn test_validate_password_entropy_strong() {
+        let password = SecureString::new("CorrectHorseBatteryStaple".to_string());
+        assert!(validate_password_entropy(&password).is_ok());
+    }
+
+    #[test]
+    fn test_format_feedback_no_feedback() {
+        // Use a very strong password that likely has no feedback
+        let estimate = zxcvbn::zxcvbn("Tr0ub4dour&3!BatteryStaple", &[]);
+        let feedback = format_feedback(&estimate);
+        // If it has feedback, it should be formatted; if not, default message
+        // This test ensures the function doesn't panic and returns a string
+        assert!(!feedback.is_empty());
+    }
+
+    #[test]
+    fn test_constant_time_eq_equal() {
+        let a = b"test";
+        let b = b"test";
+        assert!(constant_time_eq(a, b));
+    }
+
+    #[test]
+    fn test_constant_time_eq_not_equal() {
+        let a = b"test";
+        let b = b"different";
+        assert!(!constant_time_eq(a, b));
+    }
+
+    #[test]
+    fn test_constant_time_eq_different_lengths() {
+        let a = b"test";
+        let b = b"testing";
+        assert!(!constant_time_eq(a, b));
+    }
+}
