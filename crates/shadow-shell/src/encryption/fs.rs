@@ -19,7 +19,9 @@ pub fn store_encrypted_file(
     encrypted_file: &EncryptedFile,
 ) -> WorkflowResult<()> {
     let mut f = std::fs::File::create(&output_file.path)?;
-    f.write_all(encrypted_file.header().as_bytes().as_slice())?;
+    let serialized_header: Vec<u8> =
+        shadow_core::v1::header_ops::serialize(encrypted_file.header());
+    f.write_all(&serialized_header)?;
     f.write_all(encrypted_file.ciphertext())?;
 
     Ok(())

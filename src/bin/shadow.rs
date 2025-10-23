@@ -16,8 +16,8 @@ fn run() -> Result<(), WorkflowError> {
     let args = parse_cli_args()?;
     let input = validate_input(args)?;
     let password: SecureString = prompt_for_password_with_confirmation(input.weak_password)?;
-    let request = EncryptionInput::new(input.files, password);
-    run_workflow(request)?;
+    let encryption_input = EncryptionInput::new(input.files, password);
+    run_workflow(encryption_input)?;
     Ok(())
 }
 

@@ -46,25 +46,6 @@ impl FileHeader {
             filename_ciphertext,
         }
     }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        bytes.extend_from_slice(&self.magic);
-        bytes.push(self.version);
-        bytes.extend_from_slice(&self.header_length.to_le_bytes());
-        bytes.extend_from_slice(&self.salt);
-        bytes.extend_from_slice(&self.kdf_memory.to_le_bytes());
-        bytes.extend_from_slice(&self.kdf_iterations.to_le_bytes());
-        bytes.extend_from_slice(&self.kdf_parallelism.to_le_bytes());
-        bytes.push(self.kdf_key_length);
-        bytes.extend_from_slice(&self.content_nonce);
-        bytes.extend_from_slice(&self.filename_nonce);
-        bytes.extend_from_slice(&self.filename_ciphertext_length.to_le_bytes());
-        bytes.extend_from_slice(&self.filename_ciphertext);
-
-        bytes
-    }
 }
 
 #[cfg(test)]
