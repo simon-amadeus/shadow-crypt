@@ -3,9 +3,10 @@ use std::process;
 use shadow_shell::{
     SecurityProfile, display_error,
     encryption::{
-        cli::{parse_cli_args, validate_input},
+        cli::{get_security_profile, parse_cli_args},
         file::EncryptionInput,
         password::prompt_for_password_with_confirmation,
+        validation::{ValidEncryptionArgs, validate_input},
         workflow::run_workflow,
     },
     errors::WorkflowError,
@@ -13,17 +14,13 @@ use shadow_shell::{
 };
 
 fn run() -> Result<(), WorkflowError> {
-    let args = parse_cli_args()?;
-    let input = validate_input(args)?;
-    let security_profile = if input.test_mode {
-        SecurityProfile::Test
-    } else {
-        SecurityProfile::Production
-    };
+    let input: ValidEncryptionArgs = parse_cli_args().and_then(validate_input)?;
+    let security_profile: SecurityProfile = get_security_profile(input.test_mode);
     let password: SecureString = prompt_for_password_with_confirmation(&security_profile)?;
-
     let encryption_input = EncryptionInput::new(input.files, password, security_profile);
+
     run_workflow(encryption_input)?;
+
     Ok(())
 }
 

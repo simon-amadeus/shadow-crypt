@@ -4,4 +4,6 @@
 pub mod algorithm;
 pub mod memory;
 pub mod profile;
+pub mod progress;
+pub mod report;
 pub mod v1;

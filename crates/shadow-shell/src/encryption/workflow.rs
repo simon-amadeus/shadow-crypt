@@ -2,11 +2,14 @@ use rayon::prelude::*;
 use shadow_core::{
     algorithm::Algorithm,
     memory::SecureKey,
+    progress::ProgressCounter,
+    report::{EncryptionReport, KeyDerivationReport},
     v1::{
         encryption::encrypt_bytes,
         file::{EncryptedFile, PlaintextFile},
         header::FileHeader,
         key::KeyDerivationParams,
+        key_ops::derive_key,
     },
 };
 
@@ -18,10 +21,7 @@ use crate::{
         salt::generate_salt,
     },
     errors::WorkflowResult,
-    key::{KeyDerivationReport, derive_key},
-    progress::ProgressCounter,
-    report::CryptoReport,
-    ui::{display_key_derivation_report, display_progress, display_report},
+    ui::{display_encryption_report, display_key_derivation_report, display_progress},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
@@ -30,6 +30,7 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
     let params = KeyDerivationParams::from(input.security_profile);
     let (key, report): (SecureKey, KeyDerivationReport) =
         derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
+
     display_key_derivation_report(&report);
 
     let counter = ProgressCounter::new(input.files.len() as u64);
@@ -43,7 +44,7 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
             display_progress(&counter);
             process_file_encryption(input_file.to_owned(), &key, &salt, &params)
         })
-        .for_each(display_report);
+        .for_each(display_encryption_report);
 
     Ok(())
 }
@@ -53,7 +54,7 @@ fn process_file_encryption(
     key: &SecureKey,
     salt: &[u8; 16],
     kdf_params: &KeyDerivationParams,
-) -> WorkflowResult<CryptoReport> {
+) -> WorkflowResult<EncryptionReport> {
     let start_time = std::time::Instant::now();
 
     let input_file: InputFile = file;
@@ -88,7 +89,7 @@ fn process_file_encryption(
 
     let duration = start_time.elapsed();
 
-    Ok(CryptoReport::new(
+    Ok(EncryptionReport::new(
         input_file.filename,
         output_file.filename,
         duration,

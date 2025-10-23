@@ -1,11 +1,10 @@
 use colored::Colorize;
-
-use crate::{
-    errors::{WorkflowError, WorkflowResult},
-    key::KeyDerivationReport,
+use shadow_core::{
     progress::ProgressCounter,
-    report::CryptoReport,
+    report::{EncryptionReport, KeyDerivationReport},
 };
+
+use crate::errors::{WorkflowError, WorkflowResult};
 
 pub fn display_progress(counter: &ProgressCounter) {
     println!(
@@ -23,11 +22,11 @@ pub fn display_error(error: WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }
 
-pub fn display_report(result: WorkflowResult<CryptoReport>) {
+pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
     match result {
         Ok(report) => {
             let msg = format!(
-                "Processed '{}' -> '{}' in {:#?} using {}",
+                "Encrypted '{}' -> '{}' in {:#?} using {}",
                 report.input_filename, report.output_filename, report.duration, report.algorithm
             );
             display_success(&msg);

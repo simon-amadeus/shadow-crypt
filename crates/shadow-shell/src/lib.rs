@@ -6,9 +6,6 @@
 
 pub mod encryption;
 pub mod errors;
-pub mod key;
-pub mod progress;
-pub mod report;
 pub mod ui;
 
 // Re-export commonly used items

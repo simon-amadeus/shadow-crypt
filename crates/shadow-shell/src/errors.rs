@@ -1,4 +1,4 @@
-use shadow_core::v1::encryption::EncryptionError;
+use shadow_core::v1::{encryption::EncryptionError, key_ops::KeyDerivationError};
 use std::io;
 use thiserror::Error;
 
@@ -20,7 +20,7 @@ pub enum WorkflowError {
     Io(#[from] io::Error),
 
     #[error("Key derivation error: {0}")]
-    KeyDerivation(String),
+    KeyDerivation(#[from] KeyDerivationError),
 
     #[error("Salt generation error: {0}")]
     SaltGeneration(String),

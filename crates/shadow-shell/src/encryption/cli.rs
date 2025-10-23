@@ -1,25 +1,13 @@
-// shadow-shell/src/encryption/cli.rs
-// CLI argument parsing for encryption operations
-// Side effects: parses command line arguments
-
 use clap::{Arg, ArgMatches, Command};
-use std::path::PathBuf;
+use shadow_core::profile::SecurityProfile;
 
-use crate::{
-    encryption::file::InputFile,
-    errors::{WorkflowError, WorkflowResult},
-};
+use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
 pub struct CliArgs {
     pub input_files: Vec<String>,
     pub test_mode: bool, // If true, use SecurityProfile::Test
-}
-
-pub struct ValidEncryptionArgs {
-    pub files: Vec<InputFile>,
-    pub test_mode: bool,
 }
 
 /// Parse encryption command line arguments
@@ -65,55 +53,10 @@ impl CliArgs {
     }
 }
 
-pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
-    let mut files = Vec::new();
-
-    if input.input_files.is_empty() {
-        return Err(WorkflowError::UserInput(
-            "No input files provided".to_string(),
-        ));
+pub fn get_security_profile(test_mode: bool) -> SecurityProfile {
+    if test_mode {
+        SecurityProfile::Test
+    } else {
+        SecurityProfile::Production
     }
-
-    for file_str in input.input_files {
-        let path = PathBuf::from(file_str);
-        if !path.exists() {
-            return Err(WorkflowError::UserInput(format!(
-                "Input file does not exist: {}",
-                path.display()
-            )));
-        }
-        if !path.is_file() {
-            return Err(WorkflowError::UserInput(format!(
-                "Input path is not a file: {}",
-                path.display()
-            )));
-        }
-        let name: String = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .ok_or_else(|| {
-                WorkflowError::UserInput(format!("Invalid filename for path: {}", path.display()))
-            })?
-            .to_string();
-        let size: u64 = path
-            .metadata()
-            .map_err(|_| {
-                WorkflowError::UserInput(format!(
-                    "Unable to read metadata for file: {}",
-                    path.display()
-                ))
-            })?
-            .len();
-
-        files.push(InputFile {
-            path,
-            filename: name,
-            size,
-        });
-    }
-
-    Ok(ValidEncryptionArgs {
-        files,
-        test_mode: input.test_mode,
-    })
 }
