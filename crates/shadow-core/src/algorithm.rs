@@ -12,3 +12,16 @@ impl Display for Algorithm {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_algorithm_display() {
+        assert_eq!(
+            format!("{}", Algorithm::XChaCha20Poly1305),
+            "XChaCha20-Poly1305"
+        );
+    }
+}

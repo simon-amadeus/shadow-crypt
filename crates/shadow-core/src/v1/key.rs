@@ -65,4 +65,15 @@ mod tests {
         assert_eq!(test.parallelism, 1);
         assert_eq!(test.key_size, 32);
     }
+
+    #[test]
+    fn test_from_security_profile() {
+        let prod_params: KeyDerivationParams = SecurityProfile::Production.into();
+        let expected_prod = KeyDerivationParams::production_defaults();
+        assert_eq!(prod_params, expected_prod);
+
+        let test_params: KeyDerivationParams = SecurityProfile::Test.into();
+        let expected_test = KeyDerivationParams::test_defaults();
+        assert_eq!(test_params, expected_test);
+    }
 }
