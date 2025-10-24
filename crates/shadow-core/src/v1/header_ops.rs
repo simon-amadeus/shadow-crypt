@@ -36,6 +36,13 @@ fn get_magic_from_bytes(bytes: &[u8]) -> Result<[u8; 6], HeaderError> {
     Ok(magic)
 }
 
+pub fn get_version_from_bytes(bytes: &[u8]) -> Result<u8, HeaderError> {
+    if bytes.len() < 7 {
+        return Err(HeaderError::InsufficientBytes);
+    }
+    Ok(bytes[6])
+}
+
 fn get_length_from_bytes(bytes: &[u8]) -> Result<u32, HeaderError> {
     if bytes.len() < 11 {
         return Err(HeaderError::InsufficientBytes);

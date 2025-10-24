@@ -11,55 +11,77 @@ pub struct ValidEncryptionArgs {
 }
 
 pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
-    let mut files = Vec::new();
+    ensure_not_empty(&input)?;
 
+    let validated_files: Vec<InputFile> = input
+        .input_files
+        .iter()
+        .map(PathBuf::from)
+        .map(ensure_exists)
+        .map(ensure_is_regular_file)
+        .map(create_input_file)
+        .collect::<WorkflowResult<Vec<InputFile>>>()?;
+
+    Ok(ValidEncryptionArgs {
+        files: validated_files,
+        test_mode: input.test_mode,
+    })
+}
+
+fn ensure_not_empty(input: &CliArgs) -> WorkflowResult<()> {
     if input.input_files.is_empty() {
         return Err(WorkflowError::UserInput(
             "No input files provided".to_string(),
         ));
     }
+    Ok(())
+}
 
-    for file_str in input.input_files {
-        let path = PathBuf::from(file_str);
-        if !path.exists() {
-            return Err(WorkflowError::UserInput(format!(
-                "Input file does not exist: {}",
-                path.display()
-            )));
-        }
+fn ensure_exists(path: PathBuf) -> WorkflowResult<PathBuf> {
+    if !path.exists() {
+        return Err(WorkflowError::UserInput(format!(
+            "Input file does not exist: {}",
+            path.display()
+        )));
+    }
+    Ok(path)
+}
+
+fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
+    if let Ok(path) = &path {
         if !path.is_file() {
             return Err(WorkflowError::UserInput(format!(
                 "Input path is not a file: {}",
                 path.display()
             )));
         }
-        let name: String = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .ok_or_else(|| {
-                WorkflowError::UserInput(format!("Invalid filename for path: {}", path.display()))
-            })?
-            .to_string();
-        let size: u64 = path
-            .metadata()
-            .map_err(|_| {
-                WorkflowError::UserInput(format!(
-                    "Unable to read metadata for file: {}",
-                    path.display()
-                ))
-            })?
-            .len();
-
-        files.push(InputFile {
-            path,
-            filename: name,
-            size,
-        });
     }
+    path
+}
 
-    Ok(ValidEncryptionArgs {
-        files,
-        test_mode: input.test_mode,
+fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<InputFile> {
+    let path = path?;
+    let name: String = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .ok_or_else(|| {
+            WorkflowError::UserInput(format!("Invalid filename for path: {}", path.display()))
+        })?
+        .to_string();
+    let size: u64 = path
+        .metadata()
+        .map_err(|_| {
+            WorkflowError::UserInput(format!(
+                "Unable to read metadata for file: {}",
+                path.display()
+            ))
+        })?
+        .len();
+
+    Ok(InputFile {
+        path,
+        filename: name,
+        size,
     })
 }
 
