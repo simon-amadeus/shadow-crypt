@@ -30,10 +30,10 @@ impl KeyDerivationParams {
 
     fn test_defaults() -> Self {
         Self {
-            memory_cost: 64 * 1024, // 65,536 KiB (64 MiB)
-            time_cost: 1,           // 1 iteration
-            parallelism: 1,         // 1 thread
-            key_size: 32,           // 32 bytes (256 bits)
+            memory_cost: 1 * 1024, // 1,024 KiB (1 MiB)
+            time_cost: 1,          // 1 iteration
+            parallelism: 1,        // 1 thread
+            key_size: 32,          // 32 bytes (256 bits)
         }
     }
 }
@@ -60,7 +60,7 @@ mod tests {
         assert_eq!(prod.key_size, 32);
 
         let test = KeyDerivationParams::test_defaults();
-        assert_eq!(test.memory_cost, 64 * 1024);
+        assert_eq!(test.memory_cost, 1 * 1024);
         assert_eq!(test.time_cost, 1);
         assert_eq!(test.parallelism, 1);
         assert_eq!(test.key_size, 32);
