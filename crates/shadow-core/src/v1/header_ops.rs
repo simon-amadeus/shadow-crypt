@@ -43,7 +43,7 @@ pub fn get_version_from_bytes(bytes: &[u8]) -> Result<u8, HeaderError> {
     Ok(bytes[6])
 }
 
-fn get_length_from_bytes(bytes: &[u8]) -> Result<u32, HeaderError> {
+pub fn get_length_from_bytes(bytes: &[u8]) -> Result<u32, HeaderError> {
     if bytes.len() < 11 {
         return Err(HeaderError::InsufficientBytes);
     }

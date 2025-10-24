@@ -8,7 +8,7 @@ use shadow_core::{
 use crate::{
     decryption::{cli::DecryptionCliArgs, file::DecryptionInputFile},
     errors::{WorkflowError, WorkflowResult},
-    shared_file_ops::read_n_bytes_from_file,
+    utils::read_n_bytes_from_file,
 };
 
 #[derive(Debug)]

@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use shadow_core::version::Version;
+
 use crate::memory::SecureString;
 
 pub struct ListingInput {
@@ -12,11 +14,53 @@ impl ListingInput {
     }
 }
 
+#[derive(Debug)]
 pub struct ShadowFile {
     pub path: PathBuf,
+    pub filename: String,
+    pub version: Version,
+    /// Size of the file in bytes
+    pub size: u64,
 }
 impl ShadowFile {
-    pub fn new(path: PathBuf) -> Self {
-        Self { path }
+    pub fn new(path: PathBuf, filename: String, version: Version, size: u64) -> Self {
+        Self {
+            path,
+            filename,
+            version,
+            size,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ShadowFileInfo {
+    pub original_filename: Option<SecureString>,
+    pub obfuscated_filename: String,
+    pub version: Version,
+    pub size: u64,
+}
+impl ShadowFileInfo {
+    pub fn new(
+        original_filename: Option<SecureString>,
+        obfuscated_filename: String,
+        version: Version,
+        size: u64,
+    ) -> Self {
+        Self {
+            original_filename,
+            obfuscated_filename,
+            version,
+            size,
+        }
+    }
+}
+
+pub struct FileInfoList {
+    pub items: Vec<ShadowFileInfo>,
+}
+impl FileInfoList {
+    pub fn new(items: Vec<ShadowFileInfo>) -> Self {
+        Self { items }
     }
 }

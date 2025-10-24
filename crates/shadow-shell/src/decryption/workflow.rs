@@ -18,8 +18,9 @@ use crate::{
         file::{DecryptionInput, DecryptionInputFile, DecryptionOutputFile},
         file_ops::{load_encrypted_file, store_plaintext_file},
     },
-    errors::{WorkflowError, WorkflowResult},
+    errors::WorkflowResult,
     ui::{display_decryption_report, display_progress},
+    utils::parse_string_from_bytes,
 };
 
 pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
@@ -80,37 +81,4 @@ fn process_file_decryption(
         duration,
         algorithm,
     ))
-}
-
-fn parse_string_from_bytes(bytes: &SecureBytes) -> WorkflowResult<SecureString> {
-    match String::from_utf8(bytes.as_slice().to_vec()) {
-        Ok(s) => Ok(SecureString::new(s)),
-        Err(_) => Err(WorkflowError::Decryption(
-            "Failed to decode string from bytes".to_string(),
-        )),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_string_from_bytes_valid() {
-        let input_bytes = SecureBytes::new(b"test_filename.txt".to_vec());
-        let result = parse_string_from_bytes(&input_bytes).unwrap();
-        assert_eq!(result.as_str(), "test_filename.txt");
-    }
-
-    #[test]
-    fn test_parse_string_from_bytes_invalid() {
-        let input_bytes = SecureBytes::new(vec![0xff, 0xfe, 0xfd]);
-        let result = parse_string_from_bytes(&input_bytes);
-        assert!(result.is_err());
-        if let Err(WorkflowError::Decryption(msg)) = result {
-            assert_eq!(msg, "Failed to decode string from bytes");
-        } else {
-            panic!("Expected Decryption error");
-        }
-    }
 }

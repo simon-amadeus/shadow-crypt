@@ -45,7 +45,7 @@ pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<Encrypt
 
 #[cfg(test)]
 mod tests {
-    use crate::shared_file_ops::read_n_bytes_from_file;
+    use crate::utils::read_n_bytes_from_file;
 
     use super::*;
     use shadow_core::memory::{SecureBytes, SecureString};

@@ -1,116 +1,66 @@
+use std::sync::Arc;
+
 use rayon::prelude::*;
 use shadow_core::{
-    algorithm::Algorithm,
     memory::{SecureBytes, SecureKey, SecureString},
-    progress::ProgressCounter,
-    report::{DecryptionReport, KeyDerivationReport},
     v1::{
-        crypt::decrypt_bytes,
-        file::{EncryptedFile, PlaintextFile},
-        header_ops::get_kdf_params,
-        key::KeyDerivationParams,
-        key_ops::derive_key,
+        crypt::decrypt_bytes, header::FileHeader, header_ops::get_kdf_params,
+        key::KeyDerivationParams, key_ops::derive_key,
     },
 };
 
 use crate::{
-    decryption::{
-        file::{DecryptionInput, DecryptionInputFile, DecryptionOutputFile},
-        file_ops::{load_encrypted_file, store_plaintext_file},
+    errors::WorkflowResult,
+    listing::{
+        file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
+        file_ops::{load_file_header, scan_directory_for_shadow_files},
     },
-    errors::{WorkflowError, WorkflowResult},
-    ui::{display_decryption_report, display_progress},
+    utils::parse_string_from_bytes,
 };
 
-pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
-    let counter = ProgressCounter::new(input.files.len() as u64);
+pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
+    let shadow_files: Vec<ShadowFile> = scan_directory_for_shadow_files(&input.work_dir)?;
+    let password = Arc::new(input.password);
 
     // Process files in parallel using rayon
-    input
-        .files
+    let file_infos: Vec<ShadowFileInfo> = shadow_files
         .par_iter()
-        .map(|input_file| {
-            counter.increment();
-            display_progress(&counter);
-            process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir)
-        })
-        .for_each(display_decryption_report);
+        .map(|shadow_file| get_shadow_file_info(shadow_file, &password))
+        .filter_map(Result::ok)
+        .collect();
 
+    let _info_list: FileInfoList = FileInfoList::new(file_infos);
+
+    // TODO: ui::display_file_info_list(&info_list);
     Ok(())
 }
 
-fn process_file_decryption(
-    file: DecryptionInputFile,
+fn decipher_original_filename(header: FileHeader, password: &SecureString) -> Option<SecureString> {
+    let filename_nonce: &[u8; 24] = &header.filename_nonce;
+    let filename_ciphertext: &[u8] = header.filename_ciphertext.as_slice();
+
+    let salt: &[u8; 16] = &header.salt;
+    let kdf_params: KeyDerivationParams = get_kdf_params(&header);
+    let (key, _): (SecureKey, _) =
+        derive_key(password.as_str().as_bytes(), salt, &kdf_params).ok()?;
+
+    let (filename_bytes, _): (SecureBytes, _) =
+        decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce).ok()?;
+
+    parse_string_from_bytes(&filename_bytes).ok()
+}
+
+fn get_shadow_file_info(
+    shadow_file: &ShadowFile,
     password: &SecureString,
-    output_dir: &std::path::Path,
-) -> WorkflowResult<DecryptionReport> {
-    let start_time = std::time::Instant::now();
+) -> WorkflowResult<ShadowFileInfo> {
+    let header = load_file_header(shadow_file)?;
+    let original_filename: Option<SecureString> = decipher_original_filename(header, password);
 
-    let input_file: DecryptionInputFile = file;
-
-    let encrypted_file: EncryptedFile = load_encrypted_file(&input_file)?;
-
-    let filename_nonce: &[u8; 24] = &encrypted_file.header().filename_nonce;
-    let filename_ciphertext: &[u8] = &encrypted_file.header().filename_ciphertext;
-
-    let content_nonce: &[u8; 24] = &encrypted_file.header().content_nonce;
-    let content_ciphertext: &[u8] = encrypted_file.ciphertext();
-
-    let salt: &[u8; 16] = &encrypted_file.header().salt;
-    let kdf_params: KeyDerivationParams = get_kdf_params(encrypted_file.header());
-    let (key, _kdf_report): (SecureKey, KeyDerivationReport) =
-        derive_key(password.as_str().as_bytes(), salt, &kdf_params)?;
-
-    let (filename_bytes, algorithm): (SecureBytes, Algorithm) =
-        decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce)?;
-
-    let filename: SecureString = parse_string_from_bytes(&filename_bytes)?;
-
-    let (content_bytes, _algorithm): (SecureBytes, Algorithm) =
-        decrypt_bytes(content_ciphertext, key.as_bytes(), content_nonce)?;
-
-    let plaintext_file = PlaintextFile::new(filename.clone(), content_bytes);
-    let output_file: DecryptionOutputFile = store_plaintext_file(&plaintext_file, output_dir)?;
-
-    let duration = start_time.elapsed();
-
-    Ok(DecryptionReport::new(
-        input_file.filename,
-        output_file.filename,
-        duration,
-        algorithm,
+    Ok(ShadowFileInfo::new(
+        original_filename,
+        shadow_file.filename.clone(),
+        shadow_file.version.clone(),
+        shadow_file.size,
     ))
-}
-
-fn parse_string_from_bytes(bytes: &SecureBytes) -> WorkflowResult<SecureString> {
-    match String::from_utf8(bytes.as_slice().to_vec()) {
-        Ok(s) => Ok(SecureString::new(s)),
-        Err(_) => Err(WorkflowError::Decryption(
-            "Failed to decode string from bytes".to_string(),
-        )),
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_string_from_bytes_valid() {
-        let input_bytes = SecureBytes::new(b"test_filename.txt".to_vec());
-        let result = parse_string_from_bytes(&input_bytes).unwrap();
-        assert_eq!(result.as_str(), "test_filename.txt");
-    }
-
-    #[test]
-    fn test_parse_string_from_bytes_invalid() {
-        let input_bytes = SecureBytes::new(vec![0xff, 0xfe, 0xfd]);
-        let result = parse_string_from_bytes(&input_bytes);
-        assert!(result.is_err());
-        if let Err(WorkflowError::Decryption(msg)) = result {
-            assert_eq!(msg, "Failed to decode string from bytes");
-        } else {
-            panic!("Expected Decryption error");
-        }
-    }
 }

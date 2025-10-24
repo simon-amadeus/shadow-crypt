@@ -9,8 +9,8 @@ pub mod encryption;
 pub mod errors;
 pub mod listing;
 pub mod password;
-pub mod shared_file_ops;
 pub mod ui;
+pub mod utils;
 
 // Re-export commonly used items
 pub use shadow_core::memory;
