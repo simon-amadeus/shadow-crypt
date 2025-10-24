@@ -1,7 +1,7 @@
 use crate::errors::{WorkflowError, WorkflowResult};
 use clap::{Arg, Command};
 
-/// Encryption CLI arguments structure
+/// Decryption CLI arguments structure
 #[derive(Debug, Clone)]
 pub struct DecryptionCliArgs {
     pub input_files: Vec<String>,
@@ -10,7 +10,7 @@ pub struct DecryptionCliArgs {
 /// Parse encryption command line arguments
 pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<DecryptionCliArgs> {
     let cmd = || {
-        Command::new("shadow").about("Decrypt shadow files").arg(
+        Command::new("unshadow").about("Decrypt shadow files").arg(
             Arg::new("files")
                 .help("Input files to decrypt")
                 .required(false)
@@ -43,7 +43,7 @@ mod tests {
     #[test]
     fn test_parse_cli_args_with_files() {
         let args = vec![
-            "shadow".to_string(),
+            "unshadow".to_string(),
             "file1.txt".to_string(),
             "file2.txt".to_string(),
         ];
@@ -55,15 +55,15 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_cli_args_with_test_mode() {
-        let args = vec!["shadow".to_string(), "file1.txt".to_string()];
+    fn test_parse_cli_args_with_single_file() {
+        let args = vec!["unshadow".to_string(), "file1.txt".to_string()];
         let cli_args = get_cli_args(args).unwrap();
         assert_eq!(cli_args.input_files, vec!["file1.txt".to_string()]);
     }
 
     #[test]
     fn test_parse_cli_args_no_files() {
-        let args = vec!["shadow".to_string()];
+        let args = vec!["unshadow".to_string()];
         let result = get_cli_args(args);
         assert!(result.is_err());
         if let Err(WorkflowError::UserInput(msg)) = result {
@@ -71,5 +71,13 @@ mod tests {
         } else {
             panic!("Expected UserInput error");
         }
+    }
+
+    #[test]
+    fn test_parse_cli_args_help() {
+        let args = vec!["unshadow".to_string(), "--help".to_string()];
+        let result = get_cli_args(args);
+        assert!(result.is_err());
+        // Clap handles --help by returning an error
     }
 }
