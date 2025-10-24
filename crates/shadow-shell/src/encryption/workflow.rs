@@ -42,7 +42,13 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
         .map(|input_file| {
             counter.increment();
             display_progress(&counter);
-            process_file_encryption(input_file.to_owned(), &key, &salt, &params)
+            process_file_encryption(
+                input_file.to_owned(),
+                &key,
+                &salt,
+                &params,
+                &input.output_dir,
+            )
         })
         .for_each(display_encryption_report);
 
@@ -54,6 +60,7 @@ fn process_file_encryption(
     key: &SecureKey,
     salt: &[u8; 16],
     kdf_params: &KeyDerivationParams,
+    output_dir: &std::path::Path,
 ) -> WorkflowResult<EncryptionReport> {
     let start_time = std::time::Instant::now();
 
@@ -85,7 +92,7 @@ fn process_file_encryption(
 
     let encrypted_file = EncryptedFile::new(header, content_ciphertext);
 
-    let output_file: EncryptionOutputFile = store_encrypted_file(&encrypted_file)?;
+    let output_file: EncryptionOutputFile = store_encrypted_file(&encrypted_file, output_dir)?;
 
     let duration = start_time.elapsed();
 

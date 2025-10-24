@@ -32,7 +32,7 @@ pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
         .map(|input_file| {
             counter.increment();
             display_progress(&counter);
-            process_file_decryption(input_file.to_owned(), &input.password)
+            process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir)
         })
         .for_each(display_decryption_report);
 
@@ -42,6 +42,7 @@ pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
 fn process_file_decryption(
     file: DecryptionInputFile,
     password: &SecureString,
+    output_dir: &std::path::Path,
 ) -> WorkflowResult<DecryptionReport> {
     let start_time = std::time::Instant::now();
 
@@ -69,7 +70,7 @@ fn process_file_decryption(
         decrypt_bytes(content_ciphertext, key.as_bytes(), content_nonce)?;
 
     let plaintext_file = PlaintextFile::new(filename.clone(), content_bytes);
-    let output_file: DecryptionOutputFile = store_plaintext_file(&plaintext_file)?;
+    let output_file: DecryptionOutputFile = store_plaintext_file(&plaintext_file, output_dir)?;
 
     let duration = start_time.elapsed();
 

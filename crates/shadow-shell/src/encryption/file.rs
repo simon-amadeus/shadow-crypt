@@ -15,17 +15,20 @@ pub struct EncryptionInput {
     pub files: Vec<EncryptionInputFile>,
     pub password: SecureString,
     pub security_profile: SecurityProfile,
+    pub output_dir: PathBuf,
 }
 impl EncryptionInput {
     pub fn new(
         files: Vec<EncryptionInputFile>,
         password: SecureString,
         security_profile: SecurityProfile,
+        output_dir: PathBuf,
     ) -> Self {
         Self {
             files,
             password,
             security_profile,
+            output_dir,
         }
     }
 }

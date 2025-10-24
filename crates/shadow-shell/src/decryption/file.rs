@@ -12,10 +12,19 @@ pub struct DecryptionInputFile {
 pub struct DecryptionInput {
     pub files: Vec<DecryptionInputFile>,
     pub password: SecureString,
+    pub output_dir: PathBuf,
 }
 impl DecryptionInput {
-    pub fn new(files: Vec<DecryptionInputFile>, password: SecureString) -> Self {
-        Self { files, password }
+    pub fn new(
+        files: Vec<DecryptionInputFile>,
+        password: SecureString,
+        output_dir: PathBuf,
+    ) -> Self {
+        Self {
+            files,
+            password,
+            output_dir,
+        }
     }
 }
 

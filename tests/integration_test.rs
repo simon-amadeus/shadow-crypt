@@ -45,8 +45,12 @@ fn test_encrypt_decrypt_round_trip() {
 
         // Create encryption input
         let password = SecureString::new("testpassword".to_string());
-        let encryption_input =
-            EncryptionInput::new(valid_args.files, password, SecurityProfile::Test);
+        let encryption_input = EncryptionInput::new(
+            valid_args.files,
+            password,
+            SecurityProfile::Test,
+            temp_dir.path().to_path_buf(),
+        );
 
         // Run encryption
         run_encryption_workflow(encryption_input).unwrap();
@@ -74,7 +78,11 @@ fn test_encrypt_decrypt_round_trip() {
 
         // Create decryption input
         let decrypt_password = SecureString::new("testpassword".to_string());
-        let decryption_input = DecryptionInput::new(valid_decrypt_args.files, decrypt_password);
+        let decryption_input = DecryptionInput::new(
+            valid_decrypt_args.files,
+            decrypt_password,
+            temp_dir.path().to_path_buf(),
+        );
 
         // Run decryption
         run_decryption_workflow(decryption_input).unwrap();
@@ -124,8 +132,12 @@ fn test_filename_is_encrypted_in_header() {
 
         // Create encryption input
         let password = SecureString::new("testpassword".to_string());
-        let encryption_input =
-            EncryptionInput::new(valid_args.files, password, SecurityProfile::Test);
+        let encryption_input = EncryptionInput::new(
+            valid_args.files,
+            password,
+            SecurityProfile::Test,
+            temp_dir.path().to_path_buf(),
+        );
 
         // Run encryption
         run_encryption_workflow(encryption_input).unwrap();
@@ -198,8 +210,12 @@ fn test_content_is_encrypted_in_file() {
 
         // Create encryption input
         let password = SecureString::new("testpassword".to_string());
-        let encryption_input =
-            EncryptionInput::new(valid_args.files, password, SecurityProfile::Test);
+        let encryption_input = EncryptionInput::new(
+            valid_args.files,
+            password,
+            SecurityProfile::Test,
+            temp_dir.path().to_path_buf(),
+        );
 
         // Run encryption
         run_encryption_workflow(encryption_input).unwrap();

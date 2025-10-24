@@ -17,8 +17,9 @@ fn run() -> Result<(), WorkflowError> {
     let input: ValidDecryptionArgs =
         get_cli_args(std::env::args().collect()).and_then(validate_input)?;
     let password: SecureString = prompt_for_password()?;
+    let output_dir = std::env::current_dir()?;
 
-    run_workflow(DecryptionInput::new(input.files, password))?;
+    run_workflow(DecryptionInput::new(input.files, password, output_dir))?;
 
     Ok(())
 }

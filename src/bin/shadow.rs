@@ -18,7 +18,9 @@ fn run() -> Result<(), WorkflowError> {
         get_cli_args(std::env::args().collect()).and_then(validate_input)?;
     let security_profile: SecurityProfile = get_security_profile(input.test_mode);
     let password: SecureString = prompt_for_password_with_confirmation(&security_profile)?;
-    let encryption_input = EncryptionInput::new(input.files, password, security_profile);
+    let output_dir = std::env::current_dir()?;
+    let encryption_input =
+        EncryptionInput::new(input.files, password, security_profile, output_dir);
 
     run_workflow(encryption_input)?;
 

@@ -21,9 +21,12 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
     Ok(SecureBytes::new(buffer))
 }
 
-pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<DecryptionOutputFile> {
+pub fn store_plaintext_file(
+    file: &PlaintextFile,
+    output_dir: &std::path::Path,
+) -> WorkflowResult<DecryptionOutputFile> {
     let output_file = DecryptionOutputFile {
-        path: std::env::current_dir()?.join(file.filename().as_str()),
+        path: output_dir.join(file.filename().as_str()),
         filename: file.filename().as_str().to_string(),
     };
 
@@ -89,7 +92,7 @@ mod tests {
         let content = SecureBytes::new(b"test content".to_vec());
         let plaintext = PlaintextFile::new(filename, content);
 
-        let output = store_plaintext_file(&plaintext).unwrap();
+        let output = store_plaintext_file(&plaintext, &std::env::current_dir().unwrap()).unwrap();
         assert_eq!(output.filename, "test.txt");
 
         let read_content = fs::read(&output.path).unwrap();
@@ -115,7 +118,7 @@ mod tests {
         let existing_content = b"existing content";
         std::fs::write(&output_path, existing_content).unwrap();
 
-        let result = store_plaintext_file(&plaintext);
+        let result = store_plaintext_file(&plaintext, temp_dir.path());
         assert!(result.is_err());
         if let Err(WorkflowError::File(msg)) = result {
             assert!(msg.contains("already exists"));

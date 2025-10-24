@@ -16,8 +16,9 @@ use crate::{
 
 pub fn store_encrypted_file(
     encrypted_file: &EncryptedFile,
+    output_dir: &std::path::Path,
 ) -> WorkflowResult<EncryptionOutputFile> {
-    let output_file = create_encryption_output_file()?;
+    let output_file = create_encryption_output_file(output_dir)?;
     let mut f = std::fs::File::create(&output_file.path)?;
     let serialized_header: Vec<u8> =
         shadow_core::v1::header_ops::serialize(encrypted_file.header());
@@ -48,7 +49,9 @@ fn generate_output_filename() -> WorkflowResult<String> {
     Ok(Alphabetic.sample_string(&mut rng, len))
 }
 
-fn create_encryption_output_file() -> WorkflowResult<EncryptionOutputFile> {
+fn create_encryption_output_file(
+    output_dir: &std::path::Path,
+) -> WorkflowResult<EncryptionOutputFile> {
     let mut counter = 0;
     loop {
         let base = generate_output_filename()?;
@@ -61,7 +64,7 @@ fn create_encryption_output_file() -> WorkflowResult<EncryptionOutputFile> {
         let mut path = PathBuf::from(&filename);
         path.set_extension("shadow");
 
-        let full_path = std::env::current_dir()?.join(&path);
+        let full_path = output_dir.join(&path);
 
         if !full_path.exists() {
             let filename_str = path
@@ -165,22 +168,10 @@ mod tests {
     fn test_store_encrypted_file() {
         // Create temp directory for isolated testing
         let temp_dir = TempDir::new().unwrap();
-        let original_dir = std::env::current_dir().unwrap();
-
-        // Temporarily change to temp directory - this is necessary because
-        // store_encrypted_file uses current_dir() internally
-        if let Err(e) = std::env::set_current_dir(&temp_dir) {
-            // If we can't change directory, skip the test
-            eprintln!(
-                "Skipping test_store_encrypted_file: cannot change directory: {}",
-                e
-            );
-            return;
-        }
 
         let result = (|| -> Result<(), Box<dyn std::error::Error>> {
             let encrypted_file = create_test_encrypted_file();
-            let output_file = store_encrypted_file(&encrypted_file)?;
+            let output_file = store_encrypted_file(&encrypted_file, temp_dir.path())?;
 
             // Check file was created in temp directory
             assert!(output_file.path.exists());
@@ -198,9 +189,6 @@ mod tests {
             assert_eq!(written_content, expected_content);
             Ok(())
         })();
-
-        // Always restore original directory, even if test failed
-        let _ = std::env::set_current_dir(original_dir);
 
         // Propagate any test failure
         result.unwrap();
