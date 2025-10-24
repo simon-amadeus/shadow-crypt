@@ -9,7 +9,7 @@ use shadow_core::{
 };
 
 use crate::{
-    encryption::file::{InputFile, OutputFile},
+    encryption::file::{EncryptionInputFile, EncryptionOutputFile},
     errors::WorkflowResult,
 };
 
@@ -21,8 +21,8 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
     Ok(SecureBytes::new(buffer))
 }
 
-pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<OutputFile> {
-    let output_file = OutputFile {
+pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<EncryptionOutputFile> {
+    let output_file = EncryptionOutputFile {
         path: std::env::current_dir()?.join(file.filename()),
         filename: file.filename().to_string(),
     };
@@ -33,7 +33,7 @@ pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<OutputFile> 
     Ok(output_file)
 }
 
-pub fn load_encrypted_file(file: &InputFile) -> WorkflowResult<EncryptedFile> {
+pub fn load_encrypted_file(file: &EncryptionInputFile) -> WorkflowResult<EncryptedFile> {
     let size: usize = file.size as usize;
 
     let mut f = std::fs::File::open(&file.path)?;

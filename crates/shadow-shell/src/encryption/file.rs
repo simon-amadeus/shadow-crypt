@@ -5,20 +5,20 @@ use shadow_core::profile::SecurityProfile;
 use crate::memory::SecureString;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct InputFile {
+pub struct EncryptionInputFile {
     pub path: PathBuf,
     pub filename: String,
     pub size: u64,
 }
 
 pub struct EncryptionInput {
-    pub files: Vec<InputFile>,
+    pub files: Vec<EncryptionInputFile>,
     pub password: SecureString,
     pub security_profile: SecurityProfile,
 }
 impl EncryptionInput {
     pub fn new(
-        files: Vec<InputFile>,
+        files: Vec<EncryptionInputFile>,
         password: SecureString,
         security_profile: SecurityProfile,
     ) -> Self {
@@ -30,7 +30,7 @@ impl EncryptionInput {
     }
 }
 
-pub struct OutputFile {
+pub struct EncryptionOutputFile {
     pub path: PathBuf,
     pub filename: String,
 }

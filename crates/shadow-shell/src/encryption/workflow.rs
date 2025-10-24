@@ -15,7 +15,7 @@ use shadow_core::{
 
 use crate::{
     encryption::{
-        file::{EncryptionInput, InputFile, OutputFile},
+        file::{EncryptionInput, EncryptionInputFile, EncryptionOutputFile},
         file_ops::{load_file, store_encrypted_file},
         nonce::generate_nonce,
         salt::generate_salt,
@@ -50,14 +50,14 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
 }
 
 fn process_file_encryption(
-    file: InputFile,
+    file: EncryptionInputFile,
     key: &SecureKey,
     salt: &[u8; 16],
     kdf_params: &KeyDerivationParams,
 ) -> WorkflowResult<EncryptionReport> {
     let start_time = std::time::Instant::now();
 
-    let input_file: InputFile = file;
+    let input_file: EncryptionInputFile = file;
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;
@@ -85,7 +85,7 @@ fn process_file_encryption(
 
     let encrypted_file = EncryptedFile::new(header, content_ciphertext);
 
-    let output_file: OutputFile = store_encrypted_file(&encrypted_file)?;
+    let output_file: EncryptionOutputFile = store_encrypted_file(&encrypted_file)?;
 
     let duration = start_time.elapsed();
 

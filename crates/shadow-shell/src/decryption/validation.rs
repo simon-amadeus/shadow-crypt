@@ -7,27 +7,27 @@ use shadow_core::{
 
 use crate::{
     decryption::file_ops::read_n_bytes_from_file,
-    encryption::{cli::CliArgs, file::InputFile},
+    encryption::{cli::CliArgs, file::EncryptionInputFile},
     errors::{WorkflowError, WorkflowResult},
 };
 
 pub struct ValidDecryptionArgs {
-    pub files: Vec<InputFile>,
+    pub files: Vec<EncryptionInputFile>,
 }
 
 pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidDecryptionArgs> {
     ensure_not_empty(&input)?;
 
-    let validated_files: Vec<InputFile> = input
+    let validated_files: Vec<EncryptionInputFile> = input
         .input_files
         .iter()
         .map(PathBuf::from)
         .map(ensure_exists)
         .map(ensure_is_regular_file)
-        .map(ensure_is_shadow_file)
+        .map(ensure_is_encrypted_shadow_file)
         .map(ensure_version_supported)
         .map(create_input_file)
-        .collect::<WorkflowResult<Vec<InputFile>>>()?;
+        .collect::<WorkflowResult<Vec<EncryptionInputFile>>>()?;
 
     Ok(ValidDecryptionArgs {
         files: validated_files,
@@ -65,7 +65,7 @@ fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathB
     path
 }
 
-fn ensure_is_shadow_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
+fn ensure_is_encrypted_shadow_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
     let path = path?;
     let first_bytes = read_n_bytes_from_file(&path, 10)?;
     if !is_shadow_file(first_bytes.as_slice())? {
@@ -95,7 +95,7 @@ fn ensure_version_supported(path: WorkflowResult<PathBuf>) -> WorkflowResult<Pat
     Ok(path)
 }
 
-fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<InputFile> {
+fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<EncryptionInputFile> {
     let path = path?;
     let name: String = path
         .file_name()
@@ -114,7 +114,7 @@ fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<InputFile>
         })?
         .len();
 
-    Ok(InputFile {
+    Ok(EncryptionInputFile {
         path,
         filename: name,
         size,

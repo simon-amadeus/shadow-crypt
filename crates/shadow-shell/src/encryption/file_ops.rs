@@ -10,11 +10,13 @@ use shadow_core::{
 };
 
 use crate::{
-    encryption::file::{InputFile, OutputFile},
+    encryption::file::{EncryptionInputFile, EncryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
 };
 
-pub fn store_encrypted_file(encrypted_file: &EncryptedFile) -> WorkflowResult<OutputFile> {
+pub fn store_encrypted_file(
+    encrypted_file: &EncryptedFile,
+) -> WorkflowResult<EncryptionOutputFile> {
     let output_file = create_output_file()?;
     let mut f = std::fs::File::create(&output_file.path)?;
     let serialized_header: Vec<u8> =
@@ -25,7 +27,7 @@ pub fn store_encrypted_file(encrypted_file: &EncryptedFile) -> WorkflowResult<Ou
     Ok(output_file)
 }
 
-pub fn load_file(file: &InputFile) -> WorkflowResult<PlaintextFile> {
+pub fn load_file(file: &EncryptionInputFile) -> WorkflowResult<PlaintextFile> {
     let filename = file.filename.clone();
     let size: usize = file.size as usize;
 
@@ -49,7 +51,7 @@ fn generate_output_filename() -> WorkflowResult<String> {
     Ok(Alphabetic.sample_string(&mut rng, len))
 }
 
-fn create_output_file() -> WorkflowResult<OutputFile> {
+fn create_output_file() -> WorkflowResult<EncryptionOutputFile> {
     let filename = generate_output_filename()?;
 
     let mut path = PathBuf::from(&filename);
@@ -62,7 +64,7 @@ fn create_output_file() -> WorkflowResult<OutputFile> {
 
     path = std::env::current_dir()?.join(path);
 
-    Ok(OutputFile { path, filename })
+    Ok(EncryptionOutputFile { path, filename })
 }
 
 #[cfg(test)]
@@ -130,7 +132,7 @@ mod tests {
         // Create test file
         fs::write(&file_path, test_content).unwrap();
 
-        let input_file = InputFile {
+        let input_file = EncryptionInputFile {
             path: file_path.clone(),
             filename: test_filename.to_string(),
             size: test_content.len() as u64,

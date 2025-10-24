@@ -1,26 +1,26 @@
 use std::path::PathBuf;
 
 use crate::{
-    encryption::{cli::CliArgs, file::InputFile},
+    encryption::{cli::CliArgs, file::EncryptionInputFile},
     errors::{WorkflowError, WorkflowResult},
 };
 
 pub struct ValidEncryptionArgs {
-    pub files: Vec<InputFile>,
+    pub files: Vec<EncryptionInputFile>,
     pub test_mode: bool,
 }
 
 pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
     ensure_not_empty(&input)?;
 
-    let validated_files: Vec<InputFile> = input
+    let validated_files: Vec<EncryptionInputFile> = input
         .input_files
         .iter()
         .map(PathBuf::from)
         .map(ensure_exists)
         .map(ensure_is_regular_file)
         .map(create_input_file)
-        .collect::<WorkflowResult<Vec<InputFile>>>()?;
+        .collect::<WorkflowResult<Vec<EncryptionInputFile>>>()?;
 
     Ok(ValidEncryptionArgs {
         files: validated_files,
@@ -59,7 +59,7 @@ fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathB
     path
 }
 
-fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<InputFile> {
+fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<EncryptionInputFile> {
     let path = path?;
     let name: String = path
         .file_name()
@@ -78,7 +78,7 @@ fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<InputFile>
         })?
         .len();
 
-    Ok(InputFile {
+    Ok(EncryptionInputFile {
         path,
         filename: name,
         size,
