@@ -6,19 +6,20 @@ use shadow_core::{
 };
 
 use crate::{
-    decryption::file_ops::read_n_bytes_from_file,
-    encryption::{cli::CliArgs, file::EncryptionInputFile},
+    decryption::{
+        cli::DecryptionCliArgs, file::DecryptionInputFile, file_ops::read_n_bytes_from_file,
+    },
     errors::{WorkflowError, WorkflowResult},
 };
 
 pub struct ValidDecryptionArgs {
-    pub files: Vec<EncryptionInputFile>,
+    pub files: Vec<DecryptionInputFile>,
 }
 
-pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidDecryptionArgs> {
+pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptionArgs> {
     ensure_not_empty(&input)?;
 
-    let validated_files: Vec<EncryptionInputFile> = input
+    let validated_files: Vec<DecryptionInputFile> = input
         .input_files
         .iter()
         .map(PathBuf::from)
@@ -27,14 +28,14 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidDecryptionArgs> {
         .map(ensure_is_encrypted_shadow_file)
         .map(ensure_version_supported)
         .map(create_input_file)
-        .collect::<WorkflowResult<Vec<EncryptionInputFile>>>()?;
+        .collect::<WorkflowResult<Vec<DecryptionInputFile>>>()?;
 
     Ok(ValidDecryptionArgs {
         files: validated_files,
     })
 }
 
-fn ensure_not_empty(input: &CliArgs) -> WorkflowResult<()> {
+fn ensure_not_empty(input: &DecryptionCliArgs) -> WorkflowResult<()> {
     if input.input_files.is_empty() {
         return Err(WorkflowError::UserInput(
             "No input files provided".to_string(),
@@ -95,7 +96,7 @@ fn ensure_version_supported(path: WorkflowResult<PathBuf>) -> WorkflowResult<Pat
     Ok(path)
 }
 
-fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<EncryptionInputFile> {
+fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<DecryptionInputFile> {
     let path = path?;
     let name: String = path
         .file_name()
@@ -114,7 +115,7 @@ fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<Encryption
         })?
         .len();
 
-    Ok(EncryptionInputFile {
+    Ok(DecryptionInputFile {
         path,
         filename: name,
         size,

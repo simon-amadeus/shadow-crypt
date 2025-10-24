@@ -17,6 +17,10 @@ categories.workspace = true
 name = "shadow"
 path = "src/bin/shadow.rs"
 
+[[bin]]
+name = "unshadow"
+path = "src/bin/unshadow.rs"
+
 [dependencies]
 # Only depend on what the main binary actually needs
 shadow-shell = { path = "crates/shadow-shell" }

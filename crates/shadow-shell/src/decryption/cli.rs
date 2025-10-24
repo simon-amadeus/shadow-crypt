@@ -3,12 +3,12 @@ use clap::{Arg, ArgMatches, Command};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
-pub struct CliArgs {
+pub struct DecryptionCliArgs {
     pub input_files: Vec<String>,
 }
 
 /// Parse encryption command line arguments
-pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<CliArgs> {
+pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<DecryptionCliArgs> {
     Command::new("shadow")
         .about("Encrypt files using Shadow format")
         .arg(
@@ -23,7 +23,7 @@ pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<CliArgs> {
         .and_then(extract_cli_args)
 }
 
-fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<CliArgs> {
+fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<DecryptionCliArgs> {
     let input_files: Vec<String> = matches
         .get_many::<String>("files")
         .unwrap_or_default()
@@ -35,7 +35,7 @@ fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<CliArgs> {
         return Err(WorkflowError::Password(msg.to_string()));
     }
 
-    Ok(CliArgs { input_files })
+    Ok(DecryptionCliArgs { input_files })
 }
 
 #[cfg(test)]
