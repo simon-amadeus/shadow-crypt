@@ -1,4 +1,4 @@
-use crate::memory::SecureBytes;
+use crate::memory::{SecureBytes, SecureString};
 
 use super::header::FileHeader;
 
@@ -24,19 +24,17 @@ impl EncryptedFile {
 /// Represents a plaintext file with filename and content
 #[derive(Debug)]
 pub struct PlaintextFile {
-    filename: String,     // Decrypted filename
-    content: SecureBytes, // Decrypted file content
+    filename: SecureString, // Decrypted filename
+    content: SecureBytes,   // Decrypted file content
 }
 
 impl PlaintextFile {
-    pub fn new(filename: String, content: SecureBytes) -> Self {
+    pub fn new(filename: SecureString, content: SecureBytes) -> Self {
         Self { filename, content }
     }
-
-    pub fn filename(&self) -> &String {
+    pub fn filename(&self) -> &SecureString {
         &self.filename
     }
-
     pub fn content(&self) -> &SecureBytes {
         &self.content
     }

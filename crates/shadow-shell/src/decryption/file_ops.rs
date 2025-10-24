@@ -23,8 +23,8 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
 
 pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<DecryptionOutputFile> {
     let output_file = DecryptionOutputFile {
-        path: std::env::current_dir()?.join(file.filename()),
-        filename: file.filename().to_string(),
+        path: std::env::current_dir()?.join(file.filename().as_str()),
+        filename: file.filename().as_str().to_string(),
     };
 
     if output_file.path.exists() {
@@ -54,6 +54,7 @@ pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<Encrypt
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shadow_core::memory::SecureString;
     use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -84,8 +85,9 @@ mod tests {
 
     #[test]
     fn test_store_plaintext_file() {
+        let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"test content".to_vec());
-        let plaintext = PlaintextFile::new("test.txt".to_string(), content);
+        let plaintext = PlaintextFile::new(filename, content);
 
         let output = store_plaintext_file(&plaintext).unwrap();
         assert_eq!(output.filename, "test.txt");
@@ -104,8 +106,9 @@ mod tests {
 
         std::env::set_current_dir(&temp_dir).unwrap();
 
+        let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"new content".to_vec());
-        let plaintext = PlaintextFile::new("test.txt".to_string(), content);
+        let plaintext = PlaintextFile::new(filename, content);
 
         // Create existing file
         let output_path = temp_dir.path().join("test.txt");

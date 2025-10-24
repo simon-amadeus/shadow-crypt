@@ -5,7 +5,7 @@ use shadow_core::{
     progress::ProgressCounter,
     report::{DecryptionReport, KeyDerivationReport},
     v1::{
-        crypt::decrypt_bytes_exposed,
+        crypt::decrypt_bytes,
         file::{EncryptedFile, PlaintextFile},
         header_ops::get_kdf_params,
         key::KeyDerivationParams,
@@ -60,15 +60,15 @@ fn process_file_decryption(
     let (key, _kdf_report): (SecureKey, KeyDerivationReport) =
         derive_key(password.as_str().as_bytes(), salt, &kdf_params)?;
 
-    let (filename_bytes, algorithm): (Vec<u8>, Algorithm) =
-        decrypt_bytes_exposed(filename_ciphertext, key.as_bytes(), filename_nonce)?;
+    let (filename_bytes, algorithm): (SecureBytes, Algorithm) =
+        decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce)?;
 
-    let filename = parse_string_from_bytes(&filename_bytes)?;
+    let filename: SecureString = parse_string_from_bytes(&filename_bytes)?;
 
-    let (content_bytes, _algorithm): (Vec<u8>, Algorithm) =
-        decrypt_bytes_exposed(content_ciphertext, key.as_bytes(), content_nonce)?;
+    let (content_bytes, _algorithm): (SecureBytes, Algorithm) =
+        decrypt_bytes(content_ciphertext, key.as_bytes(), content_nonce)?;
 
-    let plaintext_file = PlaintextFile::new(filename.clone(), SecureBytes::new(content_bytes));
+    let plaintext_file = PlaintextFile::new(filename.clone(), content_bytes);
     let output_file: DecryptionOutputFile = store_plaintext_file(&plaintext_file)?;
 
     let duration = start_time.elapsed();
@@ -81,9 +81,13 @@ fn process_file_decryption(
     ))
 }
 
-fn parse_string_from_bytes(bytes: &[u8]) -> WorkflowResult<String> {
-    String::from_utf8(bytes.to_vec())
-        .map_err(|_| WorkflowError::Decryption("Failed to decode string from bytes".to_string()))
+fn parse_string_from_bytes(bytes: &SecureBytes) -> WorkflowResult<SecureString> {
+    match String::from_utf8(bytes.as_slice().to_vec()) {
+        Ok(s) => Ok(SecureString::new(s)),
+        Err(_) => Err(WorkflowError::Decryption(
+            "Failed to decode string from bytes".to_string(),
+        )),
+    }
 }
 
 #[cfg(test)]
@@ -92,14 +96,14 @@ mod tests {
 
     #[test]
     fn test_parse_string_from_bytes_valid() {
-        let input_bytes = b"test_filename.txt";
-        let result = parse_string_from_bytes(input_bytes).unwrap();
-        assert_eq!(result, "test_filename.txt");
+        let input_bytes = SecureBytes::new(b"test_filename.txt".to_vec());
+        let result = parse_string_from_bytes(&input_bytes).unwrap();
+        assert_eq!(result.as_str(), "test_filename.txt");
     }
 
     #[test]
     fn test_parse_string_from_bytes_invalid() {
-        let input_bytes = vec![0xff, 0xfe, 0xfd]; // Invalid UTF-8 bytes
+        let input_bytes = SecureBytes::new(vec![0xff, 0xfe, 0xfd]);
         let result = parse_string_from_bytes(&input_bytes);
         assert!(result.is_err());
         if let Err(WorkflowError::Decryption(msg)) = result {

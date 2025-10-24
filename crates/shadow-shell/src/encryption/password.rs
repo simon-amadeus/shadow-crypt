@@ -1,6 +1,5 @@
 use rpassword;
 use shadow_core::{memory::SecureString, profile::SecurityProfile};
-use zeroize::Zeroize;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
@@ -8,29 +7,24 @@ use crate::errors::{WorkflowError, WorkflowResult};
 pub fn prompt_for_password_with_confirmation(
     security_profile: &SecurityProfile,
 ) -> WorkflowResult<SecureString> {
-    let mut password1 = rpassword::prompt_password("Enter password: ")
-        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))?;
-    let secure_password1 = SecureString::new(password1.clone());
-    password1.zeroize(); // Clear plain password from memory
+    let password1 = rpassword::prompt_password("Enter password: ")
+        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))
+        .map(SecureString::new)?;
 
-    let mut password2 = rpassword::prompt_password("Confirm password: ")
-        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))?;
-    let secure_password2 = SecureString::new(password2.clone());
-    password2.zeroize(); // Clear plain password from memory
+    let password2 = rpassword::prompt_password("Confirm password: ")
+        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))
+        .map(SecureString::new)?;
 
-    constant_time_eq(
-        secure_password1.as_str().as_bytes(),
-        secure_password2.as_str().as_bytes(),
-    )
-    .then_some(())
-    .ok_or(WorkflowError::Password(
-        "Passwords do not match".to_string(),
-    ))?;
+    constant_time_eq(password1.as_str().as_bytes(), password2.as_str().as_bytes())
+        .then_some(())
+        .ok_or(WorkflowError::Password(
+            "Passwords do not match".to_string(),
+        ))?;
 
-    validate_password_requirements(&secure_password1, security_profile)
+    validate_password_requirements(&password1, security_profile)
         .map_err(|e| WorkflowError::Password(e.to_string()))?;
 
-    Ok(secure_password1)
+    Ok(password1)
 }
 
 pub fn validate_password_format(password: &SecureString) -> Result<(), WorkflowError> {

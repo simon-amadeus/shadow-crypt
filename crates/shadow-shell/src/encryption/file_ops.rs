@@ -5,7 +5,7 @@ use std::{
 
 use rand::distr::{Alphabetic, SampleString};
 use shadow_core::{
-    memory::SecureBytes,
+    memory::{SecureBytes, SecureString},
     v1::file::{EncryptedFile, PlaintextFile},
 };
 
@@ -28,7 +28,7 @@ pub fn store_encrypted_file(
 }
 
 pub fn load_plaintext_file(file: &EncryptionInputFile) -> WorkflowResult<PlaintextFile> {
-    let filename = file.filename.clone();
+    let filename = SecureString::new(file.filename.clone());
     let size: usize = file.size as usize;
 
     let mut f = std::fs::File::open(&file.path)?;
@@ -36,10 +36,7 @@ pub fn load_plaintext_file(file: &EncryptionInputFile) -> WorkflowResult<Plainte
 
     f.read_to_end(&mut buffer)?;
 
-    let content = SecureBytes::new(buffer.clone());
-
-    use zeroize::Zeroize;
-    buffer.zeroize(); // Clear the temporary buffer
+    let content = SecureBytes::new(buffer);
 
     Ok(PlaintextFile::new(filename, content))
 }
@@ -160,7 +157,7 @@ mod tests {
 
         let plaintext_file = load_plaintext_file(&input_file).unwrap();
 
-        assert_eq!(plaintext_file.filename(), test_filename);
+        assert_eq!(plaintext_file.filename().as_str(), test_filename);
         assert_eq!(plaintext_file.content().as_slice(), test_content);
     }
 

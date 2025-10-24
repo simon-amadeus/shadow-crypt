@@ -1,6 +1,6 @@
 use chacha20poly1305::{KeyInit, XChaCha20Poly1305, aead::Aead};
 
-use crate::{algorithm::Algorithm, errors::CryptError};
+use crate::{algorithm::Algorithm, errors::CryptError, memory::SecureBytes};
 
 pub fn encrypt_bytes(
     plaintext: &[u8],
@@ -16,17 +16,17 @@ pub fn encrypt_bytes(
 }
 
 /// Decrypts the given ciphertext into an insecure byte vector.
-pub fn decrypt_bytes_exposed(
+pub fn decrypt_bytes(
     ciphertext: &[u8],
     key: &[u8; 32],
     nonce: &[u8; 24],
-) -> Result<(Vec<u8>, Algorithm), CryptError> {
+) -> Result<(SecureBytes, Algorithm), CryptError> {
     let cipher = XChaCha20Poly1305::new(key.into());
     let plaintext = cipher
         .decrypt(nonce.into(), ciphertext)
         .map_err(|e| CryptError::DecryptionError(format!("Decryption failed: {}", e)))?;
 
-    Ok((plaintext, Algorithm::XChaCha20Poly1305))
+    Ok((SecureBytes::new(plaintext), Algorithm::XChaCha20Poly1305))
 }
 
 #[cfg(test)]
@@ -43,9 +43,9 @@ mod tests {
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
         assert_ne!(ciphertext, plaintext);
 
-        let (decrypted, algorithm) = decrypt_bytes_exposed(&ciphertext, &key, &nonce).unwrap();
+        let (decrypted, algorithm) = decrypt_bytes(&ciphertext, &key, &nonce).unwrap();
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
-        assert_eq!(decrypted, plaintext);
+        assert_eq!(decrypted.as_slice(), plaintext);
     }
 
     #[test]
@@ -81,7 +81,7 @@ mod tests {
         let nonce = [3u8; 24];
 
         let (ciphertext, _) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
-        let result = decrypt_bytes_exposed(&ciphertext, &wrong_key, &nonce);
+        let result = decrypt_bytes(&ciphertext, &wrong_key, &nonce);
 
         assert!(result.is_err());
     }
@@ -94,7 +94,7 @@ mod tests {
         let wrong_nonce = [6u8; 24];
 
         let (ciphertext, _) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
-        let result = decrypt_bytes_exposed(&ciphertext, &key, &wrong_nonce);
+        let result = decrypt_bytes(&ciphertext, &key, &wrong_nonce);
 
         assert!(result.is_err());
     }
@@ -108,8 +108,8 @@ mod tests {
         let (ciphertext, algorithm) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
 
-        let (decrypted, algorithm) = decrypt_bytes_exposed(&ciphertext, &key, &nonce).unwrap();
+        let (decrypted, algorithm) = decrypt_bytes(&ciphertext, &key, &nonce).unwrap();
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
-        assert_eq!(decrypted, plaintext);
+        assert_eq!(decrypted.as_slice(), plaintext);
     }
 }
