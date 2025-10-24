@@ -52,19 +52,39 @@ fn generate_output_filename() -> WorkflowResult<String> {
 }
 
 fn create_encryption_output_file() -> WorkflowResult<EncryptionOutputFile> {
-    let filename = generate_output_filename()?;
+    let mut counter = 0;
+    loop {
+        let base = generate_output_filename()?;
+        let filename = if counter == 0 {
+            base
+        } else {
+            format!("{}_{}", base, counter)
+        };
 
-    let mut path = PathBuf::from(&filename);
-    path.set_extension("shadow");
+        let mut path = PathBuf::from(&filename);
+        path.set_extension("shadow");
 
-    let filename = path
-        .to_str()
-        .ok_or_else(|| WorkflowError::File("Invalid output filename".to_string()))?
-        .to_string();
+        let full_path = std::env::current_dir()?.join(&path);
 
-    path = std::env::current_dir()?.join(path);
+        if !full_path.exists() {
+            let filename_str = path
+                .to_str()
+                .ok_or_else(|| WorkflowError::File("Invalid output filename".to_string()))?
+                .to_string();
 
-    Ok(EncryptionOutputFile { path, filename })
+            return Ok(EncryptionOutputFile {
+                path: full_path,
+                filename: filename_str,
+            });
+        }
+
+        counter += 1;
+        if counter > 1000 {
+            return Err(WorkflowError::File(
+                "Unable to generate a unique output filename after 1000 attempts".to_string(),
+            ));
+        }
+    }
 }
 
 #[cfg(test)]

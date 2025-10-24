@@ -10,7 +10,7 @@ use shadow_core::{
 
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
-    errors::WorkflowResult,
+    errors::{WorkflowError, WorkflowResult},
 };
 
 pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResult<SecureBytes> {
@@ -26,6 +26,13 @@ pub fn store_plaintext_file(file: &PlaintextFile) -> WorkflowResult<DecryptionOu
         path: std::env::current_dir()?.join(file.filename()),
         filename: file.filename().to_string(),
     };
+
+    if output_file.path.exists() {
+        return Err(WorkflowError::File(format!(
+            "Output file '{}' already exists",
+            output_file.filename
+        )));
+    }
 
     let mut f = std::fs::File::create(output_file.path.as_path())?;
     f.write_all(file.content().as_slice())?;
@@ -54,7 +61,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
-    use tempfile::NamedTempFile;
+    use tempfile::{NamedTempFile, TempDir};
 
     #[test]
     fn test_read_n_bytes_from_file() {
@@ -93,6 +100,36 @@ mod tests {
 
         // Clean up
         fs::remove_file(&output.path).unwrap();
+    }
+
+    #[test]
+    fn test_store_plaintext_file_no_overwrite() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let original_dir = std::env::current_dir().unwrap();
+
+        std::env::set_current_dir(&temp_dir).unwrap();
+
+        let content = SecureBytes::new(b"new content".to_vec());
+        let plaintext = PlaintextFile::new("test.txt".to_string(), content);
+
+        // Create existing file
+        let output_path = temp_dir.path().join("test.txt");
+        let existing_content = b"existing content";
+        std::fs::write(&output_path, existing_content).unwrap();
+
+        let result = store_plaintext_file(&plaintext);
+        assert!(result.is_err());
+        if let Err(WorkflowError::File(msg)) = result {
+            assert!(msg.contains("already exists"));
+        } else {
+            panic!("Expected File error");
+        }
+
+        // Check existing content unchanged
+        let read_content = std::fs::read(&output_path).unwrap();
+        assert_eq!(read_content, existing_content);
+
+        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
