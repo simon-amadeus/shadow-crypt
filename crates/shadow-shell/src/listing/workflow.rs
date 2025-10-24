@@ -15,6 +15,7 @@ use crate::{
         file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
         file_ops::{load_file_header, scan_directory_for_shadow_files},
     },
+    ui,
     utils::parse_string_from_bytes,
 };
 
@@ -29,9 +30,9 @@ pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
         .filter_map(Result::ok)
         .collect();
 
-    let _info_list: FileInfoList = FileInfoList::new(file_infos);
+    let info_list: FileInfoList = FileInfoList::new(file_infos);
 
-    // TODO: ui::display_file_info_list(&info_list);
+    ui::display_file_info_list(&info_list);
     Ok(())
 }
 

@@ -33,7 +33,7 @@ impl ShadowFile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ShadowFileInfo {
     pub original_filename: Option<SecureString>,
     pub obfuscated_filename: String,

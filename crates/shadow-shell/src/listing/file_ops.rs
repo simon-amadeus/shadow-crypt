@@ -40,7 +40,6 @@ fn try_create_shadow_file(path: &Path) -> WorkflowResult<ShadowFile> {
     let header_bytes = read_n_bytes_from_file(path, FileHeader::min_length())?;
 
     if !header_ops::is_shadow_file(header_bytes.as_slice())? {
-        println!("not a shadow file");
         return Err(WorkflowError::Listing(format!(
             "The file '{}' is not a valid Shadow file.",
             path.display()
