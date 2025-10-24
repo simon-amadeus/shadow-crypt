@@ -12,6 +12,7 @@ use crate::{
     errors::{WorkflowError, WorkflowResult},
 };
 
+#[derive(Debug)]
 pub struct ValidDecryptionArgs {
     pub files: Vec<DecryptionInputFile>,
 }
@@ -188,5 +189,103 @@ mod tests {
         };
         let result = validate_input(args);
         assert!(result.is_err()); // Expected to fail at shadow file check
+    }
+
+    #[test]
+    fn test_validate_input_valid_shadow_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("test.shadow");
+        // Create a valid shadow file header: "SHADOW" + version 1 + some dummy data
+        let mut header = b"SHADOW".to_vec();
+        header.push(1); // version 1
+        // Add minimal header data to make it valid (at least 10 bytes total)
+        header.extend_from_slice(&[0u8; 4]); // dummy data
+        fs::write(&file_path, header).unwrap();
+
+        let args = DecryptionCliArgs {
+            input_files: vec![file_path.to_str().unwrap().to_string()],
+        };
+        let result = validate_input(args);
+        assert!(result.is_ok());
+        let valid_args = result.unwrap();
+        assert_eq!(valid_args.files.len(), 1);
+        assert_eq!(valid_args.files[0].filename, "test.shadow");
+        assert_eq!(valid_args.files[0].size, 11); // "SHADOW" (6) + version (1) + dummy (4)
+    }
+
+    #[test]
+    fn test_validate_input_invalid_magic_bytes() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("invalid.txt");
+        // Write invalid magic bytes
+        fs::write(&file_path, b"INVALID").unwrap();
+
+        let args = DecryptionCliArgs {
+            input_files: vec![file_path.to_str().unwrap().to_string()],
+        };
+        let result = validate_input(args);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            WorkflowError::UserInput(msg) => {
+                assert!(msg.contains("not a valid Shadow encrypted file"))
+            }
+            _ => panic!("Expected UserInput error"),
+        }
+    }
+
+    #[test]
+    fn test_validate_input_unsupported_version() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("unsupported.shadow");
+        // Create file with "SHADOW" but unsupported version (e.g., 99)
+        let mut header = b"SHADOW".to_vec();
+        header.push(99); // unsupported version
+        fs::write(&file_path, header).unwrap();
+
+        let args = DecryptionCliArgs {
+            input_files: vec![file_path.to_str().unwrap().to_string()],
+        };
+        let result = validate_input(args);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            WorkflowError::UserInput(msg) => {
+                assert!(msg.contains("Unsupported Shadow file version"))
+            }
+            _ => panic!("Expected UserInput error"),
+        }
+    }
+
+    #[test]
+    fn test_validate_input_insufficient_bytes() {
+        let temp_dir = TempDir::new().unwrap();
+        let file_path = temp_dir.path().join("short.txt");
+        // Write only 5 bytes, less than needed for header validation
+        fs::write(&file_path, b"SHORT").unwrap();
+
+        let args = DecryptionCliArgs {
+            input_files: vec![file_path.to_str().unwrap().to_string()],
+        };
+        let result = validate_input(args);
+        assert!(result.is_err());
+        // This should fail at the magic bytes check due to insufficient bytes
+    }
+
+    #[test]
+    fn test_validate_input_directory_instead_of_file() {
+        // Test with a directory path instead of a file
+        let temp_dir = TempDir::new().unwrap();
+
+        let args = DecryptionCliArgs {
+            input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
+        };
+        let result = validate_input(args);
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            WorkflowError::UserInput(msg) => assert!(msg.contains("Input path is not a file")),
+            _ => panic!("Expected UserInput error"),
+        }
     }
 }
