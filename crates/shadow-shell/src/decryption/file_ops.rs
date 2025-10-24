@@ -48,12 +48,7 @@ pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<Encrypt
 
     f.read_to_end(&mut buffer)?;
 
-    let content = SecureBytes::new(buffer.clone());
-
-    use zeroize::Zeroize;
-    buffer.zeroize(); // Clear the temporary buffer
-
-    Ok(get_encrypted_file_from_bytes(&content)?)
+    Ok(get_encrypted_file_from_bytes(buffer.as_slice())?)
 }
 
 #[cfg(test)]

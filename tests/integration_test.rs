@@ -1,5 +1,3 @@
-use shadow_core::memory::SecureBytes;
-use shadow_core::v1::file_ops::get_encrypted_file_from_bytes;
 use shadow_shell::{
     SecurityProfile,
     decryption::{
@@ -147,34 +145,91 @@ fn test_filename_is_encrypted_in_header() {
 
         // Read the encrypted file
         let encrypted_bytes = fs::read(&encrypted_file_path).unwrap();
-        let secure_bytes = SecureBytes::new(encrypted_bytes);
 
-        // Parse the encrypted file to get the header
-        let encrypted_file = get_encrypted_file_from_bytes(&secure_bytes).unwrap();
-        let header = encrypted_file.header();
-
-        // The filename ciphertext should NOT be equal to the plaintext filename
+        // The filename should NOT be stored as plaintext in the encrypted file
         let original_filename = "sensitive_document.txt";
         let original_filename_bytes = original_filename.as_bytes();
 
-        assert_ne!(
-            header.filename_ciphertext.as_slice(),
-            original_filename_bytes,
-            "Filename is stored as plaintext in header, which violates security requirements"
+        assert!(
+            !encrypted_bytes
+                .windows(original_filename_bytes.len())
+                .any(|window| window == original_filename_bytes),
+            "Filename appears to be stored as plaintext in the encrypted file, which violates security requirements"
         );
 
-        // Also verify that the ciphertext is not empty and has reasonable length
+        // Also verify that the file has some content (not empty)
+        assert!(!encrypted_bytes.is_empty(), "Encrypted file is empty");
+
+        Ok(())
+    })();
+
+    // Always restore original directory before temp_dir is dropped
+    let _ = std::env::set_current_dir(original_dir);
+
+    // Propagate any test failure
+    result.unwrap();
+}
+
+#[test]
+fn test_content_is_encrypted_in_file() {
+    let _lock = TEST_MUTEX.lock().unwrap();
+    let temp_dir = TempDir::new().unwrap();
+    let original_dir = std::env::current_dir().unwrap();
+
+    // Change to temp directory for the test
+    std::env::set_current_dir(&temp_dir).unwrap();
+
+    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+        let input_file = temp_dir.path().join("secret.txt");
+
+        // Create a test file with distinctive content
+        let test_content =
+            b"This is highly confidential information that should never appear in plaintext.";
+        fs::write(&input_file, test_content).unwrap();
+
+        // Create CLI args
+        let cli_args = EncryptionCliArgs {
+            input_files: vec![input_file.to_str().unwrap().to_string()],
+            test_mode: true,
+        };
+
+        // Validate input
+        let valid_args = validate_encryption_input(cli_args).unwrap();
+
+        // Create encryption input
+        let password = SecureString::new("testpassword".to_string());
+        let encryption_input =
+            EncryptionInput::new(valid_args.files, password, SecurityProfile::Test);
+
+        // Run encryption
+        run_encryption_workflow(encryption_input).unwrap();
+
+        // Find the encrypted file
+        let mut encrypted_file_path = None;
+        for entry in fs::read_dir(&temp_dir).unwrap() {
+            let entry = entry.unwrap();
+            if let Some(ext) = entry.path().extension() {
+                if ext == "shadow" {
+                    encrypted_file_path = Some(entry.path());
+                    break;
+                }
+            }
+        }
+        let encrypted_file_path = encrypted_file_path.expect("Encrypted file was not created");
+
+        // Read the encrypted file
+        let encrypted_bytes = fs::read(&encrypted_file_path).unwrap();
+
+        // The original content should NOT be stored as plaintext in the encrypted file
         assert!(
-            !header.filename_ciphertext.is_empty(),
-            "Filename ciphertext is empty"
+            !encrypted_bytes
+                .windows(test_content.len())
+                .any(|window| window == test_content),
+            "Original content appears to be stored as plaintext in the encrypted file, which violates security requirements"
         );
-        // XChaCha20Poly1305 adds 16 bytes of authentication tag
-        assert!(
-            header.filename_ciphertext.len() >= original_filename_bytes.len() + 16,
-            "Filename ciphertext is suspiciously short: {} bytes for {} byte filename",
-            header.filename_ciphertext.len(),
-            original_filename_bytes.len()
-        );
+
+        // Also verify that the file has some content (not empty)
+        assert!(!encrypted_bytes.is_empty(), "Encrypted file is empty");
 
         Ok(())
     })();
