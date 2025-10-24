@@ -30,10 +30,10 @@ impl KeyDerivationParams {
 
     fn test_defaults() -> Self {
         Self {
-            memory_cost: 1 * 1024, // 1,024 KiB (1 MiB)
-            time_cost: 1,          // 1 iteration
-            parallelism: 1,        // 1 thread
-            key_size: 32,          // 32 bytes (256 bits)
+            memory_cost: 1024, // 1,024 KiB (1 MiB)
+            time_cost: 1,      // 1 iteration
+            parallelism: 1,    // 1 thread
+            key_size: 32,      // 32 bytes (256 bits)
         }
     }
 }

@@ -61,7 +61,7 @@ mod tests {
     use super::*;
     use std::fs;
     use std::io::Write;
-    use tempfile::{NamedTempFile, TempDir};
+    use tempfile::NamedTempFile;
 
     #[test]
     fn test_read_n_bytes_from_file() {
