@@ -309,6 +309,25 @@ mod tests {
     }
 
     #[test]
+    fn test_try_deserialize_insufficient_bytes_for_filename() {
+        let mut bytes = vec![0u8; 95]; // FileHeader::min_length() is 90, but we need more for filename
+        // Set up a valid header but with filename_ciphertext_length > 0
+        bytes[0..6].copy_from_slice(b"SHADOW");
+        bytes[6] = 1; // version
+        bytes[7..11].copy_from_slice(&(100u32.to_le_bytes())); // header_length = 100 (90 + 10)
+        // salt, kdf params, nonces, etc. - keep as zeros for simplicity
+        bytes[88..90].copy_from_slice(&(10u16.to_le_bytes())); // filename_ciphertext_length = 10
+        // But we only have 95 bytes total, and we need 100, so insufficient
+
+        let result = try_deserialize(&bytes);
+        assert!(result.is_err());
+        assert!(matches!(
+            result.unwrap_err(),
+            HeaderError::InsufficientBytes
+        ));
+    }
+
+    #[test]
     fn test_round_trip_serialization() {
         let original_header = create_test_header();
         let serialized = serialize(&original_header);

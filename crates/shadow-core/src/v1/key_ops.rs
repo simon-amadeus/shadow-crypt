@@ -123,4 +123,20 @@ mod tests {
             panic!("Expected InvalidParameters error");
         }
     }
+
+    #[test]
+    fn test_derive_key_invalid_key_size() {
+        let password = b"test_password";
+        let salt = b"test_salt_16_bytes";
+
+        // Test with key_size = 0 (invalid)
+        let invalid_params = KeyDerivationParams::new(1024, 1, 1, 0);
+        let result = derive_key(password, salt, &invalid_params);
+        assert!(result.is_err());
+        if let Err(KeyDerivationError::InvalidParameters(_)) = result {
+            // Expected error
+        } else {
+            panic!("Expected InvalidParameters error");
+        }
+    }
 }
