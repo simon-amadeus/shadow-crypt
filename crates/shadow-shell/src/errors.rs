@@ -39,4 +39,7 @@ pub enum WorkflowError {
 
     #[error("Decryption error: {0}")]
     Decryption(String),
+
+    #[error("Listing error: {0}")]
+    Listing(String),
 }

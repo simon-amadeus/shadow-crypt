@@ -1,25 +1,14 @@
 use std::io::{Read, Write};
 
-use shadow_core::{
-    memory::SecureBytes,
-    v1::{
-        file::{EncryptedFile, PlaintextFile},
-        file_ops::get_encrypted_file_from_bytes,
-    },
+use shadow_core::v1::{
+    file::{EncryptedFile, PlaintextFile},
+    file_ops::get_encrypted_file_from_bytes,
 };
 
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
 };
-
-pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResult<SecureBytes> {
-    let f = std::fs::File::open(path)?;
-    let mut buffer: Vec<u8> = Vec::with_capacity(n);
-    f.take(n as u64).read_to_end(&mut buffer)?;
-
-    Ok(SecureBytes::new(buffer))
-}
 
 pub fn store_plaintext_file(
     file: &PlaintextFile,
@@ -56,8 +45,10 @@ pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<Encrypt
 
 #[cfg(test)]
 mod tests {
+    use crate::shared_file_ops::read_n_bytes_from_file;
+
     use super::*;
-    use shadow_core::memory::SecureString;
+    use shadow_core::memory::{SecureBytes, SecureString};
     use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;

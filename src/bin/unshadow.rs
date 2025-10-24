@@ -4,13 +4,13 @@ use shadow_shell::{
     decryption::{
         cli::get_cli_args,
         file::DecryptionInput,
-        password::prompt_for_password,
         validation::{ValidDecryptionArgs, validate_input},
         workflow::run_workflow,
     },
     display_error,
     errors::WorkflowError,
     memory::SecureString,
+    password::prompt_for_password,
 };
 
 fn run() -> Result<(), WorkflowError> {

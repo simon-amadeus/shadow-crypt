@@ -5,12 +5,12 @@ use shadow_shell::{
     encryption::{
         cli::{get_cli_args, get_security_profile},
         file::EncryptionInput,
-        password::prompt_for_password_with_confirmation,
         validation::{ValidEncryptionArgs, validate_input},
         workflow::run_workflow,
     },
     errors::WorkflowError,
     memory::SecureString,
+    password::prompt_for_password_with_confirmation,
 };
 
 fn run() -> Result<(), WorkflowError> {

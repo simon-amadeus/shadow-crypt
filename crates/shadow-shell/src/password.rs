@@ -3,6 +3,15 @@ use shadow_core::{memory::SecureString, profile::SecurityProfile};
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
+/// Prompt user for password
+pub fn prompt_for_password() -> WorkflowResult<SecureString> {
+    let password = rpassword::prompt_password("Enter password: ")
+        .map_err(|e| WorkflowError::Password(format!("Failed to read password: {}", e)))
+        .map(SecureString::new)?;
+
+    Ok(password)
+}
+
 /// Prompt user for password with confirmation
 pub fn prompt_for_password_with_confirmation(
     security_profile: &SecurityProfile,

@@ -7,6 +7,9 @@
 pub mod decryption;
 pub mod encryption;
 pub mod errors;
+pub mod listing;
+pub mod password;
+pub mod shared_file_ops;
 pub mod ui;
 
 // Re-export commonly used items
