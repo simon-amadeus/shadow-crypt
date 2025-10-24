@@ -26,6 +26,7 @@ path = "src/bin/unshadow.rs"
 shadow-shell = { path = "crates/shadow-shell" }
 
 [dev-dependencies]
+shadow-core = { path = "crates/shadow-core" }
 tempfile = { workspace = true }
 
 [workspace]
