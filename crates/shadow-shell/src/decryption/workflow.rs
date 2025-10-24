@@ -85,3 +85,27 @@ fn parse_string_from_bytes(bytes: &[u8]) -> WorkflowResult<String> {
     String::from_utf8(bytes.to_vec())
         .map_err(|_| WorkflowError::Decryption("Failed to decode string from bytes".to_string()))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_string_from_bytes_valid() {
+        let input_bytes = b"test_filename.txt";
+        let result = parse_string_from_bytes(input_bytes).unwrap();
+        assert_eq!(result, "test_filename.txt");
+    }
+
+    #[test]
+    fn test_parse_string_from_bytes_invalid() {
+        let input_bytes = vec![0xff, 0xfe, 0xfd]; // Invalid UTF-8 bytes
+        let result = parse_string_from_bytes(&input_bytes);
+        assert!(result.is_err());
+        if let Err(WorkflowError::Decryption(msg)) = result {
+            assert_eq!(msg, "Failed to decode string from bytes");
+        } else {
+            panic!("Expected Decryption error");
+        }
+    }
+}
