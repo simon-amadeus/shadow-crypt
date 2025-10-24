@@ -1,5 +1,5 @@
 use crate::errors::{WorkflowError, WorkflowResult};
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, Command};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone)]
@@ -9,21 +9,18 @@ pub struct DecryptionCliArgs {
 
 /// Parse encryption command line arguments
 pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<DecryptionCliArgs> {
-    Command::new("shadow")
-        .about("Encrypt files using Shadow format")
-        .arg(
+    let cmd = || {
+        Command::new("shadow").about("Decrypt shadow files").arg(
             Arg::new("files")
-                .help("Input files to encrypt")
-                .required(true)
+                .help("Input files to decrypt")
+                .required(false)
                 .num_args(1..)
                 .value_name("FILE"),
         )
-        .try_get_matches_from(args)
-        .map_err(|e| WorkflowError::UserInput(e.to_string()))
-        .and_then(extract_cli_args)
-}
-
-fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<DecryptionCliArgs> {
+    };
+    let matches = cmd()
+        .try_get_matches_from(&args)
+        .map_err(|e| WorkflowError::UserInput(e.to_string()))?;
     let input_files: Vec<String> = matches
         .get_many::<String>("files")
         .unwrap_or_default()
@@ -31,8 +28,9 @@ fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<DecryptionCliArgs> {
         .collect();
 
     if input_files.is_empty() {
-        let msg = "No input files specified";
-        return Err(WorkflowError::Password(msg.to_string()));
+        cmd().print_help().unwrap();
+        // early exit for convenience
+        std::process::exit(1);
     }
 
     Ok(DecryptionCliArgs { input_files })

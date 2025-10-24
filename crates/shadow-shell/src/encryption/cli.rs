@@ -1,4 +1,4 @@
-use clap::{Arg, ArgMatches, Command};
+use clap::{Arg, Command};
 use shadow_core::profile::SecurityProfile;
 
 use crate::errors::{WorkflowError, WorkflowResult};
@@ -12,12 +12,13 @@ pub struct CliArgs {
 
 /// Parse encryption command line arguments
 pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<CliArgs> {
-    Command::new("shadow")
-        .about("Encrypt files using Shadow format")
+    let cmd = || {
+        Command::new("shadow")
+        .about("Encrypt files using shadow format")
         .arg(
             Arg::new("files")
                 .help("Input files to encrypt")
-                .required(true)
+                .required(false)
                 .num_args(1..)
                 .value_name("FILE"),
         )
@@ -28,12 +29,10 @@ pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<CliArgs> {
                 .help("Use test security profile for faster key derivation (not recommended for production)")
                 .action(clap::ArgAction::SetTrue),
         )
-        .try_get_matches_from(args)
-        .map_err(|e| WorkflowError::UserInput(e.to_string()))
-        .and_then(extract_cli_args)
-}
-
-fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<CliArgs> {
+    };
+    let matches = cmd()
+        .try_get_matches_from(&args)
+        .map_err(|e| WorkflowError::UserInput(e.to_string()))?;
     let input_files: Vec<String> = matches
         .get_many::<String>("files")
         .unwrap_or_default()
@@ -41,8 +40,9 @@ fn extract_cli_args(matches: ArgMatches) -> WorkflowResult<CliArgs> {
         .collect();
 
     if input_files.is_empty() {
-        let msg = "No input files specified";
-        return Err(WorkflowError::Password(msg.to_string()));
+        cmd().print_help().unwrap();
+        // early exit for convenience
+        std::process::exit(1);
     }
 
     Ok(CliArgs {
