@@ -28,9 +28,9 @@ pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<DecryptionCliArgs> {
         .collect();
 
     if input_files.is_empty() {
-        cmd().print_help().unwrap();
-        // early exit for convenience
-        std::process::exit(1);
+        return Err(WorkflowError::UserInput(
+            "No input files provided".to_string(),
+        ));
     }
 
     Ok(DecryptionCliArgs { input_files })
@@ -66,10 +66,10 @@ mod tests {
         let args = vec!["shadow".to_string()];
         let result = get_cli_args(args);
         assert!(result.is_err());
-        if let Err(WorkflowError::UserInput(_)) = result {
-            // CLI error
+        if let Err(WorkflowError::UserInput(msg)) = result {
+            assert_eq!(msg, "No input files provided");
         } else {
-            panic!("Expected CLI error");
+            panic!("Expected UserInput error");
         }
     }
 }

@@ -25,6 +25,9 @@ path = "src/bin/unshadow.rs"
 # Only depend on what the main binary actually needs
 shadow-shell = { path = "crates/shadow-shell" }
 
+[dev-dependencies]
+tempfile = { workspace = true }
+
 [workspace]
 resolver = "2"
 members = [

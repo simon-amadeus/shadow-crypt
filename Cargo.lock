@@ -847,6 +847,7 @@ name = "shadow-crypt"
 version = "0.1.0"
 dependencies = [
  "shadow-shell",
+ "tempfile",
 ]
 
 [[package]]
