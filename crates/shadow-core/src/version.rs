@@ -17,8 +17,5 @@ impl Version {
 }
 
 pub fn is_supported_version(version: u8) -> bool {
-    match version {
-        1 => true,
-        _ => false,
-    }
+    matches!(version, 1)
 }

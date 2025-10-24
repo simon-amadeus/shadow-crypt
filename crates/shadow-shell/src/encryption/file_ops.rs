@@ -17,7 +17,7 @@ use crate::{
 pub fn store_encrypted_file(
     encrypted_file: &EncryptedFile,
 ) -> WorkflowResult<EncryptionOutputFile> {
-    let output_file = create_output_file()?;
+    let output_file = create_encryption_output_file()?;
     let mut f = std::fs::File::create(&output_file.path)?;
     let serialized_header: Vec<u8> =
         shadow_core::v1::header_ops::serialize(encrypted_file.header());
@@ -27,7 +27,7 @@ pub fn store_encrypted_file(
     Ok(output_file)
 }
 
-pub fn load_file(file: &EncryptionInputFile) -> WorkflowResult<PlaintextFile> {
+pub fn load_plaintext_file(file: &EncryptionInputFile) -> WorkflowResult<PlaintextFile> {
     let filename = file.filename.clone();
     let size: usize = file.size as usize;
 
@@ -51,7 +51,7 @@ fn generate_output_filename() -> WorkflowResult<String> {
     Ok(Alphabetic.sample_string(&mut rng, len))
 }
 
-fn create_output_file() -> WorkflowResult<EncryptionOutputFile> {
+fn create_encryption_output_file() -> WorkflowResult<EncryptionOutputFile> {
     let filename = generate_output_filename()?;
 
     let mut path = PathBuf::from(&filename);
@@ -138,7 +138,7 @@ mod tests {
             size: test_content.len() as u64,
         };
 
-        let plaintext_file = load_file(&input_file).unwrap();
+        let plaintext_file = load_plaintext_file(&input_file).unwrap();
 
         assert_eq!(plaintext_file.filename(), test_filename);
         assert_eq!(plaintext_file.content().as_slice(), test_content);

@@ -1,4 +1,4 @@
-use crate::errors::HeaderError;
+use crate::{errors::HeaderError, v1::key::KeyDerivationParams};
 
 use super::header::FileHeader;
 
@@ -56,8 +56,17 @@ fn get_length_from_bytes(bytes: &[u8]) -> Result<u32, HeaderError> {
     Ok(length)
 }
 
+pub fn get_kdf_params(header: &FileHeader) -> KeyDerivationParams {
+    KeyDerivationParams {
+        memory_cost: header.kdf_memory,
+        time_cost: header.kdf_iterations,
+        parallelism: header.kdf_parallelism,
+        key_size: header.kdf_key_length,
+    }
+}
+
 pub fn try_deserialize(bytes: &[u8]) -> Result<FileHeader, HeaderError> {
-    if bytes.len() < FileHeader::min_length() as usize {
+    if bytes.len() < FileHeader::min_length() {
         return Err(HeaderError::InsufficientBytes);
     }
 
@@ -74,7 +83,7 @@ pub fn try_deserialize(bytes: &[u8]) -> Result<FileHeader, HeaderError> {
 }
 
 fn deserialize(bytes: &[u8]) -> Option<FileHeader> {
-    if bytes.len() < FileHeader::min_length() as usize {
+    if bytes.len() < FileHeader::min_length() {
         return None;
     }
     let magic = bytes[0..6].try_into().ok()?;

@@ -16,7 +16,7 @@ use shadow_core::{
 use crate::{
     encryption::{
         file::{EncryptionInput, EncryptionInputFile, EncryptionOutputFile},
-        file_ops::{load_file, store_encrypted_file},
+        file_ops::{load_plaintext_file, store_encrypted_file},
         nonce::generate_nonce,
         salt::generate_salt,
     },
@@ -61,7 +61,7 @@ fn process_file_encryption(
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;
-    let plaintext_file: PlaintextFile = load_file(&input_file)?;
+    let plaintext_file: PlaintextFile = load_plaintext_file(&input_file)?;
 
     let (filename_ciphertext, _): (Vec<u8>, Algorithm) = encrypt_bytes(
         input_file.filename.as_bytes(),

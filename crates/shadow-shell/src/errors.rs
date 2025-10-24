@@ -33,4 +33,10 @@ pub enum WorkflowError {
 
     #[error("Header error: {0}")]
     HeaderError(#[from] HeaderError),
+
+    #[error("Encryption error: {0}")]
+    Encryption(String),
+
+    #[error("Decryption error: {0}")]
+    Decryption(String),
 }

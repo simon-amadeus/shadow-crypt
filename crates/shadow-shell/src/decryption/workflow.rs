@@ -1,38 +1,28 @@
 use rayon::prelude::*;
 use shadow_core::{
     algorithm::Algorithm,
-    memory::SecureKey,
+    memory::{SecureBytes, SecureKey, SecureString},
     progress::ProgressCounter,
-    report::{EncryptionReport, KeyDerivationReport},
+    report::{DecryptionReport, KeyDerivationReport},
     v1::{
-        crypt::encrypt_bytes,
+        crypt::decrypt_bytes_exposed,
         file::{EncryptedFile, PlaintextFile},
-        header::FileHeader,
+        header_ops::get_kdf_params,
         key::KeyDerivationParams,
         key_ops::derive_key,
     },
 };
 
 use crate::{
-    encryption::{
-        file::{EncryptionInput, EncryptionInputFile, EncryptionOutputFile},
-        file_ops::{load_file, store_encrypted_file},
-        nonce::generate_nonce,
-        salt::generate_salt,
+    decryption::{
+        file::{DecryptionInput, DecryptionInputFile, DecryptionOutputFile},
+        file_ops::{load_encrypted_file, store_plaintext_file},
     },
-    errors::WorkflowResult,
-    ui::{display_encryption_report, display_key_derivation_report, display_progress},
+    errors::{WorkflowError, WorkflowResult},
+    ui::{display_decryption_report, display_progress},
 };
 
-pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
-    let salt: [u8; 16] = generate_salt()?;
-
-    let params = KeyDerivationParams::from(input.security_profile);
-    let (key, report): (SecureKey, KeyDerivationReport) =
-        derive_key(input.password.as_str().as_bytes(), salt.as_ref(), &params)?;
-
-    display_key_derivation_report(&report);
-
+pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
     let counter = ProgressCounter::new(input.files.len() as u64);
 
     // Process files in parallel using rayon
@@ -42,57 +32,56 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
         .map(|input_file| {
             counter.increment();
             display_progress(&counter);
-            process_file_encryption(input_file.to_owned(), &key, &salt, &params)
+            process_file_decryption(input_file.to_owned(), &input.password)
         })
-        .for_each(display_encryption_report);
+        .for_each(display_decryption_report);
 
     Ok(())
 }
 
-fn process_file_encryption(
-    file: EncryptionInputFile,
-    key: &SecureKey,
-    salt: &[u8; 16],
-    kdf_params: &KeyDerivationParams,
-) -> WorkflowResult<EncryptionReport> {
+fn process_file_decryption(
+    file: DecryptionInputFile,
+    password: &SecureString,
+) -> WorkflowResult<DecryptionReport> {
     let start_time = std::time::Instant::now();
 
-    let input_file: EncryptionInputFile = file;
+    let input_file: DecryptionInputFile = file;
 
-    let filename_nonce: [u8; 24] = generate_nonce()?;
-    let content_nonce: [u8; 24] = generate_nonce()?;
-    let plaintext_file: PlaintextFile = load_file(&input_file)?;
+    let encrypted_file: EncryptedFile = load_encrypted_file(&input_file)?;
 
-    let (filename_ciphertext, _): (Vec<u8>, Algorithm) = encrypt_bytes(
-        input_file.filename.as_bytes(),
-        key.as_bytes(),
-        &filename_nonce,
-    )?;
+    let filename_nonce: &[u8; 24] = &encrypted_file.header().filename_nonce;
+    let filename_ciphertext: &[u8] = &encrypted_file.header().filename_ciphertext;
 
-    let (content_ciphertext, algorithm): (Vec<u8>, Algorithm) = encrypt_bytes(
-        plaintext_file.content().as_slice(),
-        key.as_bytes(),
-        &content_nonce,
-    )?;
+    let content_nonce: &[u8; 24] = &encrypted_file.header().content_nonce;
+    let content_ciphertext: &[u8] = encrypted_file.ciphertext();
 
-    let header = FileHeader::new(
-        *salt,
-        kdf_params.clone(),
-        content_nonce,
-        filename_nonce,
-        filename_ciphertext,
-    );
+    let salt: &[u8; 16] = &encrypted_file.header().salt;
+    let kdf_params: KeyDerivationParams = get_kdf_params(encrypted_file.header());
+    let (key, _kdf_report): (SecureKey, KeyDerivationReport) =
+        derive_key(password.as_str().as_bytes(), salt, &kdf_params)?;
 
-    let encrypted_file = EncryptedFile::new(header, content_ciphertext);
+    let (filename_bytes, algorithm): (Vec<u8>, Algorithm) =
+        decrypt_bytes_exposed(filename_ciphertext, key.as_bytes(), filename_nonce)?;
 
-    let output_file: EncryptionOutputFile = store_encrypted_file(&encrypted_file)?;
+    let filename = parse_string_from_bytes(&filename_bytes)?;
+
+    let (content_bytes, _algorithm): (Vec<u8>, Algorithm) =
+        decrypt_bytes_exposed(content_ciphertext, key.as_bytes(), content_nonce)?;
+
+    let plaintext_file = PlaintextFile::new(filename.clone(), SecureBytes::new(content_bytes));
+    let output_file: DecryptionOutputFile = store_plaintext_file(&plaintext_file)?;
 
     let duration = start_time.elapsed();
 
-    Ok(EncryptionReport::new(
+    Ok(DecryptionReport::new(
         input_file.filename,
         output_file.filename,
         duration,
         algorithm,
     ))
+}
+
+fn parse_string_from_bytes(bytes: &[u8]) -> WorkflowResult<String> {
+    String::from_utf8(bytes.to_vec())
+        .map_err(|_| WorkflowError::Decryption("Failed to decode string from bytes".to_string()))
 }

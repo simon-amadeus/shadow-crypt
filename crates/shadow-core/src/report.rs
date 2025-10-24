@@ -24,6 +24,28 @@ impl EncryptionReport {
     }
 }
 
+pub struct DecryptionReport {
+    pub input_filename: String,
+    pub output_filename: String,
+    pub duration: Duration,
+    pub algorithm: Algorithm,
+}
+impl DecryptionReport {
+    pub fn new(
+        input_filename: String,
+        output_filename: String,
+        duration: Duration,
+        algorithm: Algorithm,
+    ) -> Self {
+        Self {
+            input_filename,
+            output_filename,
+            duration,
+            algorithm,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct KeyDerivationReport {
     pub algorithm: String,

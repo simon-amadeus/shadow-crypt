@@ -1,7 +1,7 @@
 use colored::Colorize;
 use shadow_core::{
     progress::ProgressCounter,
-    report::{EncryptionReport, KeyDerivationReport},
+    report::{DecryptionReport, EncryptionReport, KeyDerivationReport},
 };
 
 use crate::errors::{WorkflowError, WorkflowResult};
@@ -22,6 +22,20 @@ pub fn display_error(error: WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }
 
+pub fn display_key_derivation_report(report: &KeyDerivationReport) {
+    println!("Derived key in {:#?}:", report.duration);
+    println!("  Algorithm: {}", report.algorithm);
+    println!("  Version: {}", report.algorithm_version);
+    println!(
+        "  Memory Cost (KiB): {} ({} MiB)",
+        report.memory_cost_kib,
+        report.memory_cost_kib / 1024
+    );
+    println!("  Time Cost (Iterations): {}", report.time_cost_iterations);
+    println!("  Parallelism: {}", report.parallelism);
+    println!("  Key Size (Bytes): {}", report.key_size_bytes);
+}
+
 pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
     match result {
         Ok(report) => {
@@ -37,16 +51,17 @@ pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
     }
 }
 
-pub fn display_key_derivation_report(report: &KeyDerivationReport) {
-    println!("Derived key in {:#?}:", report.duration);
-    println!("  Algorithm: {}", report.algorithm);
-    println!("  Version: {}", report.algorithm_version);
-    println!(
-        "  Memory Cost (KiB): {} ({} MiB)",
-        report.memory_cost_kib,
-        report.memory_cost_kib / 1024
-    );
-    println!("  Time Cost (Iterations): {}", report.time_cost_iterations);
-    println!("  Parallelism: {}", report.parallelism);
-    println!("  Key Size (Bytes): {}", report.key_size_bytes);
+pub fn display_decryption_report(result: WorkflowResult<DecryptionReport>) {
+    match result {
+        Ok(report) => {
+            let msg = format!(
+                "Decrypted '{}' -> '{}' in {:#?} using {}",
+                report.input_filename, report.output_filename, report.duration, report.algorithm
+            );
+            display_success(&msg);
+        }
+        Err(err) => {
+            display_error(err);
+        }
+    }
 }

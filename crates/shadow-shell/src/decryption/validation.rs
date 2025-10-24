@@ -54,13 +54,13 @@ fn ensure_exists(path: PathBuf) -> WorkflowResult<PathBuf> {
 }
 
 fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
-    if let Ok(path) = &path {
-        if !path.is_file() {
-            return Err(WorkflowError::UserInput(format!(
-                "Input path is not a file: {}",
-                path.display()
-            )));
-        }
+    if let Ok(path) = &path
+        && !path.is_file()
+    {
+        return Err(WorkflowError::UserInput(format!(
+            "Input path is not a file: {}",
+            path.display()
+        )));
     }
     path
 }

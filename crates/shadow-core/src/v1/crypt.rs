@@ -15,17 +15,18 @@ pub fn encrypt_bytes(
     Ok((ciphertext, Algorithm::XChaCha20Poly1305))
 }
 
-pub fn decrypt_bytes(
+/// Decrypts the given ciphertext into an insecure byte vector.
+pub fn decrypt_bytes_exposed(
     ciphertext: &[u8],
     key: &[u8; 32],
     nonce: &[u8; 24],
-) -> Result<Vec<u8>, CryptError> {
+) -> Result<(Vec<u8>, Algorithm), CryptError> {
     let cipher = XChaCha20Poly1305::new(key.into());
     let plaintext = cipher
         .decrypt(nonce.into(), ciphertext)
         .map_err(|e| CryptError::DecryptionError(format!("Decryption failed: {}", e)))?;
 
-    Ok(plaintext)
+    Ok((plaintext, Algorithm::XChaCha20Poly1305))
 }
 
 #[cfg(test)]
@@ -42,7 +43,8 @@ mod tests {
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
         assert_ne!(ciphertext, plaintext);
 
-        let decrypted = decrypt_bytes(&ciphertext, &key, &nonce).unwrap();
+        let (decrypted, algorithm) = decrypt_bytes_exposed(&ciphertext, &key, &nonce).unwrap();
+        assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
         assert_eq!(decrypted, plaintext);
     }
 
@@ -79,7 +81,7 @@ mod tests {
         let nonce = [3u8; 24];
 
         let (ciphertext, _) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
-        let result = decrypt_bytes(&ciphertext, &wrong_key, &nonce);
+        let result = decrypt_bytes_exposed(&ciphertext, &wrong_key, &nonce);
 
         assert!(result.is_err());
     }
@@ -92,7 +94,7 @@ mod tests {
         let wrong_nonce = [6u8; 24];
 
         let (ciphertext, _) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
-        let result = decrypt_bytes(&ciphertext, &key, &wrong_nonce);
+        let result = decrypt_bytes_exposed(&ciphertext, &key, &wrong_nonce);
 
         assert!(result.is_err());
     }
@@ -106,7 +108,8 @@ mod tests {
         let (ciphertext, algorithm) = encrypt_bytes(plaintext, &key, &nonce).unwrap();
         assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
 
-        let decrypted = decrypt_bytes(&ciphertext, &key, &nonce).unwrap();
+        let (decrypted, algorithm) = decrypt_bytes_exposed(&ciphertext, &key, &nonce).unwrap();
+        assert_eq!(algorithm, Algorithm::XChaCha20Poly1305);
         assert_eq!(decrypted, plaintext);
     }
 }
