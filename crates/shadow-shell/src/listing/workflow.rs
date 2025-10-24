@@ -65,3 +65,86 @@ fn get_shadow_file_info(
         shadow_file.size,
     ))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use shadow_core::{
+        profile::SecurityProfile,
+        v1::{
+            crypt::encrypt_bytes, header::FileHeader, key::KeyDerivationParams, key_ops::derive_key,
+        },
+    };
+
+    #[test]
+    fn test_decipher_original_filename_correct_password() {
+        let password = "testpassword";
+        let original_filename = "test.txt";
+        let salt = [0u8; 16];
+        let kdf_params = KeyDerivationParams::from(SecurityProfile::Test);
+        let filename_nonce = [0u8; 24];
+
+        // Derive key
+        let (key, _) = derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+
+        // Encrypt filename
+        let (filename_ciphertext, _) = encrypt_bytes(
+            original_filename.as_bytes(),
+            key.as_bytes(),
+            &filename_nonce,
+        )
+        .unwrap();
+
+        // Create header
+        let header = FileHeader::new(
+            salt,
+            kdf_params,
+            [0u8; 24], // content_nonce, not used
+            filename_nonce,
+            filename_ciphertext,
+        );
+
+        // Test decipher
+        let password_secure = SecureString::new(password.to_string());
+        let result = decipher_original_filename(header, &password_secure);
+
+        assert!(result.is_some());
+        assert_eq!(result.unwrap().as_str(), original_filename);
+    }
+
+    #[test]
+    fn test_decipher_original_filename_wrong_password() {
+        let password = "testpassword";
+        let wrong_password = "wrongpassword";
+        let original_filename = "test.txt";
+        let salt = [0u8; 16];
+        let kdf_params = KeyDerivationParams::from(SecurityProfile::Test);
+        let filename_nonce = [0u8; 24];
+
+        // Derive key with correct password
+        let (key, _) = derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+
+        // Encrypt filename
+        let (filename_ciphertext, _) = encrypt_bytes(
+            original_filename.as_bytes(),
+            key.as_bytes(),
+            &filename_nonce,
+        )
+        .unwrap();
+
+        // Create header
+        let header = FileHeader::new(
+            salt,
+            kdf_params,
+            [0u8; 24],
+            filename_nonce,
+            filename_ciphertext,
+        );
+
+        // Test decipher with wrong password
+        let wrong_password_secure = SecureString::new(wrong_password.to_string());
+        let result = decipher_original_filename(header, &wrong_password_secure);
+
+        assert!(result.is_none());
+    }
+}
