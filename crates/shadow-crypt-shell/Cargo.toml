@@ -11,7 +11,7 @@ categories.workspace = true
 
 [dependencies]
 # Core dependency - pure functions only
-shadow-crypt-core = { version = "0.1", path = "../shadow-crypt-core" }
+shadow-crypt-core = { version = "1", path = "../shadow-crypt-core" }
 
 # I/O and CLI utilities that shells can use
 clap = { workspace = true }
