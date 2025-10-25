@@ -3,7 +3,7 @@
 [![Crates.io](https://img.shields.io/crates/v/shadow-crypt.svg)](https://crates.io/crates/shadow-crypt)
 [![Documentation](https://docs.rs/shadow-crypt-core/badge.svg)](https://docs.rs/shadow-crypt-core)
 [![Shell Documentation](https://docs.rs/shadow-crypt-shell/badge.svg)](https://docs.rs/shadow-crypt-shell)
-[![CI](https://github.com/simon-amadeus/shadow-crypt/actions/workflows/CI/badge.svg)](https://github.com/simon-amadeus/shadow-crypt/actions)
+[![CI](https://github.com/simon-amadeus/shadow-crypt/actions/workflows/ci.yml/badge.svg)](https://github.com/simon-amadeus/shadow-crypt/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/shadow-crypt.svg)](#license)
 
 Password-based file encryption with filename obfuscation.
