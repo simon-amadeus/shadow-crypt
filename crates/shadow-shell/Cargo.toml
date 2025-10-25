@@ -11,7 +11,7 @@ categories.workspace = true
 
 [dependencies]
 # Core dependency - pure functions only
-shadow-core = { path = "../shadow-core" }
+shadow-core = { version = "0.1", path = "../shadow-core" }
 
 # I/O and CLI utilities that shells can use
 clap = { workspace = true }

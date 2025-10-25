@@ -18,12 +18,16 @@ name = "shadow"
 path = "src/bin/shadow.rs"
 
 [[bin]]
+name = "shadows"
+path = "src/bin/shadows.rs"
+
+[[bin]]
 name = "unshadow"
 path = "src/bin/unshadow.rs"
 
 [dependencies]
 # Only depend on what the main binary actually needs
-shadow-shell = { path = "crates/shadow-shell" }
+shadow-shell = { version = "0.1", path = "crates/shadow-shell" }
 
 [dev-dependencies]
 tempfile = { workspace = true }
