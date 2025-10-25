@@ -1,11 +1,11 @@
 [package]
 name = "shadow-crypt-core"
 version.workspace = true
-edition = "2024"
+edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "Pure cryptographic core for Shadow encryption tool - no I/O dependencies"
+description = "Core types and deterministic operations for shadow-crypt"
 keywords.workspace = true
 categories.workspace = true
 

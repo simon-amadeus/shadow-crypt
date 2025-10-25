@@ -1,11 +1,11 @@
 [package]
 name = "shadow-crypt-shell"
 version.workspace = true
-edition = "2024"
+edition.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
-description = "I/O and CLI utilities for Shadow encryption tool"
+description = "Main workflows and I/O operations for shadow-crypt"
 keywords.workspace = true
 categories.workspace = true
 
