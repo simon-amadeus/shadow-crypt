@@ -1,5 +1,15 @@
 name: Release
 
+# Manual workflow to publish crates to crates.io
+# Use this when ready to release a new version of shadow-crypt
+# 
+# How to use:
+# 1. Update version in Cargo.toml files
+# 2. Go to GitHub Actions → Release workflow
+# 3. Click "Run workflow"
+# 4. Enter the version number for confirmation
+# 5. Run unchecked first (dry-run) to verify
+# 6. Run checked to actually publish
 on:
   workflow_dispatch:
     inputs:
@@ -15,14 +25,20 @@ on:
 
 jobs:
   publish:
+    # Publish all crates in the workspace to crates.io in dependency order:
+    # 1. shadow-crypt-core (no dependencies)
+    # 2. shadow-crypt-shell (depends on core)
+    # 3. shadow-crypt (depends on shell)
+    # This ensures each crate's dependencies are available when publishing
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Install Rust
+    - name: Checkout source code
+      uses: actions/checkout@v4
+    - name: Install stable Rust toolchain
       uses: dtolnay/rust-toolchain@stable
-    - name: Cache dependencies
+    - name: Cache Cargo registry and build artifacts
       uses: Swatinem/rust-cache@v2
-    - name: Verify version
+    - name: Verify version matches confirmation input
       run: |
         EXPECTED="${{ inputs.confirm_version }}"
         ACTUAL=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
@@ -31,37 +47,37 @@ jobs:
           exit 1
         fi
         echo "Version confirmed: $ACTUAL"
-    - name: Publish shadow-crypt-core (dry run)
+    - name: Publish shadow-crypt-core to crates.io (dry run)
       if: inputs.actually_publish == false
       run: cargo publish --package shadow-crypt-core --dry-run
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Publish shadow-crypt-core
+    - name: Publish shadow-crypt-core to crates.io
       if: inputs.actually_publish == true
       run: cargo publish --package shadow-crypt-core
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Publish shadow-crypt-shell (dry run)
+    - name: Publish shadow-crypt-shell to crates.io (dry run)
       if: inputs.actually_publish == false
       run: cargo publish --package shadow-crypt-shell --dry-run
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Publish shadow-crypt-shell
+    - name: Publish shadow-crypt-shell to crates.io
       if: inputs.actually_publish == true
       run: cargo publish --package shadow-crypt-shell
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Publish shadow-crypt (dry run)
+    - name: Publish shadow-crypt to crates.io (dry run)
       if: inputs.actually_publish == false
       run: cargo publish --package shadow-crypt --dry-run
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Publish shadow-crypt
+    - name: Publish shadow-crypt to crates.io
       if: inputs.actually_publish == true
       run: cargo publish --package shadow-crypt
       env:
         CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
-    - name: Create Git tag
+    - name: Create and push Git tag for the release
       if: inputs.actually_publish == true
       run: |
         git config --local user.email "action@github.com"
