@@ -1,132 +1,84 @@
 name: Release
 
-# Automated workflow to publish crates to crates.io when CI completes successfully on a version tag
-#
-# How to use:
-# 1. Update version in Cargo.toml files
-# 2. Commit and push changes
-# 3. Create and push a version tag: git tag v1.0.3 && git push origin v1.0.3
-# 4. CI will run and verify the code
-# 5. If CI succeeds, this workflow will automatically publish all crates to crates.io
-#
-# Safety features:
-# - Only triggers after CI succeeds on version tags (v*)
-# - Verifies tag version matches Cargo.toml version
-# - Publishes crates in dependency order
-# - Creates GitHub release after successful publishing
 on:
   workflow_run:
-    workflows: ["CI"]
-    types:
-      - completed
-  workflow_dispatch:  # for manual triggering
+    workflows: ["CI Pipeline"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  # Pre-publish validation
-  validate:
-    name: Pre-Publish Validation
+  release:
+    name: Validate & Publish
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.event.workflow_run.head_branch, 'refs/tags/v'))
     outputs:
-      version: ${{ steps.extract.outputs.version }}
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache dependencies
-      uses: Swatinem/rust-cache@v2
-
-    - name: Extract version from tag
-      id: extract
-      run: |
-        TAG_VERSION="${GITHUB_REF#refs/tags/v}"
-        echo "version=$TAG_VERSION" >> $GITHUB_OUTPUT
-        echo "Publishing version: $TAG_VERSION"
-
-    - name: Verify version matches Cargo.toml
-      run: |
-        EXPECTED="${{ steps.extract.outputs.version }}"
-        ACTUAL=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
-        if [ "$ACTUAL" != "$EXPECTED" ]; then
-          echo "Version mismatch! Cargo.toml has $ACTUAL, tag is $EXPECTED"
-          exit 1
-        fi
-        echo "✅ Version confirmed: $ACTUAL"
-
-    - name: Verify all crates can be packaged
-      run: |
-        echo "Testing package creation..."
-        cargo package --package shadow-crypt-core --allow-dirty > /dev/null
-        cargo package --package shadow-crypt-shell --allow-dirty > /dev/null
-        cargo package --package shadow-crypt --allow-dirty > /dev/null
-        echo "✅ All packages can be created"
-
-    - name: Run tests before publishing
-      run: cargo test --workspace --release
-
-  # Main publishing job - depends on validation
-  publish:
-    name: Publish to crates.io
-    runs-on: ubuntu-latest
-    needs: validate
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
+      version: ${{ steps.version.outputs.version }}
     environment: release
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-    - name: Cache dependencies
-      uses: Swatinem/rust-cache@v2
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Publish shadow-crypt-core
-      run: cargo publish --package shadow-crypt-core
-      env:
-        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
 
-    - name: Wait for shadow-crypt-core processing
-      run: sleep 30
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
 
-    - name: Publish shadow-crypt-shell
-      run: cargo publish --package shadow-crypt-shell
-      env:
-        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Get version from tag
+        id: version
+        run: |
+          TAG="${{ github.event.workflow_run.head_branch || github.ref }}"
+          VERSION="${TAG#refs/tags/v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing v$VERSION"
 
-    - name: Wait for shadow-crypt-shell processing
-      run: sleep 30
+      - name: Verify Cargo.toml version
+        run: |
+          EXPECTED="${{ steps.version.outputs.version }}"
+          ACTUAL=$(grep '^version = ' Cargo.toml | head -1 | sed -E 's/version = "(.*)"/\1/')
+          [ "$ACTUAL" = "$EXPECTED" ] || {
+            echo "Version mismatch: Cargo.toml=$ACTUAL, tag=v$EXPECTED"
+            exit 1
+          }
 
-    - name: Publish shadow-crypt
-      run: cargo publish --package shadow-crypt
-      env:
-        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+      - name: Dry-run publish (all crates)
+        run: cargo publish --workspace --dry-run
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  # Post-publish tasks
-  release:
+      - name: Publish all crates
+        run: cargo publish --workspace
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [validate, publish]
-    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
+    needs: release
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - name: Create GitHub release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ github.ref }}
-        name: Release ${{ needs.validate.outputs.version }}
-        body: |
-          Automated release of shadow-crypt ${{ needs.validate.outputs.version }}
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.release.outputs.version }}
+          name: Release v${{ needs.release.outputs.version }}
+          body: |
+            Automated release v${{ needs.release.outputs.version }}
 
-          This release includes updates to all workspace crates:
-          - shadow-crypt-core ${{ needs.validate.outputs.version }}
-          - shadow-crypt-shell ${{ needs.validate.outputs.version }}
-          - shadow-crypt ${{ needs.validate.outputs.version }}
+            Published workspace crates to crates.io.
 
-          See CHANGELOG.md for details.
-        draft: false
-        prerelease: false
+            See CHANGELOG.md
+          draft: false
+          prerelease: false
