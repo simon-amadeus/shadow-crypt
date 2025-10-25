@@ -1,22 +1,24 @@
 name: Release
 
-# Automated workflow to publish crates to crates.io when a version tag is pushed
+# Automated workflow to publish crates to crates.io when CI completes successfully on a version tag
 #
 # How to use:
 # 1. Update version in Cargo.toml files
 # 2. Commit and push changes
 # 3. Create and push a version tag: git tag v1.0.3 && git push origin v1.0.3
-# 4. The workflow will automatically publish all crates to crates.io
+# 4. CI will run and verify the code
+# 5. If CI succeeds, this workflow will automatically publish all crates to crates.io
 #
 # Safety features:
-# - Only triggers on version tags (v*)
+# - Only triggers after CI succeeds on version tags (v*)
 # - Verifies tag version matches Cargo.toml version
 # - Publishes crates in dependency order
 # - Creates GitHub release after successful publishing
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
   workflow_dispatch:  # for manual triggering
 
 env:
@@ -27,6 +29,7 @@ jobs:
   validate:
     name: Pre-Publish Validation
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
     outputs:
       version: ${{ steps.extract.outputs.version }}
     steps:
@@ -70,6 +73,7 @@ jobs:
     name: Publish to crates.io
     runs-on: ubuntu-latest
     needs: validate
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
     environment: release
     steps:
     - name: Checkout code
@@ -105,6 +109,7 @@ jobs:
     name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: [validate, publish]
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.ref_type == 'tag')
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
