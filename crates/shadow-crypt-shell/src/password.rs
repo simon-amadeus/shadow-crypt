@@ -1,5 +1,5 @@
 use rpassword;
-use shadow_core::{memory::SecureString, profile::SecurityProfile};
+use shadow_crypt_core::{memory::SecureString, profile::SecurityProfile};
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
@@ -113,7 +113,7 @@ fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_core::profile::SecurityProfile;
+    use shadow_crypt_core::profile::SecurityProfile;
 
     #[test]
     fn test_validate_password_format_empty() {

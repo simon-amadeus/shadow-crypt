@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use shadow_core::{
+use shadow_crypt_core::{
     v1::header_ops::{get_version_from_bytes, is_shadow_file},
     version::is_supported_version,
 };

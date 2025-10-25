@@ -1,6 +1,6 @@
 use std::io::{Read, Write};
 
-use shadow_core::v1::{
+use shadow_crypt_core::v1::{
     file::{EncryptedFile, PlaintextFile},
     file_ops::get_encrypted_file_from_bytes,
 };
@@ -48,7 +48,7 @@ mod tests {
     use crate::utils::read_n_bytes_from_file;
 
     use super::*;
-    use shadow_core::memory::{SecureBytes, SecureString};
+    use shadow_crypt_core::memory::{SecureBytes, SecureString};
     use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;

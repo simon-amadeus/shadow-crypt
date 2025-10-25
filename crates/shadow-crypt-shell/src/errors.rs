@@ -1,4 +1,4 @@
-use shadow_core::errors::{CryptError, HeaderError, KeyDerivationError};
+use shadow_crypt_core::errors::{CryptError, HeaderError, KeyDerivationError};
 use std::io;
 use thiserror::Error;
 

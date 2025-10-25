@@ -24,7 +24,8 @@ name = "unshadow"
 path = "src/bin/unshadow.rs"
 
 [dependencies]
-shadow-shell = { version = "0.1", path = "crates/shadow-shell" }
+shadow-crypt-core = { version = "0.1", path = "crates/shadow-crypt-core" }
+shadow-crypt-shell = { version = "0.1", path = "crates/shadow-crypt-shell" }
 
 [dev-dependencies]
 tempfile = { workspace = true }
@@ -32,8 +33,8 @@ tempfile = { workspace = true }
 [workspace]
 resolver = "2"
 members = [
-    "crates/shadow-core",
-    "crates/shadow-shell",
+    "crates/shadow-crypt-core",
+    "crates/shadow-crypt-shell",
 ]
 
 [workspace.package]

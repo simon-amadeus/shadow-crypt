@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use shadow_core::version::Version;
+use shadow_crypt_core::version::Version;
 
 use crate::memory::SecureString;
 

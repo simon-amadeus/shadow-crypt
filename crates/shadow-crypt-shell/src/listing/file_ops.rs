@@ -1,6 +1,6 @@
 use std::{fs, path::Path};
 
-use shadow_core::{
+use shadow_crypt_core::{
     v1::{
         header::FileHeader,
         header_ops::{self, get_length_from_bytes, get_version_from_bytes, try_deserialize},
@@ -85,7 +85,7 @@ pub fn load_file_header(file: &ShadowFile) -> WorkflowResult<FileHeader> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_core::{
+    use shadow_crypt_core::{
         profile::SecurityProfile,
         v1::{header::FileHeader, header_ops, key::KeyDerivationParams},
     };

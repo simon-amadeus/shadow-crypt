@@ -1,5 +1,5 @@
 use clap::{Arg, Command};
-use shadow_core::profile::SecurityProfile;
+use shadow_crypt_core::profile::SecurityProfile;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 

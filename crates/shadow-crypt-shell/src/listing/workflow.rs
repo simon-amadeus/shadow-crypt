@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use shadow_core::{
+use shadow_crypt_core::{
     memory::{SecureBytes, SecureKey, SecureString},
     v1::{
         crypt::decrypt_bytes, header::FileHeader, header_ops::get_kdf_params,
@@ -69,7 +69,7 @@ fn get_shadow_file_info(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_core::{
+    use shadow_crypt_core::{
         profile::SecurityProfile,
         v1::{
             crypt::encrypt_bytes, header::FileHeader, key::KeyDerivationParams, key_ops::derive_key,

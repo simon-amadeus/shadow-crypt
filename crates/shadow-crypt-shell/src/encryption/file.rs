@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use shadow_core::profile::SecurityProfile;
+use shadow_crypt_core::profile::SecurityProfile;
 
 use crate::memory::SecureString;
 

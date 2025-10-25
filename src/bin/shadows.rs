@@ -1,6 +1,6 @@
 use std::process;
 
-use shadow_shell::{
+use shadow_crypt_shell::{
     display_error,
     errors::WorkflowError,
     listing::{file::ListingInput, workflow::run_workflow},

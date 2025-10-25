@@ -1,5 +1,5 @@
 [package]
-name = "shadow-core"
+name = "shadow-crypt-core"
 version.workspace = true
 edition = "2024"
 authors.workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "shadow-shell"
+name = "shadow-crypt-shell"
 version.workspace = true
 edition = "2024"
 authors.workspace = true
@@ -11,7 +11,7 @@ categories.workspace = true
 
 [dependencies]
 # Core dependency - pure functions only
-shadow-core = { version = "0.1", path = "../shadow-core" }
+shadow-crypt-core = { version = "0.1", path = "../shadow-crypt-core" }
 
 # I/O and CLI utilities that shells can use
 clap = { workspace = true }

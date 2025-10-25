@@ -4,7 +4,7 @@ use std::{
 };
 
 use rand::distr::{Alphabetic, SampleString};
-use shadow_core::{
+use shadow_crypt_core::{
     memory::{SecureBytes, SecureString},
     v1::file::{EncryptedFile, PlaintextFile},
 };
@@ -21,7 +21,7 @@ pub fn store_encrypted_file(
     let output_file = create_encryption_output_file(output_dir)?;
     let mut f = std::fs::File::create(&output_file.path)?;
     let serialized_header: Vec<u8> =
-        shadow_core::v1::header_ops::serialize(encrypted_file.header());
+        shadow_crypt_core::v1::header_ops::serialize(encrypted_file.header());
     f.write_all(&serialized_header)?;
     f.write_all(encrypted_file.ciphertext())?;
 
@@ -90,7 +90,7 @@ fn create_encryption_output_file(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_core::{
+    use shadow_crypt_core::{
         profile::SecurityProfile,
         v1::{file::EncryptedFile, header::FileHeader, key::KeyDerivationParams},
     };
@@ -183,7 +183,8 @@ mod tests {
 
             // Read back and verify content
             let written_content = fs::read(&output_file.path)?;
-            let expected_header = shadow_core::v1::header_ops::serialize(encrypted_file.header());
+            let expected_header =
+                shadow_crypt_core::v1::header_ops::serialize(encrypted_file.header());
             let expected_content = [expected_header, encrypted_file.ciphertext().clone()].concat();
 
             assert_eq!(written_content, expected_content);

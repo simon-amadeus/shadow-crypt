@@ -834,7 +834,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadow-core"
+name = "shadow-crypt"
+version = "0.1.0"
+dependencies = [
+ "shadow-crypt-core",
+ "shadow-crypt-shell",
+ "tempfile",
+]
+
+[[package]]
+name = "shadow-crypt-core"
 version = "0.1.0"
 dependencies = [
  "argon2",
@@ -843,15 +852,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "shadow-crypt"
-version = "0.1.0"
-dependencies = [
- "shadow-shell",
- "tempfile",
-]
-
-[[package]]
-name = "shadow-shell"
+name = "shadow-crypt-shell"
 version = "0.1.0"
 dependencies = [
  "clap",
@@ -859,7 +860,7 @@ dependencies = [
  "rand",
  "rayon",
  "rpassword",
- "shadow-core",
+ "shadow-crypt-core",
  "subtle",
  "tempfile",
  "thiserror",

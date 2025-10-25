@@ -1,5 +1,5 @@
 use rayon::prelude::*;
-use shadow_core::{
+use shadow_crypt_core::{
     algorithm::Algorithm,
     memory::SecureKey,
     progress::ProgressCounter,

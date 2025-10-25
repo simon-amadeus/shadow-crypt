@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use shadow_core::memory::{SecureBytes, SecureString};
+use shadow_crypt_core::memory::{SecureBytes, SecureString};
 
 use crate::errors::{WorkflowError, WorkflowResult};
 

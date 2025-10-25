@@ -13,6 +13,6 @@ pub mod ui;
 pub mod utils;
 
 // Re-export commonly used items
-pub use shadow_core::memory;
-pub use shadow_core::profile::SecurityProfile;
+pub use shadow_crypt_core::memory;
+pub use shadow_crypt_core::profile::SecurityProfile;
 pub use ui::{display_error, display_success};

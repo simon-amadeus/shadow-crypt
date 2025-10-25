@@ -1,5 +1,5 @@
 use colored::Colorize;
-use shadow_core::{
+use shadow_crypt_core::{
     progress::ProgressCounter,
     report::{DecryptionReport, EncryptionReport, KeyDerivationReport},
 };

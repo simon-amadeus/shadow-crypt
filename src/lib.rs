@@ -4,10 +4,5 @@
 //! Built with a functional core / imperative shell architecture.
 
 // Simple re-export of the main functionality
-pub use shadow_shell::*;
-
-/// Version of the shadow-crypt package
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
-
-/// Package name
-pub const PACKAGE_NAME: &str = env!("CARGO_PKG_NAME");
+// pub use shadow_core::*;
+// pub use shadow_shell::*;

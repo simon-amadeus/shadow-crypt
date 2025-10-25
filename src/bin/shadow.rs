@@ -1,6 +1,6 @@
 use std::process;
 
-use shadow_shell::{
+use shadow_crypt_shell::{
     SecurityProfile, display_error,
     encryption::{
         cli::{get_cli_args, get_security_profile},

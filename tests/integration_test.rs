@@ -1,4 +1,4 @@
-use shadow_shell::{
+use shadow_crypt_shell::{
     SecurityProfile,
     decryption::{
         cli::DecryptionCliArgs, file::DecryptionInput,

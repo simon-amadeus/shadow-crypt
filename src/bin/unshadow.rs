@@ -1,6 +1,6 @@
 use std::process;
 
-use shadow_shell::{
+use shadow_crypt_shell::{
     decryption::{
         cli::get_cli_args,
         file::DecryptionInput,
