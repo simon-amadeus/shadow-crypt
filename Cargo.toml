@@ -13,8 +13,6 @@ categories.workspace = true
 exclude = [
     ".github/",
     ".gitignore",
-    "tests/",
-    "docs/",
 ]
 
 # All binaries from workspace
@@ -44,7 +42,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]

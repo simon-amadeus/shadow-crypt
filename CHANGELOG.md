@@ -30,14 +30,20 @@ Example:
 
 ## [Unreleased]
 
-### Added
-- Initial project setup and documentation
+## [1.0.3] - 2025-10-25
 
 ### Changed
-- Moved detailed documentation to `docs/` directory
+- Documentation updates and fixes
 
-### Fixed
-- Various bug fixes and improvements
+## [1.0.2] - 2025-10-25
+
+### Changed
+- Documentation updates and fixes
+
+## [1.0.1] - 2025-10-25
+
+### Changed
+- Documentation updates and fixes
 
 ## [1.0.0] - 2025-10-25
 
