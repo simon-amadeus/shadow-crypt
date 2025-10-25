@@ -1,39 +1,36 @@
 use crate::errors::{WorkflowError, WorkflowResult};
-use clap::{Arg, Command};
+use clap::Parser;
 
 /// Decryption CLI arguments structure
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Parser)]
+#[command(name = "unshadow", about = "Decrypt shadow files", version)]
 pub struct DecryptionCliArgs {
+    /// Input files to decrypt
+    #[arg(value_name = "FILE")]
     pub input_files: Vec<String>,
 }
 
-/// Parse encryption command line arguments
+/// Parse decryption command line arguments
 pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<DecryptionCliArgs> {
-    let cmd = || {
-        Command::new("unshadow").about("Decrypt shadow files").arg(
-            Arg::new("files")
-                .help("Input files to decrypt")
-                .required(false)
-                .num_args(1..)
-                .value_name("FILE"),
-        )
-    };
-    let matches = cmd()
-        .try_get_matches_from(&args)
-        .map_err(|e| WorkflowError::UserInput(e.to_string()))?;
-    let input_files: Vec<String> = matches
-        .get_many::<String>("files")
-        .unwrap_or_default()
-        .map(|s| s.to_string())
-        .collect();
+    let cli_args = DecryptionCliArgs::try_parse_from(args).map_err(|e| {
+        // If it's help or version, it's not a user input error
+        if e.kind() == clap::error::ErrorKind::DisplayHelp
+            || e.kind() == clap::error::ErrorKind::DisplayVersion
+        {
+            // Print the message and exit successfully
+            eprintln!("{}", e);
+            std::process::exit(0);
+        }
+        WorkflowError::UserInput(e.to_string())
+    })?;
 
-    if input_files.is_empty() {
+    if cli_args.input_files.is_empty() {
         return Err(WorkflowError::UserInput(
             "No input files provided".to_string(),
         ));
     }
 
-    Ok(DecryptionCliArgs { input_files })
+    Ok(cli_args)
 }
 
 #[cfg(test)]
@@ -75,9 +72,6 @@ mod tests {
 
     #[test]
     fn test_parse_cli_args_help() {
-        let args = vec!["unshadow".to_string(), "--help".to_string()];
-        let result = get_cli_args(args);
-        assert!(result.is_err());
-        // Clap handles --help by returning an error
+        // Note: --help now causes the function to exit successfully, so this test is removed
     }
 }

@@ -30,6 +30,15 @@ Example:
 
 ## [Unreleased]
 
+### Changed
+- Update CLI parsing to use clap's derive API
+
+### Fixed
+- Fix help and version flags to display cleanly without error messages
+
+### Added
+- Add --version flag support to CLI commands
+
 ## [1.0.3] - 2025-10-25
 
 ### Changed
