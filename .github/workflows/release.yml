@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_version:
+        description: 'Confirm the version currently set in Cargo.toml (e.g., 1.0.0)'
+        required: true
+        type: string
+      actually_publish:
+        description: 'Check this to actually publish (unchecked = dry run only)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@stable
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+    - name: Verify version
+      run: |
+        EXPECTED="${{ inputs.confirm_version }}"
+        ACTUAL=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+        if [ "$ACTUAL" != "$EXPECTED" ]; then
+          echo "Version mismatch! Cargo.toml has $ACTUAL, you confirmed $EXPECTED"
+          exit 1
+        fi
+        echo "Version confirmed: $ACTUAL"
+    - name: Publish shadow-crypt-core (dry run)
+      if: inputs.actually_publish == false
+      run: cargo publish --package shadow-crypt-core --dry-run
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Publish shadow-crypt-core
+      if: inputs.actually_publish == true
+      run: cargo publish --package shadow-crypt-core
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Publish shadow-crypt-shell (dry run)
+      if: inputs.actually_publish == false
+      run: cargo publish --package shadow-crypt-shell --dry-run
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Publish shadow-crypt-shell
+      if: inputs.actually_publish == true
+      run: cargo publish --package shadow-crypt-shell
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Publish shadow-crypt (dry run)
+      if: inputs.actually_publish == false
+      run: cargo publish --package shadow-crypt --dry-run
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Publish shadow-crypt
+      if: inputs.actually_publish == true
+      run: cargo publish --package shadow-crypt
+      env:
+        CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+    - name: Create Git tag
+      if: inputs.actually_publish == true
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag "v${{ inputs.confirm_version }}"
+        git push origin "v${{ inputs.confirm_version }}"
