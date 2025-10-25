@@ -43,7 +43,7 @@ authors = ["Simon Amadeus <code@simonamadeus.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow-crypt"
 readme = "README.md"
-description = "Pragmatic file encryption utilities"
+description = "Secure password-based file encryption with filename obfuscation"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 

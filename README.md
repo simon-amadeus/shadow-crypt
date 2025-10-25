@@ -1,12 +1,18 @@
 # Shadow Crypt
 
+[![Crates.io](https://img.shields.io/crates/v/shadow-crypt.svg)](https://crates.io/crates/shadow-crypt)
+[![Documentation](https://docs.rs/shadow-crypt/badge.svg)](https://docs.rs/shadow-crypt)
+[![CI](https://github.com/simon-amadeus/shadow-crypt/workflows/CI/badge.svg)](https://github.com/simon-amadeus/shadow-crypt/actions)
+[![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/shadow-crypt.svg)](#license)
+
 Password-based file encryption with filename obfuscation.
 
 ## Features
 
 - **Strong Algorithms**: XChaCha20-Poly1305 cipher, Argon2id key derivation
-- **Zero Knowledge**: Passwords are never stored
+- **Zero Knowledge**: Sensitive data is never stored, never logged
 - **Memory Safety**: Zeroizes sensitive data in memory after use
+- **No Dependencies**: Pure Rust implementation
 
 ## Installation
 - Ensure you have [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
@@ -28,24 +34,24 @@ cargo install --path .
 ## Usage
 
 ### Encrypt Files
-
 ```bash
 shadow file1.txt file*.jpg
 ```
 
 ### Decrypt Files
-
 ```bash
 unshadow mzpuTgQmBPJfTAJh.shadow RzxZGbTQAxxBseaI.shadow
 ```
 
-### Show Encrypted File Info
-
+### List Encrypted Files
 ```bash
 shadows
 ```
 
-Display information about all `.shadow` files in the current directory.
+## Documentation
+
+- [📝 Changelog](docs/CHANGELOG.md)
+- [📚 API Documentation](https://docs.rs/shadow-crypt)
 
 ## Contributing
 
