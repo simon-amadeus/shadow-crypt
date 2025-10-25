@@ -30,6 +30,10 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.5] - 2025-10-25
+### Fixed
+- Remove redundant clap dependency from root crate
+
 ## [1.0.4] - 2025-10-25
 
 ### Changed

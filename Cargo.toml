@@ -30,7 +30,6 @@ path = "src/bin/unshadow.rs"
 
 [dependencies]
 shadow-crypt-shell = { version = "1", path = "crates/shadow-crypt-shell" }
-clap = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
@@ -43,7 +42,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.4"
+version = "1.0.5"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]
