@@ -10,6 +10,12 @@ readme.workspace = true
 description.workspace = true
 keywords.workspace = true
 categories.workspace = true
+exclude = [
+    ".github/",
+    ".gitignore",
+    "tests/",
+    "docs/",
+]
 
 # All binaries from workspace
 [[bin]]
@@ -38,7 +44,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.1"
+version = "1.0.2"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]

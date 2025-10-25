@@ -11,7 +11,7 @@ Password-based file encryption with filename obfuscation.
 ## Features
 
 - **Strong Algorithms**: XChaCha20-Poly1305 cipher, Argon2id key derivation
-- **Zero Knowledge**: Sensitive data is never stored, never logged
+- **No Storage**: Sensitive data is retained only in memory during operation
 - **Memory Safety**: Zeroizes sensitive data in memory after use
 - **No Dependencies**: Pure Rust implementation
 
