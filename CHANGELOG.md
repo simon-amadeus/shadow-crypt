@@ -37,6 +37,7 @@ Example:
 
 ### Fixed
 - Fix help and version flags to display cleanly without error messages
+- Fix clippy warnings across all crates
 
 ### Added
 - Add --version flag support to CLI commands

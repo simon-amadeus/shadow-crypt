@@ -152,7 +152,7 @@ mod tests {
         assert!(result.is_ok());
         let valid_args = result.unwrap();
         assert_eq!(valid_args.files.len(), 1);
-        assert_eq!(valid_args.test_mode, true);
+        assert!(valid_args.test_mode);
         let file = &valid_args.files[0];
         assert_eq!(file.path, file_path);
         assert_eq!(
@@ -183,7 +183,7 @@ mod tests {
         assert!(result.is_ok());
         let valid_args = result.unwrap();
         assert_eq!(valid_args.files.len(), 2);
-        assert_eq!(valid_args.test_mode, false);
+        assert!(!valid_args.test_mode);
 
         // Check first file
         let file1 = &valid_args.files[0];

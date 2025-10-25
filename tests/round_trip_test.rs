@@ -27,7 +27,7 @@ fn test_encrypt_decrypt_round_trip() {
     // Change to temp directory for the test
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result: Result<(), Box<dyn std::error::Error>> = {
         let input_file = temp_dir.path().join("test.txt");
 
         // Create a test file
@@ -59,11 +59,11 @@ fn test_encrypt_decrypt_round_trip() {
         let mut encrypted_file = None;
         for entry in fs::read_dir(&temp_dir).unwrap() {
             let entry = entry.unwrap();
-            if let Some(ext) = entry.path().extension() {
-                if ext == "shadow" {
-                    encrypted_file = Some(entry.path());
-                    break;
-                }
+            if let Some(ext) = entry.path().extension()
+                && ext == "shadow"
+            {
+                encrypted_file = Some(entry.path());
+                break;
             }
         }
         let encrypted_file = encrypted_file.expect("Encrypted file was not created");
@@ -96,7 +96,7 @@ fn test_encrypt_decrypt_round_trip() {
         );
 
         Ok(())
-    })();
+    };
 
     // Always restore original directory before temp_dir is dropped
     let _ = std::env::set_current_dir(original_dir);

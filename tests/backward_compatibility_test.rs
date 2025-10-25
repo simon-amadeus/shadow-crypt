@@ -21,7 +21,7 @@ fn test_v1_backward_compatibility() {
     // Change to temp directory for the test
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result: Result<(), Box<dyn std::error::Error>> = {
         // Copy the test v1 encrypted file to temp directory
         let test_shadow_file = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("tests")
@@ -68,7 +68,7 @@ fn test_v1_backward_compatibility() {
         );
 
         Ok(())
-    })();
+    };
 
     // Always restore original directory before temp_dir is dropped
     let _ = std::env::set_current_dir(original_dir);

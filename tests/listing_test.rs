@@ -23,7 +23,7 @@ fn test_listing_workflow() {
     // Change to temp directory for the test
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result: Result<(), Box<dyn std::error::Error>> = {
         // Create test files
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
@@ -59,16 +59,16 @@ fn test_listing_workflow() {
         let mut shadow_files = vec![];
         for entry in fs::read_dir(&temp_dir).unwrap() {
             let entry = entry.unwrap();
-            if let Some(ext) = entry.path().extension() {
-                if ext == "shadow" {
-                    shadow_files.push(entry.path());
-                }
+            if let Some(ext) = entry.path().extension()
+                && ext == "shadow"
+            {
+                shadow_files.push(entry.path());
             }
         }
         assert_eq!(shadow_files.len(), 2, "Should have 2 shadow files");
 
         Ok(())
-    })();
+    };
 
     // Always restore original directory before temp_dir is dropped
     let _ = std::env::set_current_dir(original_dir);

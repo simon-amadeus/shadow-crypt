@@ -22,7 +22,7 @@ fn test_filename_is_encrypted_in_header() {
     // Change to temp directory for the test
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result: Result<(), Box<dyn std::error::Error>> = {
         let input_file = temp_dir.path().join("sensitive_document.txt");
 
         // Create a test file
@@ -54,11 +54,11 @@ fn test_filename_is_encrypted_in_header() {
         let mut encrypted_file_path = None;
         for entry in fs::read_dir(&temp_dir).unwrap() {
             let entry = entry.unwrap();
-            if let Some(ext) = entry.path().extension() {
-                if ext == "shadow" {
-                    encrypted_file_path = Some(entry.path());
-                    break;
-                }
+            if let Some(ext) = entry.path().extension()
+                && ext == "shadow"
+            {
+                encrypted_file_path = Some(entry.path());
+                break;
             }
         }
         let encrypted_file_path = encrypted_file_path.expect("Encrypted file was not created");
@@ -81,7 +81,7 @@ fn test_filename_is_encrypted_in_header() {
         assert!(!encrypted_bytes.is_empty(), "Encrypted file is empty");
 
         Ok(())
-    })();
+    };
 
     // Always restore original directory before temp_dir is dropped
     let _ = std::env::set_current_dir(original_dir);
@@ -99,7 +99,7 @@ fn test_content_is_encrypted_in_file() {
     // Change to temp directory for the test
     std::env::set_current_dir(&temp_dir).unwrap();
 
-    let result = (|| -> Result<(), Box<dyn std::error::Error>> {
+    let result: Result<(), Box<dyn std::error::Error>> = {
         let input_file = temp_dir.path().join("secret.txt");
 
         // Create a test file with distinctive content
@@ -132,11 +132,11 @@ fn test_content_is_encrypted_in_file() {
         let mut encrypted_file_path = None;
         for entry in fs::read_dir(&temp_dir).unwrap() {
             let entry = entry.unwrap();
-            if let Some(ext) = entry.path().extension() {
-                if ext == "shadow" {
-                    encrypted_file_path = Some(entry.path());
-                    break;
-                }
+            if let Some(ext) = entry.path().extension()
+                && ext == "shadow"
+            {
+                encrypted_file_path = Some(entry.path());
+                break;
             }
         }
         let encrypted_file_path = encrypted_file_path.expect("Encrypted file was not created");
@@ -156,7 +156,7 @@ fn test_content_is_encrypted_in_file() {
         assert!(!encrypted_bytes.is_empty(), "Encrypted file is empty");
 
         Ok(())
-    })();
+    };
 
     // Always restore original directory before temp_dir is dropped
     let _ = std::env::set_current_dir(original_dir);

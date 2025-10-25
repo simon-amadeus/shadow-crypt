@@ -72,7 +72,7 @@ mod tests {
         assert_eq!(prod.key_size, 32);
 
         let test = KeyDerivationParams::test_defaults();
-        assert_eq!(test.memory_cost, 1 * 1024);
+        assert_eq!(test.memory_cost, 1024);
         assert_eq!(test.time_cost, 1);
         assert_eq!(test.parallelism, 1);
         assert_eq!(test.key_size, 32);
