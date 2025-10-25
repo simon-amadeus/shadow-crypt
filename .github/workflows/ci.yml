@@ -1,5 +1,6 @@
-name: CI Pipeline
-
+# Triggers:
+# - PRs & pushes to trunk → run CI only
+# - Pushes of v* tags → run CI + Publish (only if CI passes)
 on:
   push:
     branches: [ trunk ]
@@ -14,6 +15,9 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # =============================================
+  # 1. Code Quality (fmt + clippy)
+  # =============================================
   quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -35,8 +39,11 @@ jobs:
       - name: clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
+  # =============================================
+  # 2. Tests
+  # =============================================
   test:
-    name: Tests (release)
+    name: Tests
     runs-on: ubuntu-latest
     needs: quality
     steps:
@@ -50,8 +57,11 @@ jobs:
         uses: Swatinem/rust-cache@v2
 
       - name: Test
-        run: cargo test --workspace --release
+        run: cargo test --workspace
 
+  # =============================================
+  # 3. Security Audit
+  # =============================================
   security:
     name: Security Audit
     runs-on: ubuntu-latest
@@ -66,8 +76,64 @@ jobs:
       - name: Cache
         uses: Swatinem/rust-cache@v2
 
-      - name: Install cargo-audit
+      - name: Install cargo-audit (pinned version)
         run: cargo install cargo-audit --locked
 
       - name: Audit
         run: cargo audit
+
+  # =============================================
+  # 4. Publish (only on v* tags AND CI passed)
+  # =============================================
+  publish:
+    name: Publish to crates.io
+    runs-on: ubuntu-latest
+    needs: [quality, test, security]
+    if: ${{ github.ref_type == 'tag' && startsWith(github.ref_name, 'v') }}
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: Swatinem/rust-cache@v2
+
+      - name: Get version from tag
+        id: tag
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Publishing workspace v$VERSION"
+
+      - name: Verify Cargo.toml version (assumes shared workspace version)
+        run: |
+          EXPECTED="${{ steps.tag.outputs.version }}"
+          # Grabs from root Cargo.toml; adjust if versions are per-crate
+          ACTUAL=$(grep '^version = ' Cargo.toml | head -n 1 | sed -E 's/version = "(.*)"/\1/')
+          if [ "$ACTUAL" != "$EXPECTED" ]; then
+            echo "::error::Version mismatch! Root Cargo.toml = $ACTUAL, tag = v$EXPECTED"
+            exit 1
+          fi
+          # Optional: Verify all member crates match (uncomment if needed)
+          # for crate in $(cargo metadata --format-version 1 | jq -r '.packages[] | select(.source == null) | .name'); do
+          #   ACTUAL=$(grep '^version = ' "$crate/Cargo.toml" | head -n 1 | sed -E 's/version = "(.*)"/\1/')
+          #   if [ "$ACTUAL" != "$EXPECTED" ]; then
+          #     echo "::error::Version mismatch in $crate: $ACTUAL != $EXPECTED"
+          #     exit 1
+          #   fi
+          # done
+
+      - name: Dry-run publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --workspace --dry-run --token "$CARGO_REGISTRY_TOKEN"
+
+      - name: Publish
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+        run: cargo publish --workspace --token "$CARGO_REGISTRY_TOKEN"
