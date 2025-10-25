@@ -24,7 +24,7 @@ pub mod progress;
 pub mod report;
 
 /// Version 1 implementation of the encryption protocol
-/// 
+///
 /// Uses XChaCha20-Poly1305 with Argon2id key derivation.
 pub mod v1;
 

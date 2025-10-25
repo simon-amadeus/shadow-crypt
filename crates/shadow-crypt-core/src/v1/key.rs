@@ -20,7 +20,7 @@ impl KeyDerivationParams {
     }
 
     /// Production defaults for Argon2id parameters.
-    /// 
+    ///
     /// - Memory Cost: 4,194,304 KiB (4 GiB)
     /// - Time Cost: 10 iterations
     /// - Parallelism: 4 threads
@@ -35,7 +35,7 @@ impl KeyDerivationParams {
     }
 
     /// Test defaults for Argon2id parameters.
-    /// 
+    ///
     /// - Memory Cost: 1,024 KiB (1 MiB)
     /// - Time Cost: 1 iteration
     /// - Parallelism: 1 thread

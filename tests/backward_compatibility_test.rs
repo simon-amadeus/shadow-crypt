@@ -63,8 +63,7 @@ fn test_v1_backward_compatibility() {
         let expected_content = b"This is a test file for backward compatibility testing. It contains known content that should be decrypted correctly.\n";
 
         assert_eq!(
-            decrypted_content,
-            expected_content,
+            decrypted_content, expected_content,
             "Decrypted content does not match expected content"
         );
 

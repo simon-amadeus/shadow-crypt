@@ -5,7 +5,7 @@
 //! This crate provides the interface layer between the command-line interface and filesystem operations,
 //! building on [`shadow_crypt_core`] to offer secure file encryption and decryption with filename obfuscation.
 //! It manages I/O to keep the core library focused on deterministic types and operations.
-//! 
+//!
 //! Modules are vertically sliced to separate concerns like encryption, decryption and listing.
 
 /// Specific workflow and operations for encryption.
