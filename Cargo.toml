@@ -24,7 +24,6 @@ name = "unshadow"
 path = "src/bin/unshadow.rs"
 
 [dependencies]
-shadow-crypt-core = { version = "0.1", path = "crates/shadow-crypt-core" }
 shadow-crypt-shell = { version = "0.1", path = "crates/shadow-crypt-shell" }
 
 [dev-dependencies]
