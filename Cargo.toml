@@ -2,6 +2,7 @@
 name = "shadow-crypt"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
 authors.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -39,6 +40,7 @@ members = [
 [workspace.package]
 version = "1.0.0"
 edition = "2024"
+rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow-crypt"
