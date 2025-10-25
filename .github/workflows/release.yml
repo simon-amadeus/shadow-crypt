@@ -17,6 +17,7 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:  # for manual triggering
 
 env:
   CARGO_TERM_COLOR: always

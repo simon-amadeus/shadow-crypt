@@ -51,8 +51,9 @@ shadows
 
 ## Documentation
 
-- [📝 Changelog](docs/CHANGELOG.md)
-- [📚 API Documentation](https://docs.rs/shadow-crypt)
+- [📝 Changelog](CHANGELOG.md)
+- [📚 Core API Documentation](https://docs.rs/shadow-crypt-core)
+- [📚 Shell API Documentation](https://docs.rs/shadow-crypt-shell)
 
 ## Contributing
 
