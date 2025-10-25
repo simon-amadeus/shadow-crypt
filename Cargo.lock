@@ -837,6 +837,7 @@ dependencies = [
 name = "shadow-crypt"
 version = "1.0.4"
 dependencies = [
+ "clap",
  "shadow-crypt-shell",
  "tempfile",
 ]

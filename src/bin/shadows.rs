@@ -8,12 +8,13 @@ use std::process;
 use shadow_crypt_shell::{
     display_error,
     errors::WorkflowError,
-    listing::{file::ListingInput, workflow::run_workflow},
+    listing::{cli::get_cli_args, file::ListingInput, workflow::run_workflow},
     memory::SecureString,
     password::prompt_for_password,
 };
 
 fn run() -> Result<(), WorkflowError> {
+    let _args = get_cli_args(std::env::args().collect())?; // for --help and --version handling
     let work_dir = std::env::current_dir()?;
     let password: SecureString = prompt_for_password()?;
     let input = ListingInput::new(password, work_dir);

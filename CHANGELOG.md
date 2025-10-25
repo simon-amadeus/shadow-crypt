@@ -30,6 +30,8 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.4] - 2025-10-25
+
 ### Changed
 - Update CLI parsing to use clap's derive API
 
@@ -38,6 +40,7 @@ Example:
 
 ### Added
 - Add --version flag support to CLI commands
+- Add help and version flags to shadows command
 
 ## [1.0.3] - 2025-10-25
 

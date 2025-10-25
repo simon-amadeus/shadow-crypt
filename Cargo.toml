@@ -30,6 +30,7 @@ path = "src/bin/unshadow.rs"
 
 [dependencies]
 shadow-crypt-shell = { version = "1", path = "crates/shadow-crypt-shell" }
+clap = { workspace = true }
 
 [dev-dependencies]
 tempfile = { workspace = true }
