@@ -1,3 +1,8 @@
+//! Binary for listing files encrypted with shadow-crypt.
+//!
+//! This binary provides the command-line interface for listing encrypted files in the current
+//! directory, displaying their obfuscated names and metadata.
+
 use std::process;
 
 use shadow_crypt_shell::{

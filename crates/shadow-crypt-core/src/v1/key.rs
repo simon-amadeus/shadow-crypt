@@ -19,7 +19,13 @@ impl KeyDerivationParams {
         }
     }
 
-    fn production_defaults() -> Self {
+    /// Production defaults for Argon2id parameters.
+    /// 
+    /// - Memory Cost: 4,194,304 KiB (4 GiB)
+    /// - Time Cost: 10 iterations
+    /// - Parallelism: 4 threads
+    /// - Key Size: 32 bytes (256 bits)
+    pub fn production_defaults() -> Self {
         Self {
             memory_cost: 4 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
             time_cost: 10,                // 10 iterations
@@ -28,7 +34,13 @@ impl KeyDerivationParams {
         }
     }
 
-    fn test_defaults() -> Self {
+    /// Test defaults for Argon2id parameters.
+    /// 
+    /// - Memory Cost: 1,024 KiB (1 MiB)
+    /// - Time Cost: 1 iteration
+    /// - Parallelism: 1 thread
+    /// - Key Size: 32 bytes (256 bits)
+    pub fn test_defaults() -> Self {
         Self {
             memory_cost: 1024, // 1,024 KiB (1 MiB)
             time_cost: 1,      // 1 iteration

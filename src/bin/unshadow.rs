@@ -1,3 +1,8 @@
+//! Binary for decrypting files encrypted with shadow-crypt.
+//!
+//! This binary provides the command-line interface for decrypting files that were encrypted
+//! using shadow-crypt, restoring the original filenames and content.
+
 use std::process;
 
 use shadow_crypt_shell::{

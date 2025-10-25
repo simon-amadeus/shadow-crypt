@@ -1,3 +1,8 @@
+//! Binary for encrypting files with shadow-crypt.
+//!
+//! This binary provides the command-line interface for encrypting files using password-based
+//! encryption with filename obfuscation.
+
 use std::process;
 
 use shadow_crypt_shell::{

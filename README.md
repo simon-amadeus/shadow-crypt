@@ -60,3 +60,5 @@ Contributions are welcome! Please open issues or submit pull requests on [Github
 ## License
 
 Licensed under MIT OR Apache-2.0.
+
+See [LICENSE-APACHE](LICENSE-APACHE) and [LICENSE-MIT](LICENSE-MIT) for full license texts.
