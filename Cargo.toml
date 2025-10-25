@@ -1,14 +1,12 @@
-# Shadow Crypt - Secure File Encryption Tool
-
 [package]
 name = "shadow-crypt"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Simple file encryption tools"
 repository.workspace = true
 readme.workspace = true
+description.workspace = true
 keywords.workspace = true
 categories.workspace = true
 
@@ -26,7 +24,6 @@ name = "unshadow"
 path = "src/bin/unshadow.rs"
 
 [dependencies]
-# Only depend on what the main binary actually needs
 shadow-shell = { version = "0.1", path = "crates/shadow-shell" }
 
 [dev-dependencies]
@@ -46,6 +43,7 @@ authors = ["Simon Amadeus <code@simonamadeus.com>"]
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow-crypt"
 readme = "README.md"
+description = "Pragmatic file encryption utilities"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
 
