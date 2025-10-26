@@ -21,16 +21,16 @@ impl KeyDerivationParams {
 
     /// Production defaults for Argon2id parameters.
     ///
-    /// - Memory Cost: 4,194,304 KiB (4 GiB)
+    /// - Memory Cost: 1,048,576 KiB (1 GiB)
     /// - Time Cost: 10 iterations
     /// - Parallelism: 4 threads
     /// - Key Size: 32 bytes (256 bits)
     pub fn production_defaults() -> Self {
         Self {
-            memory_cost: 4 * 1024 * 1024, // 4,194,304 KiB (4 GiB)
-            time_cost: 10,                // 10 iterations
-            parallelism: 4,               // 4 threads
-            key_size: 32,                 // 32 bytes (256 bits)
+            memory_cost: 1024 * 1024, // 1,048,576 KiB (1 GiB)
+            time_cost: 10,            // 10 iterations
+            parallelism: 4,           // 4 threads
+            key_size: 32,             // 32 bytes (256 bits)
         }
     }
 
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn test_key_derivation_params_defaults() {
         let prod = KeyDerivationParams::production_defaults();
-        assert_eq!(prod.memory_cost, 4 * 1024 * 1024);
+        assert_eq!(prod.memory_cost, 1024 * 1024);
         assert_eq!(prod.time_cost, 10);
         assert_eq!(prod.parallelism, 4);
         assert_eq!(prod.key_size, 32);

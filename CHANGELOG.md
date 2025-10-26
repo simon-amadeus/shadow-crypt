@@ -30,6 +30,10 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.6] - 2025-10-26
+### Changed
+- Resuce default Argon2id memory cost from 4 GiB to 1 GiB
+
 ## [1.0.5] - 2025-10-25
 ### Fixed
 - Remove redundant clap dependency from root crate
