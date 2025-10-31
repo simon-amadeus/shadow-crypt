@@ -18,15 +18,15 @@ exclude = [
 # All binaries from workspace
 [[bin]]
 name = "shadow"
-path = "src/bin/shadow.rs"
+path = "src/bin/encryption.rs"
 
 [[bin]]
 name = "shadows"
-path = "src/bin/shadows.rs"
+path = "src/bin/listing.rs"
 
 [[bin]]
 name = "unshadow"
-path = "src/bin/unshadow.rs"
+path = "src/bin/decryption.rs"
 
 [dependencies]
 shadow-crypt-shell = { version = "1", path = "crates/shadow-crypt-shell" }
@@ -42,7 +42,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.6"
+version = "1.0.7"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]

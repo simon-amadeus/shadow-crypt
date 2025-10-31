@@ -30,6 +30,10 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.7] - 2025-10-31
+### Changed
+- Refactor binrary file names to reflect provided functionality
+
 ## [1.0.6] - 2025-10-26
 ### Changed
 - Resuce default Argon2id memory cost from 4 GiB to 1 GiB
