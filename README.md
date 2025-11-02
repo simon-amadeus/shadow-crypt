@@ -51,7 +51,7 @@ shadows
 ## Documentation
 
 - [📝 Changelog](CHANGELOG.md)
-- [📚 Complete API Documentation](https://docs.rs/shadow-crypt) - Includes core cryptographic APIs and shell operations
+- [📚 Complete API Documentation](https://docs.rs/shadow-crypt)
 
 ## Contributing
 

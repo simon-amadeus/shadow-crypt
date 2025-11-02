@@ -1,5 +1,5 @@
 //! # Shadow Crypt
-//! 
+//!
 //! Password-based file encryption with filename obfuscation.
 //!
 //! ## Features
