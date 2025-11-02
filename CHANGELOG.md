@@ -30,6 +30,11 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.8] - 2025-11-02
+### Changed
+- Unpublish shadow-crypt-core and shadow-crypt-shell crates to prevent direct dependency
+- Update documentation to reflect unified shadow-crypt crate usage
+
 ## [1.0.7] - 2025-10-31
 ### Changed
 - Refactor binrary file names to reflect provided functionality
