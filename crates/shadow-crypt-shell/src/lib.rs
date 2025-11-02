@@ -1,3 +1,11 @@
+//! # ⚠️ INTERNAL CRATE - NOT FOR PUBLIC USE
+//!
+//! This is an implementation detail of the `shadow-crypt` CLI binary.
+//! No stability or API guarantees. Direct dependency may break without notice.
+//! For audits/reviews: See full workspace docs at https://docs.rs/shadow-crypt.
+//! Use the CLI: `cargo install shadow-crypt`.
+//! 
+//! 
 //! # Shadow Crypt Shell
 //!
 //! Shell layer for shadow_crypt, handling main workflows and I/O operations.

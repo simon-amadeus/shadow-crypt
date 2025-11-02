@@ -1,5 +1,6 @@
 [package]
 name = "shadow-crypt"
+publish = true
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -8,6 +9,7 @@ license.workspace = true
 repository.workspace = true
 readme.workspace = true
 description.workspace = true
+documentation.workspace = true
 keywords.workspace = true
 categories.workspace = true
 exclude = [
@@ -50,8 +52,12 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/simon-amadeus/shadow-crypt"
 readme = "README.md"
 description = "Secure password-based file encryption with filename obfuscation"
+documentation = "https://docs.rs/shadow-crypt"
 keywords = ["encryption", "cryptography", "file", "security", "cli"]
 categories = ["command-line-utilities", "cryptography"]
+
+[workspace.metadata.docs.rs]
+all-features = true
 
 [workspace.dependencies]
 zeroize = "1"
