@@ -1,8 +1,7 @@
 # Shadow Crypt
 
 [![Crates.io](https://img.shields.io/crates/v/shadow-crypt.svg)](https://crates.io/crates/shadow-crypt)
-[![Documentation](https://docs.rs/shadow-crypt-core/badge.svg)](https://docs.rs/shadow-crypt-core)
-[![Shell Documentation](https://docs.rs/shadow-crypt-shell/badge.svg)](https://docs.rs/shadow-crypt-shell)
+[![Documentation](https://docs.rs/shadow-crypt/badge.svg)](https://docs.rs/shadow-crypt)
 [![CI](https://github.com/simon-amadeus/shadow-crypt/actions/workflows/ci.yml/badge.svg)](https://github.com/simon-amadeus/shadow-crypt/actions)
 [![License: MIT OR Apache-2.0](https://img.shields.io/crates/l/shadow-crypt.svg)](#license)
 
@@ -52,8 +51,7 @@ shadows
 ## Documentation
 
 - [📝 Changelog](CHANGELOG.md)
-- [📚 Core API Documentation](https://docs.rs/shadow-crypt-core)
-- [📚 Shell API Documentation](https://docs.rs/shadow-crypt-shell)
+- [📚 Complete API Documentation](https://docs.rs/shadow-crypt) - Includes core cryptographic APIs and shell operations
 
 ## Contributing
 
