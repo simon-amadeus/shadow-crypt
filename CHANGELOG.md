@@ -30,6 +30,10 @@ Example:
 
 ## [Unreleased]
 
+## [1.0.9] - 2025-11-02
+### Fixed
+- include dependency crates in docs.rs build
+
 ## [1.0.8] - 2025-11-02
 ### Changed
 - Unpublish shadow-crypt-core and shadow-crypt-shell crates to prevent direct dependency

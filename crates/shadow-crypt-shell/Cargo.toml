@@ -11,6 +11,9 @@ description = "Main workflows and I/O operations for shadow-crypt"
 keywords.workspace = true
 categories.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 # Core dependency - pure functions only
 shadow-crypt-core = { version = "1", path = "../shadow-crypt-core" }

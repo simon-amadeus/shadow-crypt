@@ -21,8 +21,8 @@
 //!
 //! The implementation is split into two main modules:
 //!
-//! - [`shadow_crypt_core`] - Core cryptographic operations and types (deterministic, no I/O)
-//! - [`shadow_crypt_shell`] - Command-line interface and file I/O operations
+//! - [`core`] - Core cryptographic operations and types (deterministic, no I/O)
+//! - [`shell`] - Command-line interface and file I/O operations
 //!
 //! ## Security
 //!
@@ -51,3 +51,12 @@
 //! ```bash
 //! shadows
 //! ```
+
+// Re-export the shell crate for unified documentation
+/// Main workflows and I/O operations.
+#[doc(inline)]
+pub use shadow_crypt_shell as shell;
+
+/// Core types and deterministic operations.
+#[doc(inline)]
+pub use shadow_crypt_core as core;

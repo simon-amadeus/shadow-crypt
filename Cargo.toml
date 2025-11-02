@@ -49,7 +49,7 @@ members = [
 ]
 
 [workspace.package]
-version = "1.0.8"
+version = "1.0.9"
 edition = "2024"
 rust-version = "1.88"
 authors = ["Simon Amadeus <code@simonamadeus.com>"]
@@ -64,7 +64,6 @@ categories = ["command-line-utilities", "cryptography"]
 [workspace.metadata.docs.rs]
 all-features = true
 rustdoc-args = ["--document-private-items"]
-dependencies = ["shadow-crypt-core", "shadow-crypt-shell"]
 
 [workspace.dependencies]
 zeroize = "1"

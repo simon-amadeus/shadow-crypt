@@ -11,6 +11,9 @@ description = "Core types and deterministic operations for shadow-crypt"
 keywords.workspace = true
 categories.workspace = true
 
+[package.metadata.docs.rs]
+all-features = true
+
 [dependencies]
 # Only deterministic operations
 zeroize = { workspace = true }
