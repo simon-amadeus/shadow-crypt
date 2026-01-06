@@ -1,3 +1,5 @@
+name: CI Pipeline
+
 # Triggers:
 # - PRs & pushes to trunk → run CI only
 # - Pushes of v* tags → run CI + Publish (only if CI passes)
