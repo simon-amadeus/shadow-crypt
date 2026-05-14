@@ -32,6 +32,8 @@ Example:
 
 ## [1.1.0] - 2026-05-14
 
+## [1.1.0] - 2026-05-14
+
 ### Security
 - Fix path traversal vulnerability: sanitize decrypted filenames with `file_name()` before writing output, preventing a malicious `.shadow` file from escaping the output directory
 - Add upper-bound validation for KDF parameters read from file headers (memory ≤ 8 GiB, iterations ≤ 1000, parallelism ≤ 256, key size ≤ 64 bytes) to prevent DoS via crafted files
