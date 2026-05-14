@@ -19,9 +19,7 @@ pub fn store_plaintext_file(
     let safe_name = std::path::Path::new(file.filename().as_str())
         .file_name()
         .ok_or_else(|| {
-            WorkflowError::File(
-                "Decrypted filename contains invalid path components".to_string(),
-            )
+            WorkflowError::File("Decrypted filename contains invalid path components".to_string())
         })?;
     let safe_name_str = safe_name
         .to_str()
@@ -119,7 +117,10 @@ mod tests {
 
             match malicious_name {
                 &".." => {
-                    assert!(result.is_err(), "Expected error for filename '{malicious_name}'");
+                    assert!(
+                        result.is_err(),
+                        "Expected error for filename '{malicious_name}'"
+                    );
                 }
                 _ => {
                     // file_name() strips leading directories, so it succeeds

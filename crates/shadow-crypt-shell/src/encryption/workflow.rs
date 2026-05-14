@@ -36,7 +36,12 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
         .map(|input_file| {
             counter.increment();
             display_progress(&counter);
-            process_file_encryption(input_file.to_owned(), &input.password, &params, &input.output_dir)
+            process_file_encryption(
+                input_file.to_owned(),
+                &input.password,
+                &params,
+                &input.output_dir,
+            )
         })
         .for_each(display_encryption_report);
 

@@ -57,7 +57,7 @@ impl FileHeader {
         + 1  // kdf_key_length (u8)
         + 24 // content_nonce ([u8; 24])
         + 24 // filename_nonce ([u8; 24])
-        + 2  // filename_ciphertext_length (u16)
+        + 2 // filename_ciphertext_length (u16)
     }
 }
 
