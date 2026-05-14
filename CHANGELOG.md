@@ -30,6 +30,20 @@ Example:
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-05-14
+
+### Security
+- Fix path traversal vulnerability: sanitize decrypted filenames with `file_name()` before writing output, preventing a malicious `.shadow` file from escaping the output directory
+- Add upper-bound validation for KDF parameters read from file headers (memory ≤ 8 GiB, iterations ≤ 1000, parallelism ≤ 256, key size ≤ 64 bytes) to prevent DoS via crafted files
+- Generate a unique salt and derived key per file in batch encryption so files encrypted in the same session cannot be correlated by comparing header salts
+
+### Changed
+- Output filename generation now uses `OsRng` directly, consistent with nonce and salt generation
+- Encryption success output now includes a reminder that the source file was not deleted
+
+### Fixed
+- Replace magic constant `90` in `FileHeader::min_length()` with a self-documenting sum of field sizes that stays correct if the format changes
+
 ## [1.0.9] - 2025-11-02
 ### Fixed
 - include dependency crates in docs.rs build
