@@ -91,18 +91,16 @@ mod tests {
 
     #[test]
     fn test_store_plaintext_file() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
         let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"test content".to_vec());
         let plaintext = PlaintextFile::new(filename, content);
 
-        let output = store_plaintext_file(&plaintext, &std::env::current_dir().unwrap()).unwrap();
+        let output = store_plaintext_file(&plaintext, temp_dir.path()).unwrap();
         assert_eq!(output.filename, "test.txt");
 
         let read_content = fs::read(&output.path).unwrap();
         assert_eq!(read_content, b"test content");
-
-        // Clean up
-        fs::remove_file(&output.path).unwrap();
     }
 
     #[test]
