@@ -14,9 +14,23 @@ pub fn store_plaintext_file(
     file: &PlaintextFile,
     output_dir: &std::path::Path,
 ) -> WorkflowResult<DecryptionOutputFile> {
+    // Reject any path traversal by taking only the bare filename component.
+    // This prevents a malicious .shadow file from writing to an arbitrary path.
+    let safe_name = std::path::Path::new(file.filename().as_str())
+        .file_name()
+        .ok_or_else(|| {
+            WorkflowError::File(
+                "Decrypted filename contains invalid path components".to_string(),
+            )
+        })?;
+    let safe_name_str = safe_name
+        .to_str()
+        .ok_or_else(|| WorkflowError::File("Decrypted filename is not valid UTF-8".to_string()))?
+        .to_string();
+
     let output_file = DecryptionOutputFile {
-        path: output_dir.join(file.filename().as_str()),
-        filename: file.filename().as_str().to_string(),
+        path: output_dir.join(safe_name),
+        filename: safe_name_str,
     };
 
     if output_file.path.exists() {
@@ -91,6 +105,34 @@ mod tests {
 
         // Clean up
         fs::remove_file(&output.path).unwrap();
+    }
+
+    #[test]
+    fn test_store_plaintext_file_path_traversal_rejected() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+
+        for malicious_name in &["../../etc/passwd", "../sibling", "/abs/path", ".."] {
+            let filename = SecureString::new(malicious_name.to_string());
+            let content = SecureBytes::new(b"evil".to_vec());
+            let plaintext = PlaintextFile::new(filename, content);
+            let result = store_plaintext_file(&plaintext, temp_dir.path());
+
+            match malicious_name {
+                &".." => {
+                    assert!(result.is_err(), "Expected error for filename '{malicious_name}'");
+                }
+                _ => {
+                    // file_name() strips leading directories, so it succeeds
+                    // but writes into temp_dir, not to the traversed path
+                    if let Ok(output) = result {
+                        assert!(
+                            output.path.starts_with(temp_dir.path()),
+                            "Output escaped temp_dir for '{malicious_name}'"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]
