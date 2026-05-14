@@ -3,7 +3,7 @@ use std::{
     path::PathBuf,
 };
 
-use rand::distr::{Alphabetic, SampleString};
+use rand::rand_core::{OsRng, TryRngCore};
 use shadow_crypt_core::{
     memory::{SecureBytes, SecureString},
     v1::file::{EncryptedFile, PlaintextFile},
@@ -43,10 +43,15 @@ pub fn load_plaintext_file(file: &EncryptionInputFile) -> WorkflowResult<Plainte
 }
 
 fn generate_output_filename() -> WorkflowResult<String> {
-    let mut rng = rand::rng();
-    let len = 16;
-
-    Ok(Alphabetic.sample_string(&mut rng, len))
+    const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let mut bytes = [0u8; 16];
+    OsRng
+        .try_fill_bytes(&mut bytes)
+        .map_err(|e| WorkflowError::File(format!("Failed to generate output filename: {}", e)))?;
+    Ok(bytes
+        .iter()
+        .map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char)
+        .collect())
 }
 
 fn create_encryption_output_file(
