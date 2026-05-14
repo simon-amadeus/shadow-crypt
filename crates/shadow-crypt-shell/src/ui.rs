@@ -47,6 +47,10 @@ pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
                 report.input_filename, report.output_filename, report.duration, report.algorithm
             );
             display_success(&msg);
+            println!(
+                "  Note: '{}' was not deleted — remove it manually if it is no longer needed.",
+                report.input_filename
+            );
         }
         Err(err) => {
             display_error(err);

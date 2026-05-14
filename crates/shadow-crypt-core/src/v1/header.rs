@@ -44,9 +44,20 @@ impl FileHeader {
         }
     }
 
-    /// Minimum length of the header without the variable-length filename ciphertext
+    /// Minimum length of the header without the variable-length filename ciphertext.
+    /// Changing the fixed fields above requires updating this value.
     pub fn min_length() -> usize {
-        90 // Fixed length of the header without the variable-length filename ciphertext
+        6  // magic ("SHADOW")
+        + 1  // version (u8)
+        + 4  // header_length (u32)
+        + 16 // salt ([u8; 16])
+        + 4  // kdf_memory (u32)
+        + 4  // kdf_iterations (u32)
+        + 4  // kdf_parallelism (u32)
+        + 1  // kdf_key_length (u8)
+        + 24 // content_nonce ([u8; 24])
+        + 24 // filename_nonce ([u8; 24])
+        + 2  // filename_ciphertext_length (u16)
     }
 }
 

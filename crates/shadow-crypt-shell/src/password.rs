@@ -102,7 +102,9 @@ fn format_feedback(estimate: &zxcvbn::Entropy) -> String {
 
 use subtle::ConstantTimeEq;
 
-/// Constant-time equality comparison for security-sensitive data
+/// Compares two byte slices for equality in constant time when lengths are equal.
+/// A length mismatch is detected immediately (not in constant time), which is
+/// acceptable for interactive password confirmation but not for HMAC verification.
 fn constant_time_eq(a: &[u8], b: &[u8]) -> bool {
     if a.len() != b.len() {
         return false;
