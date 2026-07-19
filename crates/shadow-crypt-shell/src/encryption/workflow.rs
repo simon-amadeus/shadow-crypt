@@ -20,30 +20,41 @@ use crate::{
         nonce::generate_nonce,
         salt::generate_salt,
     },
-    errors::WorkflowResult,
+    errors::{WorkflowError, WorkflowResult},
     ui::{display_encryption_report, display_progress},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
     let params = KeyDerivationParams::from(input.security_profile);
-    let counter = ProgressCounter::new(input.files.len() as u64);
+    let total = input.files.len();
+    let counter = ProgressCounter::new(total as u64);
 
     // Each file gets its own salt and derived key so that files encrypted in the
     // same session cannot be correlated by comparing header salts.
-    input
+    let failures: usize = input
         .files
         .par_iter()
         .map(|input_file| {
-            counter.increment();
-            display_progress(&counter);
-            process_file_encryption(
+            let result = process_file_encryption(
                 input_file.to_owned(),
                 &input.password,
                 &params,
                 &input.output_dir,
-            )
+            );
+            counter.increment();
+            display_progress(&counter);
+            let failed = result.is_err();
+            display_encryption_report(result);
+            usize::from(failed)
         })
-        .for_each(display_encryption_report);
+        .sum();
+
+    if failures > 0 {
+        return Err(WorkflowError::Encryption(format!(
+            "{} of {} file(s) failed to encrypt",
+            failures, total
+        )));
+    }
 
     Ok(())
 }

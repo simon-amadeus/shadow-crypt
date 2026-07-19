@@ -68,6 +68,10 @@ fn test_encrypt_decrypt_round_trip() {
         }
         let encrypted_file = encrypted_file.expect("Encrypted file was not created");
 
+        // Remove the original so decryption can restore it (no-overwrite policy)
+        // and so the final comparison actually checks the decrypted output.
+        fs::remove_file(&input_file).unwrap();
+
         // Create decryption CLI args
         let decrypt_cli_args = DecryptionCliArgs {
             input_files: vec![encrypted_file.to_str().unwrap().to_string()],
@@ -103,4 +107,47 @@ fn test_encrypt_decrypt_round_trip() {
 
     // Propagate any test failure
     result.unwrap();
+}
+
+#[test]
+fn test_decrypt_with_wrong_password_reports_failure() {
+    let _lock = TEST_MUTEX.lock().unwrap();
+    let temp_dir = TempDir::new().unwrap();
+
+    let input_file = temp_dir.path().join("secret.txt");
+    fs::write(&input_file, b"sensitive data").unwrap();
+
+    let cli_args = EncryptionCliArgs {
+        input_files: vec![input_file.to_str().unwrap().to_string()],
+        test_mode: true,
+    };
+    let valid_args = validate_encryption_input(cli_args).unwrap();
+    let encryption_input = EncryptionInput::new(
+        valid_args.files,
+        SecureString::new("correct password".to_string()),
+        SecurityProfile::Test,
+        temp_dir.path().to_path_buf(),
+    );
+    run_encryption_workflow(encryption_input).unwrap();
+
+    let encrypted_file = fs::read_dir(&temp_dir)
+        .unwrap()
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "shadow"))
+        .expect("Encrypted file was not created");
+
+    let decrypt_cli_args = DecryptionCliArgs {
+        input_files: vec![encrypted_file.to_str().unwrap().to_string()],
+    };
+    let valid_decrypt_args = validate_decryption_input(decrypt_cli_args).unwrap();
+    let decryption_input = DecryptionInput::new(
+        valid_decrypt_args.files,
+        SecureString::new("wrong password".to_string()),
+        temp_dir.path().to_path_buf(),
+    );
+
+    // The workflow must surface per-file failures so the CLI exits nonzero.
+    let result = run_decryption_workflow(decryption_input);
+    assert!(result.is_err(), "wrong password should fail the workflow");
 }

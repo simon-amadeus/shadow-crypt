@@ -25,18 +25,30 @@ use crate::{
 };
 
 pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
-    let counter = ProgressCounter::new(input.files.len() as u64);
+    let total = input.files.len();
+    let counter = ProgressCounter::new(total as u64);
 
     // Process files in parallel using rayon
-    input
+    let failures: usize = input
         .files
         .par_iter()
         .map(|input_file| {
+            let result =
+                process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir);
             counter.increment();
             display_progress(&counter);
-            process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir)
+            let failed = result.is_err();
+            display_decryption_report(result);
+            usize::from(failed)
         })
-        .for_each(display_decryption_report);
+        .sum();
+
+    if failures > 0 {
+        return Err(crate::errors::WorkflowError::Decryption(format!(
+            "{} of {} file(s) failed to decrypt",
+            failures, total
+        )));
+    }
 
     Ok(())
 }

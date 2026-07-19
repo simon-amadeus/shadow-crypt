@@ -11,7 +11,7 @@ use crate::{
 
 pub fn display_progress(counter: &ProgressCounter) {
     println!(
-        "Processing file {} of {}",
+        "Processed file {} of {}",
         counter.get_current(),
         counter.get_total()
     );
