@@ -1,9 +1,6 @@
 use std::{fs, path::Path};
 
-use shadow_crypt_core::{
-    memory::SecureBytes,
-    version::{Version, read_file_version},
-};
+use shadow_crypt_core::{memory::SecureBytes, version::read_file_version};
 
 use crate::{
     errors::{WorkflowError, WorkflowResult},
@@ -92,34 +89,44 @@ fn get_header_length(bytes: &[u8]) -> WorkflowResult<u32> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_crypt_core::{
-        profile::SecurityProfile,
-        v1::{header::FileHeader, header_ops, key::KeyDerivationParams},
-    };
+    use shadow_crypt_core::{profile::SecurityProfile, v1, v2, version::Version};
     use std::fs;
     use tempfile::TempDir;
 
-    fn create_test_header() -> FileHeader {
-        let salt = [1u8; 16];
-        let kdf_params = KeyDerivationParams::from(SecurityProfile::Test);
-        let content_nonce = [2u8; 24];
-        let filename_nonce = [3u8; 24];
-        let filename_ciphertext = vec![4, 5, 6, 7, 8];
-
-        FileHeader::new(
-            salt,
-            kdf_params,
-            content_nonce,
-            filename_nonce,
-            filename_ciphertext,
+    fn create_test_header_v1() -> v1::header::FileHeader {
+        v1::header::FileHeader::new(
+            [1u8; 16],
+            v1::key::KeyDerivationParams::from(SecurityProfile::Test),
+            [2u8; 24],
+            [3u8; 24],
+            vec![4, 5, 6, 7, 8],
         )
+    }
+
+    fn create_test_header_v2() -> v2::header::FileHeader {
+        v2::header::FileHeader::new(
+            [1u8; 16],
+            v2::key::KeyDerivationParams::from(SecurityProfile::Test),
+            [2u8; 24],
+            [3u8; 24],
+            vec![4, 5, 6, 7, 8],
+        )
+        .unwrap()
     }
 
     fn create_shadow_file(dir: &TempDir, filename: &str) -> std::path::PathBuf {
         let path = dir.path().join(filename);
-        let header = create_test_header();
-        let serialized = header_ops::serialize(&header);
+        let serialized = v1::header_ops::serialize(&create_test_header_v1());
         // Add some dummy content after header
+        let mut content = serialized;
+        content.extend_from_slice(b"dummy content");
+        fs::write(&path, content).unwrap();
+        path
+    }
+
+    fn create_shadow_file_v2(dir: &TempDir, filename: &str) -> std::path::PathBuf {
+        let path = dir.path().join(filename);
+        let serialized = v2::header_ops::serialize(&create_test_header_v2());
         let mut content = serialized;
         content.extend_from_slice(b"dummy content");
         fs::write(&path, content).unwrap();
@@ -136,9 +143,10 @@ mod tests {
     fn test_scan_directory_for_shadow_files() {
         let temp_dir = TempDir::new().unwrap();
 
-        // Create some shadow files
+        // Create shadow files of both versions
         create_shadow_file(&temp_dir, "file1.shadow");
         create_shadow_file(&temp_dir, "file2.shadow");
+        create_shadow_file_v2(&temp_dir, "file5.shadow");
 
         // Create some non-shadow files
         create_non_shadow_file(&temp_dir, "file3.txt");
@@ -146,14 +154,15 @@ mod tests {
 
         let result = scan_directory_for_shadow_files(temp_dir.path()).unwrap();
 
-        // Should find exactly 2 shadow files
-        assert_eq!(result.len(), 2);
+        // Should find exactly 3 shadow files
+        assert_eq!(result.len(), 3);
 
         // Check filenames
         let filenames: std::collections::HashSet<_> =
             result.iter().map(|f| f.filename.as_str()).collect();
         assert!(filenames.contains("file1.shadow"));
         assert!(filenames.contains("file2.shadow"));
+        assert!(filenames.contains("file5.shadow"));
     }
 
     #[test]
@@ -174,6 +183,17 @@ mod tests {
         assert_eq!(result.filename, "test.shadow");
         assert_eq!(result.version, Version::V1);
         assert_eq!(result.size, 90 + 5 + 13); // header min + filename + dummy content
+    }
+
+    #[test]
+    fn test_try_create_shadow_file_valid_v2() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = create_shadow_file_v2(&temp_dir, "test.shadow");
+
+        let result = try_create_shadow_file(&path).unwrap();
+
+        assert_eq!(result.filename, "test.shadow");
+        assert_eq!(result.version, Version::V2);
     }
 
     #[test]
@@ -209,16 +229,30 @@ mod tests {
     }
 
     #[test]
-    fn test_load_file_header() {
+    fn test_load_file_header_bytes_v1() {
         let temp_dir = TempDir::new().unwrap();
         let path = create_shadow_file(&temp_dir, "test.shadow");
         let shadow_file = try_create_shadow_file(&path).unwrap();
 
-        let header = load_file_header(&shadow_file).unwrap();
+        let header_bytes = load_file_header_bytes(&shadow_file).unwrap();
+        let header = v1::header_ops::try_deserialize(header_bytes.as_slice()).unwrap();
 
-        // Check that it's the same as our test header
         assert_eq!(header.magic, *b"SHADOW");
         assert_eq!(header.version, 1);
+        assert_eq!(header.salt, [1u8; 16]);
+    }
+
+    #[test]
+    fn test_load_file_header_bytes_v2() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = create_shadow_file_v2(&temp_dir, "test.shadow");
+        let shadow_file = try_create_shadow_file(&path).unwrap();
+
+        let header_bytes = load_file_header_bytes(&shadow_file).unwrap();
+        let header = v2::header_ops::try_deserialize(header_bytes.as_slice()).unwrap();
+
+        assert_eq!(header.magic, *b"SHADOW");
+        assert_eq!(header.version, 2);
         assert_eq!(header.salt, [1u8; 16]);
     }
 }

@@ -2,11 +2,9 @@ use std::sync::Arc;
 
 use rayon::prelude::*;
 use shadow_crypt_core::{
-    memory::{SecureBytes, SecureKey, SecureString},
-    v1::{
-        crypt::decrypt_bytes, header::FileHeader, header_ops::get_kdf_params,
-        key::KeyDerivationParams, key_ops::derive_key,
-    },
+    memory::SecureString,
+    v1, v2,
+    version::Version,
 };
 
 use crate::{
@@ -14,7 +12,7 @@ use crate::{
     kdf::{validate_untrusted_kdf_params, with_kdf_memory_permit},
     listing::{
         file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
-        file_ops::{load_file_header, scan_directory_for_shadow_files},
+        file_ops::{load_file_header_bytes, scan_directory_for_shadow_files},
     },
     ui,
     utils::parse_string_from_bytes,
@@ -37,12 +35,21 @@ pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
     Ok(())
 }
 
-fn decipher_original_filename(header: FileHeader, password: &SecureString) -> Option<SecureString> {
-    let filename_nonce: &[u8; 24] = &header.filename_nonce;
-    let filename_ciphertext: &[u8] = header.filename_ciphertext.as_slice();
+fn decipher_original_filename(
+    header_bytes: &[u8],
+    version: &Version,
+    password: &SecureString,
+) -> Option<SecureString> {
+    match version {
+        Version::V1 => decipher_v1(header_bytes, password),
+        Version::V2 => decipher_v2(header_bytes, password),
+    }
+}
 
-    let salt: &[u8; 16] = &header.salt;
-    let kdf_params: KeyDerivationParams = get_kdf_params(&header);
+fn decipher_v1(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
+    let header = v1::header_ops::try_deserialize(header_bytes).ok()?;
+    let kdf_params = v1::header_ops::get_kdf_params(&header);
+
     // The header is untrusted input: bound the KDF cost before deriving,
     // otherwise a crafted file could request an enormous allocation.
     validate_untrusted_kdf_params(
@@ -52,13 +59,44 @@ fn decipher_original_filename(header: FileHeader, password: &SecureString) -> Op
         kdf_params.key_size,
     )
     .ok()?;
-    let (key, _): (SecureKey, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
-        derive_key(password.as_str().as_bytes(), salt, &kdf_params)
+    let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
+        v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params)
     })
     .ok()?;
 
-    let (filename_bytes, _): (SecureBytes, _) =
-        decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce).ok()?;
+    let (filename_bytes, _) = v1::crypt::decrypt_bytes(
+        &header.filename_ciphertext,
+        key.as_bytes(),
+        &header.filename_nonce,
+    )
+    .ok()?;
+
+    parse_string_from_bytes(&filename_bytes).ok()
+}
+
+fn decipher_v2(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
+    let header = v2::header_ops::try_deserialize(header_bytes).ok()?;
+    let kdf_params = v2::header_ops::get_kdf_params(&header);
+
+    validate_untrusted_kdf_params(
+        kdf_params.memory_cost,
+        kdf_params.time_cost,
+        kdf_params.parallelism,
+        kdf_params.key_size,
+    )
+    .ok()?;
+    let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
+        v2::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params)
+    })
+    .ok()?;
+
+    let (filename_bytes, _) = v2::crypt::decrypt_bytes(
+        &header.filename_ciphertext,
+        key.as_bytes(),
+        &header.filename_nonce,
+        &header.binding().aad(v2::header::AadPurpose::Filename),
+    )
+    .ok()?;
 
     parse_string_from_bytes(&filename_bytes).ok()
 }
@@ -67,8 +105,9 @@ fn get_shadow_file_info(
     shadow_file: &ShadowFile,
     password: &SecureString,
 ) -> WorkflowResult<ShadowFileInfo> {
-    let header = load_file_header(shadow_file)?;
-    let original_filename: Option<SecureString> = decipher_original_filename(header, password);
+    let header_bytes = load_file_header_bytes(shadow_file)?;
+    let original_filename: Option<SecureString> =
+        decipher_original_filename(header_bytes.as_slice(), &shadow_file.version, password);
 
     Ok(ShadowFileInfo::new(
         original_filename,
@@ -81,82 +120,94 @@ fn get_shadow_file_info(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_crypt_core::{
-        profile::SecurityProfile,
-        v1::{
-            crypt::encrypt_bytes, header::FileHeader, key::KeyDerivationParams, key_ops::derive_key,
-        },
-    };
+    use shadow_crypt_core::profile::SecurityProfile;
 
-    #[test]
-    fn test_decipher_original_filename_correct_password() {
-        let password = "testpassword";
-        let original_filename = "test.txt";
+    fn build_v1_header_bytes(password: &str, original_filename: &str) -> Vec<u8> {
         let salt = [0u8; 16];
-        let kdf_params = KeyDerivationParams::from(SecurityProfile::Test);
+        let kdf_params = v1::key::KeyDerivationParams::from(SecurityProfile::Test);
         let filename_nonce = [0u8; 24];
 
-        // Derive key
-        let (key, _) = derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
-
-        // Encrypt filename
-        let (filename_ciphertext, _) = encrypt_bytes(
+        let (key, _) =
+            v1::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let (filename_ciphertext, _) = v1::crypt::encrypt_bytes(
             original_filename.as_bytes(),
             key.as_bytes(),
             &filename_nonce,
         )
         .unwrap();
 
-        // Create header
-        let header = FileHeader::new(
+        let header = v1::header::FileHeader::new(
             salt,
             kdf_params,
             [0u8; 24], // content_nonce, not used
             filename_nonce,
             filename_ciphertext,
         );
-
-        // Test decipher
-        let password_secure = SecureString::new(password.to_string());
-        let result = decipher_original_filename(header, &password_secure);
-
-        assert!(result.is_some());
-        assert_eq!(result.unwrap().as_str(), original_filename);
+        v1::header_ops::serialize(&header)
     }
 
-    #[test]
-    fn test_decipher_original_filename_wrong_password() {
-        let password = "testpassword";
-        let wrong_password = "wrongpassword";
-        let original_filename = "test.txt";
+    fn build_v2_header_bytes(password: &str, original_filename: &str) -> Vec<u8> {
         let salt = [0u8; 16];
-        let kdf_params = KeyDerivationParams::from(SecurityProfile::Test);
+        let kdf_params = v2::key::KeyDerivationParams::from(SecurityProfile::Test);
+        let content_nonce = [1u8; 24];
         let filename_nonce = [0u8; 24];
 
-        // Derive key with correct password
-        let (key, _) = derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
-
-        // Encrypt filename
-        let (filename_ciphertext, _) = encrypt_bytes(
+        let (key, _) =
+            v2::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let binding =
+            v2::header::HeaderBinding::new(&salt, &kdf_params, &content_nonce, &filename_nonce);
+        let (filename_ciphertext, _) = v2::crypt::encrypt_bytes(
             original_filename.as_bytes(),
             key.as_bytes(),
             &filename_nonce,
+            &binding.aad(v2::header::AadPurpose::Filename),
         )
         .unwrap();
 
-        // Create header
-        let header = FileHeader::new(
+        let header = v2::header::FileHeader::new(
             salt,
             kdf_params,
-            [0u8; 24],
+            content_nonce,
             filename_nonce,
             filename_ciphertext,
-        );
+        )
+        .unwrap();
+        v2::header_ops::serialize(&header)
+    }
 
-        // Test decipher with wrong password
-        let wrong_password_secure = SecureString::new(wrong_password.to_string());
-        let result = decipher_original_filename(header, &wrong_password_secure);
+    #[test]
+    fn test_decipher_original_filename_correct_password_v1() {
+        let header_bytes = build_v1_header_bytes("testpassword", "test.txt");
+        let password = SecureString::new("testpassword".to_string());
 
+        let result = decipher_original_filename(&header_bytes, &Version::V1, &password);
+        assert_eq!(result.unwrap().as_str(), "test.txt");
+    }
+
+    #[test]
+    fn test_decipher_original_filename_wrong_password_v1() {
+        let header_bytes = build_v1_header_bytes("testpassword", "test.txt");
+        let password = SecureString::new("wrongpassword".to_string());
+
+        let result = decipher_original_filename(&header_bytes, &Version::V1, &password);
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_decipher_original_filename_correct_password_v2() {
+        let header_bytes = build_v2_header_bytes("testpassword", "test.txt");
+        let password = SecureString::new("testpassword".to_string());
+
+        let result = decipher_original_filename(&header_bytes, &Version::V2, &password);
+        assert_eq!(result.unwrap().as_str(), "test.txt");
+    }
+
+    #[test]
+    fn test_decipher_original_filename_wrong_password_v2() {
+        let header_bytes = build_v2_header_bytes("testpassword", "test.txt");
+        let password = SecureString::new("wrongpassword".to_string());
+
+        let result = decipher_original_filename(&header_bytes, &Version::V2, &password);
         assert!(result.is_none());
     }
 
@@ -165,11 +216,18 @@ mod tests {
         // A crafted header claiming an enormous memory cost must be rejected
         // before any key derivation is attempted. If validation were missing,
         // this test would attempt a multi-terabyte allocation.
-        let kdf_params = KeyDerivationParams::new(u32::MAX, u32::MAX, u32::MAX, u8::MAX);
-        let header = FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
+        let kdf_params = v1::key::KeyDerivationParams::new(u32::MAX, u32::MAX, u32::MAX, u8::MAX);
+        let header = v1::header::FileHeader::new(
+            [0u8; 16],
+            kdf_params,
+            [0u8; 24],
+            [0u8; 24],
+            vec![1, 2, 3],
+        );
+        let header_bytes = v1::header_ops::serialize(&header);
 
         let password = SecureString::new("testpassword".to_string());
-        let result = decipher_original_filename(header, &password);
+        let result = decipher_original_filename(&header_bytes, &Version::V1, &password);
 
         assert!(result.is_none());
     }
