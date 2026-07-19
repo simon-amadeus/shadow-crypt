@@ -14,11 +14,7 @@ static TEST_MUTEX: Mutex<()> = Mutex::new(());
 
 /// Decrypts a committed fixture file and checks filename and content.
 /// Guards against changes that would break decryption of existing files.
-fn assert_fixture_decrypts(
-    fixture_name: &str,
-    expected_filename: &str,
-    expected_content: &[u8],
-) {
+fn assert_fixture_decrypts(fixture_name: &str, expected_filename: &str, expected_content: &[u8]) {
     let temp_dir = TempDir::new().unwrap();
 
     let fixture = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))

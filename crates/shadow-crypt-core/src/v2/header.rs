@@ -257,8 +257,8 @@ mod tests {
         let filename_nonce = [3u8; 24];
 
         let standalone = HeaderBinding::new(&salt, &params, &content_nonce, &filename_nonce);
-        let header = FileHeader::new(salt, params, content_nonce, filename_nonce, vec![1, 2, 3])
-            .unwrap();
+        let header =
+            FileHeader::new(salt, params, content_nonce, filename_nonce, vec![1, 2, 3]).unwrap();
 
         assert_eq!(
             standalone.aad(AadPurpose::Content),

@@ -83,7 +83,9 @@ fn get_header_length(bytes: &[u8]) -> WorkflowResult<u32> {
     let length_bytes = bytes
         .get(7..11)
         .ok_or(shadow_crypt_core::errors::HeaderError::InsufficientBytes)?;
-    Ok(u32::from_le_bytes(length_bytes.try_into().expect("4-byte slice")))
+    Ok(u32::from_le_bytes(
+        length_bytes.try_into().expect("4-byte slice"),
+    ))
 }
 
 #[cfg(test)]

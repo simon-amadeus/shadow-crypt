@@ -161,13 +161,8 @@ mod tests {
         // A crafted v1 file claiming huge KDF costs must be rejected before
         // any derivation is attempted.
         let kdf_params = v1::key::KeyDerivationParams::new(MAX_KDF_MEMORY_KIB + 1, 1, 1, 32);
-        let header = v1::header::FileHeader::new(
-            [0u8; 16],
-            kdf_params,
-            [0u8; 24],
-            [0u8; 24],
-            vec![1, 2, 3],
-        );
+        let header =
+            v1::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
         let mut bytes = v1::header_ops::serialize(&header);
         bytes.extend_from_slice(b"ciphertext");
 
@@ -178,14 +173,9 @@ mod tests {
     #[test]
     fn test_v2_oversized_kdf_params_rejected_before_derivation() {
         let kdf_params = v2::key::KeyDerivationParams::new(u32::MAX, 1, 1, 32);
-        let header = v2::header::FileHeader::new(
-            [0u8; 16],
-            kdf_params,
-            [0u8; 24],
-            [0u8; 24],
-            vec![1, 2, 3],
-        )
-        .unwrap();
+        let header =
+            v2::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3])
+                .unwrap();
         let mut bytes = v2::header_ops::serialize(&header);
         bytes.extend_from_slice(b"ciphertext");
 

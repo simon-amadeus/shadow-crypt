@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use shadow_crypt_core::{
-    memory::SecureString,
-    v1, v2,
-    version::Version,
-};
+use shadow_crypt_core::{memory::SecureString, v1, v2, version::Version};
 
 use crate::{
     errors::WorkflowResult,
@@ -127,8 +123,7 @@ mod tests {
         let kdf_params = v1::key::KeyDerivationParams::from(SecurityProfile::Test);
         let filename_nonce = [0u8; 24];
 
-        let (key, _) =
-            v1::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let (key, _) = v1::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
         let (filename_ciphertext, _) = v1::crypt::encrypt_bytes(
             original_filename.as_bytes(),
             key.as_bytes(),
@@ -152,8 +147,7 @@ mod tests {
         let content_nonce = [1u8; 24];
         let filename_nonce = [0u8; 24];
 
-        let (key, _) =
-            v2::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let (key, _) = v2::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
         let binding =
             v2::header::HeaderBinding::new(&salt, &kdf_params, &content_nonce, &filename_nonce);
         let (filename_ciphertext, _) = v2::crypt::encrypt_bytes(
@@ -217,13 +211,8 @@ mod tests {
         // before any key derivation is attempted. If validation were missing,
         // this test would attempt a multi-terabyte allocation.
         let kdf_params = v1::key::KeyDerivationParams::new(u32::MAX, u32::MAX, u32::MAX, u8::MAX);
-        let header = v1::header::FileHeader::new(
-            [0u8; 16],
-            kdf_params,
-            [0u8; 24],
-            [0u8; 24],
-            vec![1, 2, 3],
-        );
+        let header =
+            v1::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
         let header_bytes = v1::header_ops::serialize(&header);
 
         let password = SecureString::new("testpassword".to_string());

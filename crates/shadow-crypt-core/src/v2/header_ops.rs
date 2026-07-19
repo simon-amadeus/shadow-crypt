@@ -158,7 +158,10 @@ mod tests {
             deserialized.filename_ciphertext_length,
             original.filename_ciphertext_length
         );
-        assert_eq!(deserialized.filename_ciphertext, original.filename_ciphertext);
+        assert_eq!(
+            deserialized.filename_ciphertext,
+            original.filename_ciphertext
+        );
     }
 
     #[test]
