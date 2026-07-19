@@ -1,11 +1,8 @@
 use std::{fs, path::Path};
 
 use shadow_crypt_core::{
-    v1::{
-        header::FileHeader,
-        header_ops::{self, get_length_from_bytes, get_version_from_bytes, try_deserialize},
-    },
-    version::Version,
+    memory::SecureBytes,
+    version::{Version, read_file_version},
 };
 
 use crate::{
@@ -13,6 +10,13 @@ use crate::{
     listing::file::ShadowFile,
     utils::read_n_bytes_from_file,
 };
+
+/// Length of the magic + version preamble shared by all format versions.
+const PREAMBLE_LENGTH: usize = 7;
+
+/// Length of the fixed header fields (shared layout across v1 and v2),
+/// including the header-length field needed to size the full header read.
+const FIXED_HEADER_LENGTH: usize = 90;
 
 pub fn scan_directory_for_shadow_files(dir_path: &Path) -> WorkflowResult<Vec<ShadowFile>> {
     if !dir_path.is_dir() {
@@ -37,17 +41,13 @@ pub fn scan_directory_for_shadow_files(dir_path: &Path) -> WorkflowResult<Vec<Sh
 }
 
 fn try_create_shadow_file(path: &Path) -> WorkflowResult<ShadowFile> {
-    let header_bytes = read_n_bytes_from_file(path, FileHeader::min_length())?;
+    let preamble = read_n_bytes_from_file(path, PREAMBLE_LENGTH)?;
 
-    if !header_ops::is_shadow_file(header_bytes.as_slice())? {
-        return Err(WorkflowError::Listing(format!(
-            "The file '{}' is not a valid Shadow file.",
+    let version = read_file_version(preamble.as_slice()).map_err(|_| {
+        WorkflowError::Listing(format!(
+            "The file '{}' is not a supported Shadow file.",
             path.display()
-        )));
-    }
-    let version_byte = get_version_from_bytes(header_bytes.as_slice())?;
-    let version = Version::try_from(version_byte).map_err(|_| {
-        WorkflowError::Listing(format!("Unsupported version in file '{}'.", path.display()))
+        ))
     })?;
     let filename = path
         .file_name()
@@ -73,13 +73,20 @@ fn get_file_size(path: &Path) -> WorkflowResult<u64> {
     Ok(metadata.len())
 }
 
-pub fn load_file_header(file: &ShadowFile) -> WorkflowResult<FileHeader> {
-    let min_header_bytes = read_n_bytes_from_file(&file.path, FileHeader::min_length())?;
-    let header_length = get_length_from_bytes(min_header_bytes.as_slice())? as usize;
-    let full_header_bytes = read_n_bytes_from_file(&file.path, header_length)?;
+/// Reads the complete raw header bytes of a shadow file. Deserialization
+/// happens in the workflow, per format version.
+pub fn load_file_header_bytes(file: &ShadowFile) -> WorkflowResult<SecureBytes> {
+    let fixed_header_bytes = read_n_bytes_from_file(&file.path, FIXED_HEADER_LENGTH)?;
+    let header_length = get_header_length(fixed_header_bytes.as_slice())? as usize;
+    read_n_bytes_from_file(&file.path, header_length)
+}
 
-    let header: FileHeader = try_deserialize(full_header_bytes.as_slice())?;
-    Ok(header)
+/// Reads the header-length field at its fixed offset (same in v1 and v2).
+fn get_header_length(bytes: &[u8]) -> WorkflowResult<u32> {
+    let length_bytes = bytes
+        .get(7..11)
+        .ok_or(shadow_crypt_core::errors::HeaderError::InsufficientBytes)?;
+    Ok(u32::from_le_bytes(length_bytes.try_into().expect("4-byte slice")))
 }
 
 #[cfg(test)]

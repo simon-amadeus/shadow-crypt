@@ -1,9 +1,6 @@
 use std::io::{Read, Write};
 
-use shadow_crypt_core::v1::{
-    file::{EncryptedFile, PlaintextFile},
-    file_ops::get_encrypted_file_from_bytes,
-};
+use shadow_crypt_core::memory::{SecureBytes, SecureString};
 
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
@@ -11,12 +8,13 @@ use crate::{
 };
 
 pub fn store_plaintext_file(
-    file: &PlaintextFile,
+    filename: &SecureString,
+    content: &SecureBytes,
     output_dir: &std::path::Path,
 ) -> WorkflowResult<DecryptionOutputFile> {
     // Reject any path traversal by taking only the bare filename component.
     // This prevents a malicious .shadow file from writing to an arbitrary path.
-    let safe_name = std::path::Path::new(file.filename().as_str())
+    let safe_name = std::path::Path::new(filename.as_str())
         .file_name()
         .ok_or_else(|| {
             WorkflowError::File("Decrypted filename contains invalid path components".to_string())
@@ -44,12 +42,14 @@ pub fn store_plaintext_file(
             WorkflowError::Io(e)
         }
     })?;
-    f.write_all(file.content().as_slice())?;
+    f.write_all(content.as_slice())?;
 
     Ok(output_file)
 }
 
-pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<EncryptedFile> {
+/// Reads the complete raw bytes of an encrypted input file. Parsing happens
+/// in the workflow, per format version.
+pub fn load_file_bytes(file: &DecryptionInputFile) -> WorkflowResult<Vec<u8>> {
     let size: usize = file.size as usize;
 
     let mut f = std::fs::File::open(&file.path)?;
@@ -57,7 +57,7 @@ pub fn load_encrypted_file(file: &DecryptionInputFile) -> WorkflowResult<Encrypt
 
     f.read_to_end(&mut buffer)?;
 
-    Ok(get_encrypted_file_from_bytes(buffer.as_slice())?)
+    Ok(buffer)
 }
 
 #[cfg(test)]
@@ -65,7 +65,6 @@ mod tests {
     use crate::utils::read_n_bytes_from_file;
 
     use super::*;
-    use shadow_crypt_core::memory::{SecureBytes, SecureString};
     use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;
@@ -99,9 +98,8 @@ mod tests {
         let temp_dir = tempfile::TempDir::new().unwrap();
         let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"test content".to_vec());
-        let plaintext = PlaintextFile::new(filename, content);
 
-        let output = store_plaintext_file(&plaintext, temp_dir.path()).unwrap();
+        let output = store_plaintext_file(&filename, &content, temp_dir.path()).unwrap();
         assert_eq!(output.filename, "test.txt");
 
         let read_content = fs::read(&output.path).unwrap();
@@ -115,8 +113,7 @@ mod tests {
         for malicious_name in &["../../etc/passwd", "../sibling", "/abs/path", ".."] {
             let filename = SecureString::new(malicious_name.to_string());
             let content = SecureBytes::new(b"evil".to_vec());
-            let plaintext = PlaintextFile::new(filename, content);
-            let result = store_plaintext_file(&plaintext, temp_dir.path());
+            let result = store_plaintext_file(&filename, &content, temp_dir.path());
 
             match malicious_name {
                 &".." => {
@@ -145,14 +142,13 @@ mod tests {
 
         let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"new content".to_vec());
-        let plaintext = PlaintextFile::new(filename, content);
 
         // Create existing file
         let output_path = temp_dir.path().join("test.txt");
         let existing_content = b"existing content";
         std::fs::write(&output_path, existing_content).unwrap();
 
-        let result = store_plaintext_file(&plaintext, temp_dir.path());
+        let result = store_plaintext_file(&filename, &content, temp_dir.path());
         assert!(result.is_err());
         if let Err(WorkflowError::File(msg)) = result {
             assert!(msg.contains("already exists"));
@@ -166,21 +162,19 @@ mod tests {
     }
 
     #[test]
-    fn test_load_encrypted_file_invalid_data() {
+    fn test_load_file_bytes() {
         let mut temp_file = NamedTempFile::new().unwrap();
-        let data = b"invalid encrypted data";
+        let data = b"raw file data";
         temp_file.write_all(data).unwrap();
         temp_file.flush().unwrap();
-        let path = temp_file.path();
 
         let input_file = DecryptionInputFile {
-            path: path.to_path_buf(),
+            path: temp_file.path().to_path_buf(),
             filename: "test.shadow".to_string(),
             size: data.len() as u64,
         };
 
-        let result = load_encrypted_file(&input_file);
-        // Should error due to invalid data
-        assert!(result.is_err());
+        let bytes = load_file_bytes(&input_file).unwrap();
+        assert_eq!(bytes, data);
     }
 }
