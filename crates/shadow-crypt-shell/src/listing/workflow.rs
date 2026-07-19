@@ -11,6 +11,7 @@ use shadow_crypt_core::{
 
 use crate::{
     errors::WorkflowResult,
+    kdf::validate_untrusted_kdf_params,
     listing::{
         file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
         file_ops::{load_file_header, scan_directory_for_shadow_files},
@@ -42,6 +43,15 @@ fn decipher_original_filename(header: FileHeader, password: &SecureString) -> Op
 
     let salt: &[u8; 16] = &header.salt;
     let kdf_params: KeyDerivationParams = get_kdf_params(&header);
+    // The header is untrusted input: bound the KDF cost before deriving,
+    // otherwise a crafted file could request an enormous allocation.
+    validate_untrusted_kdf_params(
+        kdf_params.memory_cost,
+        kdf_params.time_cost,
+        kdf_params.parallelism,
+        kdf_params.key_size,
+    )
+    .ok()?;
     let (key, _): (SecureKey, _) =
         derive_key(password.as_str().as_bytes(), salt, &kdf_params).ok()?;
 
@@ -144,6 +154,20 @@ mod tests {
         // Test decipher with wrong password
         let wrong_password_secure = SecureString::new(wrong_password.to_string());
         let result = decipher_original_filename(header, &wrong_password_secure);
+
+        assert!(result.is_none());
+    }
+
+    #[test]
+    fn test_decipher_rejects_oversized_kdf_params_without_deriving() {
+        // A crafted header claiming an enormous memory cost must be rejected
+        // before any key derivation is attempted. If validation were missing,
+        // this test would attempt a multi-terabyte allocation.
+        let kdf_params = KeyDerivationParams::new(u32::MAX, u32::MAX, u32::MAX, u8::MAX);
+        let header = FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
+
+        let password = SecureString::new("testpassword".to_string());
+        let result = decipher_original_filename(header, &password);
 
         assert!(result.is_none());
     }

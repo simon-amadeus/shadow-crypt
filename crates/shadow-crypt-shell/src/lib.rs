@@ -17,6 +17,9 @@ pub mod decryption;
 /// Shared error types.
 pub mod errors;
 
+/// Shared guards for key derivation from untrusted inputs.
+pub mod kdf;
+
 /// Specific workflow and operations for listing encrypted files.
 pub mod listing;
 
