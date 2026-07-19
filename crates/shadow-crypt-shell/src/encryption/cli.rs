@@ -6,7 +6,7 @@ use crate::errors::{WorkflowError, WorkflowResult};
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone, Parser)]
 #[command(name = "shadow", about = "Encrypt files using shadow format", version)]
-pub struct CliArgs {
+pub struct EncryptionCliArgs {
     /// Input files to encrypt
     #[arg(value_name = "FILE")]
     pub input_files: Vec<String>,
@@ -17,8 +17,8 @@ pub struct CliArgs {
 }
 
 /// Parse encryption command line arguments
-pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<CliArgs> {
-    let cli_args = CliArgs::try_parse_from(args).map_err(|e| {
+pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<EncryptionCliArgs> {
+    let cli_args = EncryptionCliArgs::try_parse_from(args).map_err(|e| {
         // If it's help or version, it's not a user input error
         if e.kind() == clap::error::ErrorKind::DisplayHelp
             || e.kind() == clap::error::ErrorKind::DisplayVersion

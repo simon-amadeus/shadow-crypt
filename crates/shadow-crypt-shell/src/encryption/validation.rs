@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 
 use crate::{
-    encryption::{cli::CliArgs, file::EncryptionInputFile},
+    encryption::{cli::EncryptionCliArgs, file::EncryptionInputFile},
     errors::{WorkflowError, WorkflowResult},
 };
 
@@ -10,7 +10,7 @@ pub struct ValidEncryptionArgs {
     pub test_mode: bool,
 }
 
-pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
+pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptionArgs> {
     ensure_not_empty(&input)?;
 
     let validated_files: Vec<EncryptionInputFile> = input
@@ -28,7 +28,7 @@ pub fn validate_input(input: CliArgs) -> WorkflowResult<ValidEncryptionArgs> {
     })
 }
 
-fn ensure_not_empty(input: &CliArgs) -> WorkflowResult<()> {
+fn ensure_not_empty(input: &EncryptionCliArgs) -> WorkflowResult<()> {
     if input.input_files.is_empty() {
         return Err(WorkflowError::UserInput(
             "No input files provided".to_string(),
@@ -93,7 +93,7 @@ mod tests {
 
     #[test]
     fn test_validate_input_no_files() {
-        let input = CliArgs {
+        let input = EncryptionCliArgs {
             input_files: vec![],
             test_mode: false,
         };
@@ -108,7 +108,7 @@ mod tests {
 
     #[test]
     fn test_validate_input_file_does_not_exist() {
-        let input = CliArgs {
+        let input = EncryptionCliArgs {
             input_files: vec!["nonexistent_file.txt".to_string()],
             test_mode: false,
         };
@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn test_validate_input_path_is_directory() {
         let temp_dir = tempfile::tempdir().unwrap();
-        let input = CliArgs {
+        let input = EncryptionCliArgs {
             input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
             test_mode: false,
         };
@@ -144,7 +144,7 @@ mod tests {
         temp_file.write_all(content).unwrap();
         let file_path = temp_file.path().to_path_buf();
 
-        let input = CliArgs {
+        let input = EncryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
             test_mode: true,
         };
@@ -172,7 +172,7 @@ mod tests {
         temp_file2.write_all(b"File 2 content").unwrap();
         let path2 = temp_file2.path().to_path_buf();
 
-        let input = CliArgs {
+        let input = EncryptionCliArgs {
             input_files: vec![
                 path1.to_str().unwrap().to_string(),
                 path2.to_str().unwrap().to_string(),

@@ -49,12 +49,6 @@ unshadow mzpuTgQmBPJfTAJh.shadow RzxZGbTQAxxBseaI.shadow
 shadows
 ```
 
-## Resource Usage
-
-- Files are processed fully in memory: encrypting or decrypting a file needs roughly twice its size in RAM. The tool is designed for documents and media files, not for files approaching available memory.
-- Argon2id key derivation is deliberately expensive (1 GiB of memory and 10 iterations per file at production settings, with a per-file salt). Files are processed in parallel, but concurrent derivations are capped by a 4 GiB memory budget, so batch operations stay within predictable memory bounds while cheap operations still run fully parallel.
-- Because every file uses its own salt, listing or decrypting N files costs N key derivations. Expect batch operations over many files to take several seconds per file at production settings.
-
 ## Documentation
 
 - [📝 Changelog](CHANGELOG.md)
