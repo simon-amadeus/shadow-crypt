@@ -62,36 +62,10 @@ pub fn load_file_bytes(file: &DecryptionInputFile) -> WorkflowResult<Vec<u8>> {
 
 #[cfg(test)]
 mod tests {
-    use crate::utils::read_n_bytes_from_file;
-
     use super::*;
     use std::fs;
     use std::io::Write;
     use tempfile::NamedTempFile;
-
-    #[test]
-    fn test_read_n_bytes_from_file() {
-        let mut temp_file = NamedTempFile::new().unwrap();
-        let data = b"hello world";
-        temp_file.write_all(data).unwrap();
-        temp_file.flush().unwrap();
-        let path = temp_file.path();
-
-        let result = read_n_bytes_from_file(path, 5).unwrap();
-        assert_eq!(result.as_slice(), b"hello");
-    }
-
-    #[test]
-    fn test_read_n_bytes_from_file_more_than_size() {
-        let mut temp_file = NamedTempFile::new().unwrap();
-        let data = b"hi";
-        temp_file.write_all(data).unwrap();
-        temp_file.flush().unwrap();
-        let path = temp_file.path();
-
-        let result = read_n_bytes_from_file(path, 10).unwrap();
-        assert_eq!(result.as_slice(), b"hi");
-    }
 
     #[test]
     fn test_store_plaintext_file() {

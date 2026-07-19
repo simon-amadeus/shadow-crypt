@@ -140,19 +140,16 @@ mod tests {
     }
 
     #[test]
-    fn test_create_output_file() {
-        // Test filename generation without creating actual files
-        let filename = generate_output_filename().unwrap();
-        assert_eq!(filename.len(), 16);
-        assert!(filename.chars().all(|c| c.is_ascii_alphabetic()));
+    fn test_create_encryption_output_file() {
+        let temp_dir = TempDir::new().unwrap();
 
-        // Test path construction logic
-        let expected_filename = format!("{}.shadow", filename);
+        let (_, first) = create_encryption_output_file(temp_dir.path()).unwrap();
+        let (_, second) = create_encryption_output_file(temp_dir.path()).unwrap();
 
-        // We can't easily test create_output_file without changing directories,
-        // but we can verify the filename format it would generate
-        assert!(expected_filename.ends_with(".shadow"));
-        assert!(expected_filename.len() > 7);
+        assert!(first.path.exists());
+        assert!(second.path.exists());
+        assert_ne!(first.filename, second.filename);
+        assert!(first.filename.ends_with(".shadow"));
     }
 
     #[test]

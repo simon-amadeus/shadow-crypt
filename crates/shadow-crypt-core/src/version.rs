@@ -3,7 +3,10 @@ use crate::errors::HeaderError;
 /// Magic bytes shared by every shadow file format version.
 pub const MAGIC: [u8; 6] = *b"SHADOW";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+/// Length of the magic-and-version preamble shared by every format version.
+pub const PREAMBLE_LENGTH: usize = MAGIC.len() + 1;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Version {
     V1,
     V2,
@@ -37,23 +40,19 @@ impl TryFrom<u8> for Version {
     }
 }
 
-pub fn is_supported_version(version: u8) -> bool {
-    matches!(version, 1 | 2)
-}
-
 /// Reads the magic-and-version preamble shared by all format versions.
 ///
 /// Every shadow file starts with the 6 magic bytes followed by one version
 /// byte; this lets callers pick the right version module without depending
 /// on any of them.
 pub fn read_file_version(bytes: &[u8]) -> Result<Version, HeaderError> {
-    if bytes.len() < 7 {
+    if bytes.len() < PREAMBLE_LENGTH {
         return Err(HeaderError::InsufficientBytes);
     }
-    if bytes[0..6] != MAGIC {
+    if bytes[..MAGIC.len()] != MAGIC {
         return Err(HeaderError::InvalidData);
     }
-    Version::try_from(bytes[6]).map_err(|_| HeaderError::InvalidData)
+    Version::try_from(bytes[MAGIC.len()]).map_err(|_| HeaderError::InvalidData)
 }
 
 #[cfg(test)]
@@ -94,14 +93,5 @@ mod tests {
 
         assert!(read_file_version(b"SHADO").is_err());
         assert!(read_file_version(b"NOTSHD\x01").is_err());
-    }
-
-    #[test]
-    fn test_is_supported_version() {
-        assert!(is_supported_version(1));
-        assert!(is_supported_version(2));
-        assert!(!is_supported_version(0));
-        assert!(!is_supported_version(3));
-        assert!(!is_supported_version(255));
     }
 }

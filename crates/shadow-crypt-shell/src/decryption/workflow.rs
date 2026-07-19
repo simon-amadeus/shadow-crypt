@@ -14,7 +14,7 @@ use crate::{
         file_ops::{load_file_bytes, store_plaintext_file},
     },
     errors::{WorkflowError, WorkflowResult},
-    kdf::{validate_untrusted_kdf_params, with_kdf_memory_permit},
+    kdf::derive_key_from_untrusted_params,
     ui::{display_decryption_report, display_progress},
     utils::parse_string_from_bytes,
 };
@@ -84,15 +84,13 @@ fn decrypt_v1(
     let header = encrypted_file.header();
 
     let kdf_params = v1::header_ops::get_kdf_params(header);
-    validate_untrusted_kdf_params(
+    let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
+        || v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
     )?;
-    let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
-        v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params)
-    })?;
 
     let (filename_bytes, algorithm) = v1::crypt::decrypt_bytes(
         &header.filename_ciphertext,
@@ -118,15 +116,13 @@ fn decrypt_v2(
     let header = encrypted_file.header();
 
     let kdf_params = v2::header_ops::get_kdf_params(header);
-    validate_untrusted_kdf_params(
+    let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
+        || v2::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
     )?;
-    let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
-        v2::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params)
-    })?;
 
     // v2 authenticates the header fields as associated data, with separate
     // domains for filename and content.

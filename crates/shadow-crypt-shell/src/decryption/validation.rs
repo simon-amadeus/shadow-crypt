@@ -1,9 +1,6 @@
 use std::path::PathBuf;
 
-use shadow_crypt_core::{
-    v1::header_ops::{get_version_from_bytes, is_shadow_file},
-    version::is_supported_version,
-};
+use shadow_crypt_core::version::{MAGIC, PREAMBLE_LENGTH, Version};
 
 use crate::{
     decryption::{cli::DecryptionCliArgs, file::DecryptionInputFile},
@@ -25,8 +22,7 @@ pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptio
         .map(PathBuf::from)
         .map(ensure_exists)
         .map(ensure_is_regular_file)
-        .map(ensure_is_encrypted_shadow_file)
-        .map(ensure_version_supported)
+        .map(ensure_supported_shadow_file)
         .map(create_input_file)
         .collect::<WorkflowResult<Vec<DecryptionInputFile>>>()?;
 
@@ -66,28 +62,19 @@ fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathB
     path
 }
 
-fn ensure_is_encrypted_shadow_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
+/// Checks the magic-and-version preamble, keeping "not a shadow file" and
+/// "unsupported version" as distinct user-facing errors.
+fn ensure_supported_shadow_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
     let path = path?;
-    let first_bytes = read_n_bytes_from_file(&path, 10)?;
-    if !is_shadow_file(first_bytes.as_slice())? {
+    let preamble = read_n_bytes_from_file(&path, PREAMBLE_LENGTH)?;
+    let bytes = preamble.as_slice();
+    if bytes.len() < PREAMBLE_LENGTH || bytes[..MAGIC.len()] != MAGIC {
         return Err(WorkflowError::UserInput(format!(
             "File is not a valid Shadow encrypted file: {}",
             path.display()
         )));
     }
-    Ok(path)
-}
-
-fn ensure_version_supported(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
-    let path = path?;
-    let first_bytes = read_n_bytes_from_file(&path, 10)?;
-    let version: u8 = get_version_from_bytes(first_bytes.as_slice()).map_err(|_| {
-        WorkflowError::UserInput(format!(
-            "Unable to read version from file: {}",
-            path.display()
-        ))
-    })?;
-    if !is_supported_version(version) {
+    if Version::try_from(bytes[MAGIC.len()]).is_err() {
         return Err(WorkflowError::UserInput(format!(
             "Unsupported Shadow file version in file: {}",
             path.display()

@@ -7,6 +7,10 @@
 
 use std::sync::{Condvar, Mutex};
 
+use shadow_crypt_core::{
+    errors::KeyDerivationError, memory::SecureKey, report::KeyDerivationReport,
+};
+
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Upper bounds for KDF parameters read from untrusted file headers.
@@ -51,6 +55,28 @@ pub fn validate_untrusted_kdf_params(
         )));
     }
     Ok(())
+}
+
+/// Derives a key from KDF parameters read out of an untrusted file header.
+///
+/// Validates the parameters against the bounds above and, only if they pass,
+/// runs `derive` while holding a reservation against the global memory
+/// budget. This is the single intended entry point for header-supplied
+/// parameters: fusing the two steps makes it impossible to run an
+/// unvalidated derivation from a crafted file.
+///
+/// Takes raw values rather than a version-specific params struct so that
+/// every format version can use the same guard.
+pub fn derive_key_from_untrusted_params(
+    memory_cost: u32,
+    time_cost: u32,
+    parallelism: u32,
+    key_size: u8,
+    derive: impl FnOnce() -> Result<(SecureKey, KeyDerivationReport), KeyDerivationError>,
+) -> WorkflowResult<SecureKey> {
+    validate_untrusted_kdf_params(memory_cost, time_cost, parallelism, key_size)?;
+    let (key, _) = with_kdf_memory_permit(memory_cost, derive)?;
+    Ok(key)
 }
 
 /// Total Argon2 buffer memory allowed across all concurrent derivations.

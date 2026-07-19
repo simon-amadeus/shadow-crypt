@@ -1,19 +1,16 @@
 use std::{fs, path::Path};
 
-use shadow_crypt_core::{memory::SecureBytes, version::read_file_version};
+use shadow_crypt_core::{
+    memory::SecureBytes,
+    v1, v2,
+    version::{PREAMBLE_LENGTH, Version, read_file_version},
+};
 
 use crate::{
     errors::{WorkflowError, WorkflowResult},
     listing::file::ShadowFile,
     utils::read_n_bytes_from_file,
 };
-
-/// Length of the magic + version preamble shared by all format versions.
-const PREAMBLE_LENGTH: usize = 7;
-
-/// Length of the fixed header fields (shared layout across v1 and v2),
-/// including the header-length field needed to size the full header read.
-const FIXED_HEADER_LENGTH: usize = 90;
 
 pub fn scan_directory_for_shadow_files(dir_path: &Path) -> WorkflowResult<Vec<ShadowFile>> {
     if !dir_path.is_dir() {
@@ -73,19 +70,19 @@ fn get_file_size(path: &Path) -> WorkflowResult<u64> {
 /// Reads the complete raw header bytes of a shadow file. Deserialization
 /// happens in the workflow, per format version.
 pub fn load_file_header_bytes(file: &ShadowFile) -> WorkflowResult<SecureBytes> {
-    let fixed_header_bytes = read_n_bytes_from_file(&file.path, FIXED_HEADER_LENGTH)?;
-    let header_length = get_header_length(fixed_header_bytes.as_slice())? as usize;
-    read_n_bytes_from_file(&file.path, header_length)
-}
-
-/// Reads the header-length field at its fixed offset (same in v1 and v2).
-fn get_header_length(bytes: &[u8]) -> WorkflowResult<u32> {
-    let length_bytes = bytes
-        .get(7..11)
-        .ok_or(shadow_crypt_core::errors::HeaderError::InsufficientBytes)?;
-    Ok(u32::from_le_bytes(
-        length_bytes.try_into().expect("4-byte slice"),
-    ))
+    // The file's own format version reads the header length out of the fixed
+    // header fields; the shell does not know the header layout.
+    let header_length = match file.version {
+        Version::V1 => {
+            let fixed = read_n_bytes_from_file(&file.path, v1::header::FileHeader::min_length())?;
+            v1::header_ops::get_length_from_bytes(fixed.as_slice())?
+        }
+        Version::V2 => {
+            let fixed = read_n_bytes_from_file(&file.path, v2::header::FileHeader::min_length())?;
+            v2::header_ops::get_length_from_bytes(fixed.as_slice())?
+        }
+    };
+    read_n_bytes_from_file(&file.path, header_length as usize)
 }
 
 #[cfg(test)]

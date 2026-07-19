@@ -21,28 +21,6 @@ pub fn serialize(header: &FileHeader) -> Vec<u8> {
     bytes
 }
 
-pub fn is_shadow_file(bytes: &[u8]) -> Result<bool, HeaderError> {
-    let magic = get_magic_from_bytes(bytes)?;
-    Ok(&magic == b"SHADOW")
-}
-
-fn get_magic_from_bytes(bytes: &[u8]) -> Result<[u8; 6], HeaderError> {
-    if bytes.len() < 6 {
-        return Err(HeaderError::InsufficientBytes);
-    }
-    let magic_bytes = &bytes[0..6];
-    let mut magic = [0u8; 6];
-    magic.copy_from_slice(magic_bytes);
-    Ok(magic)
-}
-
-pub fn get_version_from_bytes(bytes: &[u8]) -> Result<u8, HeaderError> {
-    if bytes.len() < 7 {
-        return Err(HeaderError::InsufficientBytes);
-    }
-    Ok(bytes[6])
-}
-
 pub fn get_length_from_bytes(bytes: &[u8]) -> Result<u32, HeaderError> {
     if bytes.len() < 11 {
         return Err(HeaderError::InsufficientBytes);
@@ -204,38 +182,6 @@ mod tests {
             &serialized[filename_start..filename_end],
             &header.filename_ciphertext[..]
         );
-    }
-
-    #[test]
-    fn test_is_shadow_file_valid() {
-        let header = create_test_header();
-        let serialized = serialize(&header);
-
-        let result = is_shadow_file(&serialized);
-        assert!(result.is_ok());
-        assert!(result.unwrap());
-    }
-
-    #[test]
-    fn test_is_shadow_file_invalid_magic() {
-        let mut bytes = vec![0u8; 100];
-        bytes[0..6].copy_from_slice(b"NOTSHD");
-
-        let result = is_shadow_file(&bytes);
-        assert!(result.is_ok());
-        assert!(!result.unwrap());
-    }
-
-    #[test]
-    fn test_is_shadow_file_insufficient_bytes() {
-        let bytes = vec![0u8; 5]; // Less than 6 bytes
-
-        let result = is_shadow_file(&bytes);
-        assert!(result.is_err());
-        assert!(matches!(
-            result.unwrap_err(),
-            HeaderError::InsufficientBytes
-        ));
     }
 
     #[test]
