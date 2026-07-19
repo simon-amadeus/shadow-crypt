@@ -4,6 +4,7 @@ use std::{error::Error, fmt::Display};
 pub enum HeaderError {
     InsufficientBytes,
     InvalidData,
+    FilenameTooLong,
 }
 
 impl std::fmt::Display for HeaderError {
@@ -11,6 +12,9 @@ impl std::fmt::Display for HeaderError {
         match self {
             HeaderError::InsufficientBytes => write!(f, "Insufficient bytes to read header"),
             HeaderError::InvalidData => write!(f, "Invalid header data"),
+            HeaderError::FilenameTooLong => {
+                write!(f, "Encrypted filename is too long to fit in the header")
+            }
         }
     }
 }

@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::{algorithm::Algorithm, v1::key::KeyDerivationParams};
+use crate::algorithm::Algorithm;
 
 pub struct EncryptionReport {
     pub input_filename: String,
@@ -57,19 +57,24 @@ pub struct KeyDerivationReport {
     pub duration: std::time::Duration,
 }
 impl KeyDerivationReport {
+    /// Takes raw parameter values so the report stays independent of any
+    /// version-specific `KeyDerivationParams` type.
     pub fn new(
         algorithm: String,
         algorithm_version: String,
-        params: &KeyDerivationParams,
+        memory_cost_kib: u32,
+        time_cost_iterations: u32,
+        parallelism: u32,
+        key_size_bytes: u8,
         duration: std::time::Duration,
     ) -> Self {
         Self {
             algorithm,
             algorithm_version,
-            memory_cost_kib: params.memory_cost,
-            time_cost_iterations: params.time_cost,
-            parallelism: params.parallelism,
-            key_size_bytes: params.key_size,
+            memory_cost_kib,
+            time_cost_iterations,
+            parallelism,
+            key_size_bytes,
             duration,
         }
     }

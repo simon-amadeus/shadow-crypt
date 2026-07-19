@@ -28,5 +28,11 @@ pub mod report;
 /// Uses XChaCha20-Poly1305 with Argon2id key derivation.
 pub mod v1;
 
+/// Version 2 implementation of the encryption protocol
+///
+/// Same algorithms as v1, but authenticates the header via associated data
+/// with domain separation between filename and content encryption.
+pub mod v2;
+
 /// Version management for encryption formats.
 pub mod version;
