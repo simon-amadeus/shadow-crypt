@@ -4,10 +4,10 @@ use shadow_crypt_core::{
     memory::SecureString,
     progress::ProgressCounter,
     report::EncryptionReport,
-    v1::{
+    v2::{
         crypt::encrypt_bytes,
         file::{EncryptedFile, PlaintextFile},
-        header::FileHeader,
+        header::{AadPurpose, FileHeader, HeaderBinding},
         key::KeyDerivationParams,
         key_ops::derive_key,
     },
@@ -77,13 +77,23 @@ fn process_file_encryption(
     let content_nonce: [u8; 24] = generate_nonce()?;
     let plaintext_file: PlaintextFile = load_plaintext_file(&file)?;
 
-    let (filename_ciphertext, _): (Vec<u8>, Algorithm) =
-        encrypt_bytes(file.filename.as_bytes(), key.as_bytes(), &filename_nonce)?;
+    // Bind the header fields to both ciphertexts, with distinct domains for
+    // filename and content, so neither the header nor the pairing of the two
+    // ciphertexts can be tampered with undetected.
+    let binding = HeaderBinding::new(&salt, kdf_params, &content_nonce, &filename_nonce);
+
+    let (filename_ciphertext, _): (Vec<u8>, Algorithm) = encrypt_bytes(
+        file.filename.as_bytes(),
+        key.as_bytes(),
+        &filename_nonce,
+        &binding.aad(AadPurpose::Filename),
+    )?;
 
     let (content_ciphertext, algorithm): (Vec<u8>, Algorithm) = encrypt_bytes(
         plaintext_file.content().as_slice(),
         key.as_bytes(),
         &content_nonce,
+        &binding.aad(AadPurpose::Content),
     )?;
 
     let header = FileHeader::new(
@@ -92,7 +102,7 @@ fn process_file_encryption(
         content_nonce,
         filename_nonce,
         filename_ciphertext,
-    );
+    )?;
 
     let encrypted_file = EncryptedFile::new(header, content_ciphertext);
     let output_file = store_encrypted_file(&encrypted_file, output_dir)?;
