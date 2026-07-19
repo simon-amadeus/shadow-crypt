@@ -15,7 +15,7 @@ pub fn encrypt_bytes(
     Ok((ciphertext, Algorithm::XChaCha20Poly1305))
 }
 
-/// Decrypts the given ciphertext into an insecure byte vector.
+/// Decrypts the given ciphertext, returning the plaintext as zeroizing [`SecureBytes`].
 pub fn decrypt_bytes(
     ciphertext: &[u8],
     key: &[u8; 32],

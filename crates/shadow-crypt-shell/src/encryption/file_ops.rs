@@ -18,8 +18,7 @@ pub fn store_encrypted_file(
     encrypted_file: &EncryptedFile,
     output_dir: &std::path::Path,
 ) -> WorkflowResult<EncryptionOutputFile> {
-    let output_file = create_encryption_output_file(output_dir)?;
-    let mut f = std::fs::File::create(&output_file.path)?;
+    let (mut f, output_file) = create_encryption_output_file(output_dir)?;
     let serialized_header: Vec<u8> =
         shadow_crypt_core::v1::header_ops::serialize(encrypted_file.header());
     f.write_all(&serialized_header)?;
@@ -44,52 +43,60 @@ pub fn load_plaintext_file(file: &EncryptionInputFile) -> WorkflowResult<Plainte
 
 fn generate_output_filename() -> WorkflowResult<String> {
     const CHARSET: &[u8] = b"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    let mut bytes = [0u8; 16];
-    OsRng
-        .try_fill_bytes(&mut bytes)
-        .map_err(|e| WorkflowError::File(format!("Failed to generate output filename: {}", e)))?;
-    Ok(bytes
-        .iter()
-        .map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char)
-        .collect())
+    const NAME_LENGTH: usize = 16;
+    // Largest multiple of CHARSET.len() that fits in a byte; rejection
+    // sampling below this bound keeps every character equally likely.
+    const REJECTION_BOUND: u8 = (u8::MAX / CHARSET.len() as u8) * CHARSET.len() as u8;
+
+    let mut name = String::with_capacity(NAME_LENGTH);
+    let mut bytes = [0u8; 2 * NAME_LENGTH];
+    while name.len() < NAME_LENGTH {
+        OsRng.try_fill_bytes(&mut bytes).map_err(|e| {
+            WorkflowError::File(format!("Failed to generate output filename: {}", e))
+        })?;
+        for byte in bytes {
+            if byte < REJECTION_BOUND && name.len() < NAME_LENGTH {
+                name.push(CHARSET[byte as usize % CHARSET.len()] as char);
+            }
+        }
+    }
+    Ok(name)
 }
 
 fn create_encryption_output_file(
     output_dir: &std::path::Path,
-) -> WorkflowResult<EncryptionOutputFile> {
-    let mut counter = 0;
-    loop {
-        let base = generate_output_filename()?;
-        let filename = if counter == 0 {
-            base
-        } else {
-            format!("{}_{}", base, counter)
-        };
-
-        let mut path = PathBuf::from(&filename);
+) -> WorkflowResult<(std::fs::File, EncryptionOutputFile)> {
+    // create_new claims the filename atomically, so concurrent encryptions
+    // can never race each other (or an attacker) into overwriting a file.
+    for _ in 0..1000 {
+        let mut path = PathBuf::from(generate_output_filename()?);
         path.set_extension("shadow");
 
         let full_path = output_dir.join(&path);
 
-        if !full_path.exists() {
-            let filename_str = path
-                .to_str()
-                .ok_or_else(|| WorkflowError::File("Invalid output filename".to_string()))?
-                .to_string();
+        match std::fs::File::create_new(&full_path) {
+            Ok(f) => {
+                let filename_str = path
+                    .to_str()
+                    .ok_or_else(|| WorkflowError::File("Invalid output filename".to_string()))?
+                    .to_string();
 
-            return Ok(EncryptionOutputFile {
-                path: full_path,
-                filename: filename_str,
-            });
-        }
-
-        counter += 1;
-        if counter > 1000 {
-            return Err(WorkflowError::File(
-                "Unable to generate a unique output filename after 1000 attempts".to_string(),
-            ));
+                return Ok((
+                    f,
+                    EncryptionOutputFile {
+                        path: full_path,
+                        filename: filename_str,
+                    },
+                ));
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(e) => return Err(e.into()),
         }
     }
+
+    Err(WorkflowError::File(
+        "Unable to generate a unique output filename after 1000 attempts".to_string(),
+    ))
 }
 
 #[cfg(test)]

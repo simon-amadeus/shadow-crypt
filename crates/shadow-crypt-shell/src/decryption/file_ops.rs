@@ -31,14 +31,19 @@ pub fn store_plaintext_file(
         filename: safe_name_str,
     };
 
-    if output_file.path.exists() {
-        return Err(WorkflowError::File(format!(
-            "Output file '{}' already exists",
-            output_file.filename
-        )));
-    }
-
-    let mut f = std::fs::File::create(output_file.path.as_path())?;
+    // create_new makes the no-overwrite check atomic: no window between an
+    // exists() check and creation, and symlinks are never followed to clobber
+    // an existing target.
+    let mut f = std::fs::File::create_new(output_file.path.as_path()).map_err(|e| {
+        if e.kind() == std::io::ErrorKind::AlreadyExists {
+            WorkflowError::File(format!(
+                "Output file '{}' already exists",
+                output_file.filename
+            ))
+        } else {
+            WorkflowError::Io(e)
+        }
+    })?;
     f.write_all(file.content().as_slice())?;
 
     Ok(output_file)
@@ -137,9 +142,6 @@ mod tests {
     #[test]
     fn test_store_plaintext_file_no_overwrite() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-        let original_dir = std::env::current_dir().unwrap();
-
-        std::env::set_current_dir(&temp_dir).unwrap();
 
         let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"new content".to_vec());
@@ -161,8 +163,6 @@ mod tests {
         // Check existing content unchanged
         let read_content = std::fs::read(&output_path).unwrap();
         assert_eq!(read_content, existing_content);
-
-        std::env::set_current_dir(original_dir).unwrap();
     }
 
     #[test]
