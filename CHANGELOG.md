@@ -30,6 +30,22 @@ Example:
 
 ## [Unreleased]
 
+### Added
+- Add v2 file format: header fields (magic, version, salt, KDF parameters, nonces) are now authenticated as AEAD associated data, with domain separation between filename and content encryption to prevent ciphertext-swapping within a file; new files are written as v2, v1 files remain fully readable
+- Add property-based tests (proptest) covering header round-trips, parser robustness on arbitrary bytes, and v2 domain-separation invariants
+
+### Changed
+- Cap concurrent Argon2 memory use with a 4 GiB global budget: parallel key derivations reserve their declared memory cost and expensive derivations are throttled instead of running one per core
+- Return a nonzero exit code when any file fails to encrypt or decrypt, instead of always exiting 0
+- Progress output now reports files as they complete rather than as they start
+
+### Fixed
+- Validate KDF parameters from untrusted headers in the listing workflow (previously only the decryption workflow validated them), closing a DoS via crafted files in a listed directory
+- Make no-overwrite checks atomic with `File::create_new`, removing check-then-create races on both encryption and decryption output paths
+- Reject filename ciphertexts longer than the u16 length field in the v2 header instead of silently truncating
+- Remove modulo bias from random output filename generation
+- Stop mutating the process working directory in a unit test that could race with other tests
+
 ## [1.1.0] - 2026-05-14
 
 ### Security
