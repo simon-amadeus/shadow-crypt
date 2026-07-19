@@ -11,7 +11,7 @@ use shadow_crypt_core::{
 
 use crate::{
     errors::WorkflowResult,
-    kdf::validate_untrusted_kdf_params,
+    kdf::{validate_untrusted_kdf_params, with_kdf_memory_permit},
     listing::{
         file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
         file_ops::{load_file_header, scan_directory_for_shadow_files},
@@ -52,8 +52,10 @@ fn decipher_original_filename(header: FileHeader, password: &SecureString) -> Op
         kdf_params.key_size,
     )
     .ok()?;
-    let (key, _): (SecureKey, _) =
-        derive_key(password.as_str().as_bytes(), salt, &kdf_params).ok()?;
+    let (key, _): (SecureKey, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
+        derive_key(password.as_str().as_bytes(), salt, &kdf_params)
+    })
+    .ok()?;
 
     let (filename_bytes, _): (SecureBytes, _) =
         decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce).ok()?;

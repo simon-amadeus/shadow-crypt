@@ -21,6 +21,7 @@ use crate::{
         salt::generate_salt,
     },
     errors::{WorkflowError, WorkflowResult},
+    kdf::with_kdf_memory_permit,
     ui::{display_encryption_report, display_progress},
 };
 
@@ -68,7 +69,9 @@ fn process_file_encryption(
     let start_time = std::time::Instant::now();
 
     let salt: [u8; 16] = generate_salt()?;
-    let (key, _) = derive_key(password.as_str().as_bytes(), salt.as_ref(), kdf_params)?;
+    let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
+        derive_key(password.as_str().as_bytes(), salt.as_ref(), kdf_params)
+    })?;
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;

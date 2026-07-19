@@ -5,6 +5,8 @@
 //! crafted .shadow file cannot request an enormous allocation or an
 //! excessive amount of CPU time.
 
+use std::sync::{Condvar, Mutex};
+
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Upper bounds for KDF parameters read from untrusted file headers.
@@ -51,6 +53,82 @@ pub fn validate_untrusted_kdf_params(
     Ok(())
 }
 
+/// Total Argon2 buffer memory allowed across all concurrent derivations.
+///
+/// Argon2 allocates its full memory cost per derivation, and files are
+/// processed in parallel (one rayon thread per core). Without a cap, ten
+/// production-profile files on a 10-core machine would hold ~10 GiB of
+/// Argon2 buffers at once. The budget throttles concurrency by declared
+/// memory cost instead of thread count, so cheap derivations still run
+/// fully parallel.
+pub const KDF_MEMORY_BUDGET_KIB: u64 = 4 * 1024 * 1024; // 4 GiB
+
+/// Global gate shared by all workflows in the process.
+static KDF_GATE: KdfGate = KdfGate::new(KDF_MEMORY_BUDGET_KIB);
+
+/// Runs `f` (a key derivation) while holding a reservation of `cost_kib`
+/// against the global memory budget, blocking until enough budget is free.
+///
+/// A cost larger than the whole budget is clamped to it, so an oversized
+/// (but validated) derivation waits for exclusive use of the budget and
+/// then runs alone rather than deadlocking.
+pub fn with_kdf_memory_permit<T>(cost_kib: u32, f: impl FnOnce() -> T) -> T {
+    let _permit = KDF_GATE.acquire(cost_kib as u64);
+    f()
+}
+
+struct KdfGate {
+    budget_kib: u64,
+    in_use_kib: Mutex<u64>,
+    released: Condvar,
+}
+
+impl KdfGate {
+    const fn new(budget_kib: u64) -> Self {
+        Self {
+            budget_kib,
+            in_use_kib: Mutex::new(0),
+            released: Condvar::new(),
+        }
+    }
+
+    fn acquire(&self, cost_kib: u64) -> KdfPermit<'_> {
+        // Reserve at least 1 KiB so a zero-cost caller still participates,
+        // and never more than the budget so acquisition always succeeds.
+        let cost_kib = cost_kib.clamp(1, self.budget_kib);
+        let mut in_use = self.in_use_kib.lock().unwrap_or_else(|e| e.into_inner());
+        while *in_use + cost_kib > self.budget_kib {
+            in_use = self
+                .released
+                .wait(in_use)
+                .unwrap_or_else(|e| e.into_inner());
+        }
+        *in_use += cost_kib;
+        KdfPermit {
+            gate: self,
+            cost_kib,
+        }
+    }
+}
+
+struct KdfPermit<'a> {
+    gate: &'a KdfGate,
+    cost_kib: u64,
+}
+
+impl Drop for KdfPermit<'_> {
+    fn drop(&mut self) {
+        let mut in_use = self
+            .gate
+            .in_use_kib
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        *in_use -= self.cost_kib;
+        drop(in_use);
+        self.gate.released.notify_all();
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -83,6 +161,73 @@ mod tests {
     #[test]
     fn test_key_size_too_large() {
         assert!(validate_untrusted_kdf_params(1024, 1, 1, MAX_KDF_KEY_SIZE + 1).is_err());
+    }
+
+    #[test]
+    fn test_gate_allows_cost_within_budget() {
+        let gate = KdfGate::new(100);
+        let permit = gate.acquire(60);
+        assert_eq!(*gate.in_use_kib.lock().unwrap(), 60);
+        drop(permit);
+        assert_eq!(*gate.in_use_kib.lock().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_gate_clamps_oversized_cost_to_budget() {
+        let gate = KdfGate::new(100);
+        // A cost above the budget must not deadlock: it is clamped and runs alone.
+        let permit = gate.acquire(1_000_000);
+        assert_eq!(*gate.in_use_kib.lock().unwrap(), 100);
+        drop(permit);
+    }
+
+    #[test]
+    fn test_gate_zero_cost_still_reserves() {
+        let gate = KdfGate::new(100);
+        let permit = gate.acquire(0);
+        assert_eq!(*gate.in_use_kib.lock().unwrap(), 1);
+        drop(permit);
+    }
+
+    #[test]
+    fn test_gate_limits_concurrent_memory_use() {
+        use std::sync::{
+            Arc,
+            atomic::{AtomicU64, Ordering},
+        };
+
+        // Budget fits exactly two concurrent 50-KiB permits.
+        let gate = Arc::new(KdfGate::new(100));
+        let active = Arc::new(AtomicU64::new(0));
+        let max_active = Arc::new(AtomicU64::new(0));
+
+        let handles: Vec<_> = (0..8)
+            .map(|_| {
+                let gate = Arc::clone(&gate);
+                let active = Arc::clone(&active);
+                let max_active = Arc::clone(&max_active);
+                std::thread::spawn(move || {
+                    let _permit = gate.acquire(50);
+                    let now = active.fetch_add(1, Ordering::SeqCst) + 1;
+                    max_active.fetch_max(now, Ordering::SeqCst);
+                    std::thread::sleep(std::time::Duration::from_millis(10));
+                    active.fetch_sub(1, Ordering::SeqCst);
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+
+        assert!(max_active.load(Ordering::SeqCst) <= 2);
+        assert_eq!(*gate.in_use_kib.lock().unwrap(), 0);
+    }
+
+    #[test]
+    fn test_with_kdf_memory_permit_returns_value() {
+        let result = with_kdf_memory_permit(1024, || 42);
+        assert_eq!(result, 42);
     }
 
     #[test]

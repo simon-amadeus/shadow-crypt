@@ -19,7 +19,7 @@ use crate::{
         file_ops::{load_encrypted_file, store_plaintext_file},
     },
     errors::WorkflowResult,
-    kdf::validate_untrusted_kdf_params,
+    kdf::{validate_untrusted_kdf_params, with_kdf_memory_permit},
     ui::{display_decryption_report, display_progress},
     utils::parse_string_from_bytes,
 };
@@ -83,7 +83,9 @@ fn process_file_decryption(
     let kdf_params: KeyDerivationParams = get_kdf_params(encrypted_file.header());
     validate_kdf_params(&kdf_params)?;
     let (key, _kdf_report): (SecureKey, KeyDerivationReport) =
-        derive_key(password.as_str().as_bytes(), salt, &kdf_params)?;
+        with_kdf_memory_permit(kdf_params.memory_cost, || {
+            derive_key(password.as_str().as_bytes(), salt, &kdf_params)
+        })?;
 
     let (filename_bytes, algorithm): (SecureBytes, Algorithm) =
         decrypt_bytes(filename_ciphertext, key.as_bytes(), filename_nonce)?;
