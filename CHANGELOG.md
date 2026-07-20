@@ -30,6 +30,8 @@ Example:
 
 ## [Unreleased]
 
+## [2.0.0] - 2026-07-20
+
 ### Added
 - Add v2 file format: header fields (magic, version, salt, KDF parameters, nonces) are now authenticated as AEAD associated data, with domain separation between filename and content encryption to prevent ciphertext-swapping within a file; new files are written as v2, v1 files remain fully readable
 - Add property-based tests (proptest) covering header round-trips, parser robustness on arbitrary bytes, and v2 domain-separation invariants
@@ -45,6 +47,9 @@ Example:
 - Reject filename ciphertexts longer than the u16 length field in the v2 header instead of silently truncating
 - Remove modulo bias from random output filename generation
 - Stop mutating the process working directory in a unit test that could race with other tests
+
+### Security
+- Patch vulnerable dependencies
 
 ## [1.1.0] - 2026-05-14
 

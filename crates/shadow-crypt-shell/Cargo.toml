@@ -1,6 +1,5 @@
 [package]
 name = "shadow-crypt-shell"
-publish = false
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -16,7 +15,7 @@ all-features = true
 
 [dependencies]
 # Core dependency - pure functions only
-shadow-crypt-core = { version = "1", path = "../shadow-crypt-core" }
+shadow-crypt-core = { version = "2", path = "../shadow-crypt-core" }
 
 # I/O and CLI utilities that shells can use
 clap = { workspace = true }
