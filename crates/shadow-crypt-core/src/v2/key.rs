@@ -1,4 +1,10 @@
-use crate::profile::SecurityProfile;
+use argon2::{Algorithm, Argon2, Params, Version};
+use zeroize::Zeroize;
+
+use crate::{
+    errors::KeyDerivationError, memory::SecureKey, profile::SecurityProfile,
+    report::KeyDerivationReport,
+};
 
 /// Argon2id parameters for XChacha20-Poly1305 key derivation.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -48,6 +54,51 @@ impl KeyDerivationParams {
             key_size: 32,      // 32 bytes (256 bits)
         }
     }
+
+    /// Derives an encryption key from a password and salt with Argon2id,
+    /// using these parameters.
+    pub fn derive_key(
+        &self,
+        password: &[u8],
+        salt: &[u8],
+    ) -> Result<(SecureKey, KeyDerivationReport), KeyDerivationError> {
+        let start_time = std::time::Instant::now();
+        let algorithm = Algorithm::Argon2id;
+        let version = Version::V0x13; // Version 19
+        let params = Params::new(
+            self.memory_cost,
+            self.time_cost,
+            self.parallelism,
+            Some(self.key_size as usize),
+        )
+        .map_err(|e| {
+            KeyDerivationError::InvalidParameters(format!("Invalid KDF parameters: {}", e))
+        })?;
+        let context = Argon2::new(algorithm, version, params);
+
+        let mut buffer = [0u8; 32];
+        context
+            .hash_password_into(password, salt, &mut buffer)
+            .map_err(|e| {
+                KeyDerivationError::DerivationFailed(format!("Key derivation failed: {}", e))
+            })?;
+
+        let key = SecureKey::new(buffer);
+        buffer.zeroize(); // Clear sensitive data from memory
+
+        let duration = start_time.elapsed();
+        let report = KeyDerivationReport::new(
+            "Argon2id".to_string(),
+            format!("{}", version as u8),
+            self.memory_cost,
+            self.time_cost,
+            self.parallelism,
+            self.key_size,
+            duration,
+        );
+
+        Ok((key, report))
+    }
 }
 
 impl From<SecurityProfile> for KeyDerivationParams {
@@ -85,5 +136,56 @@ mod tests {
 
         let test_params: KeyDerivationParams = SecurityProfile::Test.into();
         assert_eq!(test_params, KeyDerivationParams::test_defaults());
+    }
+
+    #[test]
+    fn test_derive_key_success() {
+        let params = KeyDerivationParams::test_defaults();
+
+        let (key, report) = params
+            .derive_key(b"test_password", b"test_salt_16_bytes")
+            .unwrap();
+        assert_eq!(key.as_bytes().len(), 32);
+        assert_eq!(report.algorithm, "Argon2id");
+        assert_eq!(report.algorithm_version, "19");
+        assert_eq!(report.memory_cost_kib, params.memory_cost);
+    }
+
+    #[test]
+    fn test_derive_key_deterministic() {
+        let params = KeyDerivationParams::test_defaults();
+
+        let (key1, _) = params
+            .derive_key(b"test_password", b"test_salt_16_bytes")
+            .unwrap();
+        let (key2, _) = params
+            .derive_key(b"test_password", b"test_salt_16_bytes")
+            .unwrap();
+
+        assert_eq!(key1.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_derive_key_different_passwords() {
+        let params = KeyDerivationParams::test_defaults();
+
+        let (key1, _) = params
+            .derive_key(b"password1", b"test_salt_16_bytes")
+            .unwrap();
+        let (key2, _) = params
+            .derive_key(b"password2", b"test_salt_16_bytes")
+            .unwrap();
+
+        assert_ne!(key1.as_bytes(), key2.as_bytes());
+    }
+
+    #[test]
+    fn test_derive_key_invalid_parameters() {
+        let invalid_params = KeyDerivationParams::new(0, 1, 1, 32);
+        let result = invalid_params.derive_key(b"pw", b"test_salt_16_bytes");
+        assert!(matches!(
+            result,
+            Err(KeyDerivationError::InvalidParameters(_))
+        ));
     }
 }

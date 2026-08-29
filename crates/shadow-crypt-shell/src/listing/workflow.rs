@@ -66,27 +66,19 @@ fn decipher_v1(header_bytes: &[u8], password: &SecureString) -> Option<SecureStr
 }
 
 fn decipher_v2(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
-    let header = v2::header_ops::try_deserialize(header_bytes).ok()?;
-    let kdf_params = v2::header_ops::get_kdf_params(&header);
+    let header = v2::header::FileHeader::try_deserialize(header_bytes).ok()?;
+    let kdf_params = header.kdf_params();
 
     let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
-        || v2::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
+        || kdf_params.derive_key(password.as_str().as_bytes(), &header.salt),
     )
     .ok()?;
 
-    let (filename_bytes, _) = v2::crypt::decrypt_bytes(
-        &header.filename_ciphertext,
-        key.as_bytes(),
-        &header.filename_nonce,
-        &header.binding().aad(v2::header::AadPurpose::Filename),
-    )
-    .ok()?;
-
-    parse_string_from_bytes(&filename_bytes).ok()
+    header.decrypt_filename(&key).ok()
 }
 
 fn get_shadow_file_info(
@@ -139,7 +131,7 @@ mod tests {
         let content_nonce = [1u8; 24];
         let filename_nonce = [0u8; 24];
 
-        let (key, _) = v2::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let (key, _) = kdf_params.derive_key(password.as_bytes(), &salt).unwrap();
         let binding =
             v2::header::HeaderBinding::new(&salt, &kdf_params, &content_nonce, &filename_nonce);
         let (filename_ciphertext, _) = v2::crypt::encrypt_bytes(
@@ -158,7 +150,7 @@ mod tests {
             filename_ciphertext,
         )
         .unwrap();
-        v2::header_ops::serialize(&header)
+        header.serialize()
     }
 
     #[test]

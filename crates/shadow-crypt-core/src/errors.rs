@@ -55,6 +55,40 @@ impl Display for CryptError {
 
 impl Error for CryptError {}
 
+/// Errors from whole-file seal/decrypt operations, which span header
+/// construction/parsing and AEAD encryption/decryption.
+#[derive(Debug)]
+pub enum FileError {
+    Header(HeaderError),
+    Crypt(CryptError),
+    /// The decrypted filename is not valid UTF-8.
+    InvalidFilename,
+}
+
+impl From<HeaderError> for FileError {
+    fn from(e: HeaderError) -> Self {
+        FileError::Header(e)
+    }
+}
+
+impl From<CryptError> for FileError {
+    fn from(e: CryptError) -> Self {
+        FileError::Crypt(e)
+    }
+}
+
+impl Display for FileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FileError::Header(e) => write!(f, "{}", e),
+            FileError::Crypt(e) => write!(f, "{}", e),
+            FileError::InvalidFilename => write!(f, "Decrypted filename is not valid UTF-8"),
+        }
+    }
+}
+
+impl Error for FileError {}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -1,7 +1,6 @@
 use rayon::prelude::*;
 use shadow_crypt_core::{
-    algorithm::Algorithm,
-    memory::{SecureBytes, SecureString},
+    memory::SecureString,
     progress::ProgressCounter,
     report::DecryptionReport,
     v1, v2,
@@ -59,12 +58,22 @@ fn process_file_decryption(
 
     // Dispatch on the version byte; each format version is decrypted by its
     // own self-contained code path.
-    let (filename, content, algorithm) = match read_file_version(&bytes)? {
-        Version::V1 => decrypt_v1(&bytes, password)?,
-        Version::V2 => decrypt_v2(&bytes, password)?,
+    let (output_file, algorithm): (DecryptionOutputFile, _) = match read_file_version(&bytes)? {
+        Version::V1 => {
+            let plaintext = decrypt_v1(&bytes, password)?;
+            (
+                store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?,
+                shadow_crypt_core::algorithm::Algorithm::XChaCha20Poly1305,
+            )
+        }
+        Version::V2 => {
+            let plaintext = decrypt_v2(&bytes, password)?;
+            (
+                store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?,
+                v2::ALGORITHM,
+            )
+        }
     };
-
-    let output_file: DecryptionOutputFile = store_plaintext_file(&filename, &content, output_dir)?;
 
     let duration = start_time.elapsed();
 
@@ -76,10 +85,7 @@ fn process_file_decryption(
     ))
 }
 
-fn decrypt_v1(
-    bytes: &[u8],
-    password: &SecureString,
-) -> WorkflowResult<(SecureString, SecureBytes, Algorithm)> {
+fn decrypt_v1(bytes: &[u8], password: &SecureString) -> WorkflowResult<v1::file::PlaintextFile> {
     let encrypted_file = v1::file_ops::get_encrypted_file_from_bytes(bytes)?;
     let header = encrypted_file.header();
 
@@ -92,7 +98,7 @@ fn decrypt_v1(
         || v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
     )?;
 
-    let (filename_bytes, algorithm) = v1::crypt::decrypt_bytes(
+    let (filename_bytes, _) = v1::crypt::decrypt_bytes(
         &header.filename_ciphertext,
         key.as_bytes(),
         &header.filename_nonce,
@@ -105,52 +111,32 @@ fn decrypt_v1(
         &header.content_nonce,
     )?;
 
-    Ok((filename, content, algorithm))
+    Ok(v1::file::PlaintextFile::new(filename, content))
 }
 
-fn decrypt_v2(
-    bytes: &[u8],
-    password: &SecureString,
-) -> WorkflowResult<(SecureString, SecureBytes, Algorithm)> {
-    let encrypted_file = v2::file_ops::get_encrypted_file_from_bytes(bytes)?;
-    let header = encrypted_file.header();
+fn decrypt_v2(bytes: &[u8], password: &SecureString) -> WorkflowResult<v2::file::PlaintextFile> {
+    let encrypted_file = v2::file::EncryptedFile::from_bytes(bytes)?;
+    let kdf_params = encrypted_file.header().kdf_params();
 
-    let kdf_params = v2::header_ops::get_kdf_params(header);
     let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
-        || v2::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
+        || kdf_params.derive_key(password.as_str().as_bytes(), &encrypted_file.header().salt),
     )?;
 
-    // v2 authenticates the header fields as associated data, with separate
-    // domains for filename and content.
-    let binding = header.binding();
-
-    let (filename_bytes, algorithm) = v2::crypt::decrypt_bytes(
-        &header.filename_ciphertext,
-        key.as_bytes(),
-        &header.filename_nonce,
-        &binding.aad(v2::header::AadPurpose::Filename),
-    )?;
-    let filename = parse_string_from_bytes(&filename_bytes)?;
-
-    let (content, _) = v2::crypt::decrypt_bytes(
-        encrypted_file.ciphertext(),
-        key.as_bytes(),
-        &header.content_nonce,
-        &binding.aad(v2::header::AadPurpose::Content),
-    )?;
-
-    Ok((filename, content, algorithm))
+    Ok(encrypted_file.decrypt(&key)?)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::kdf::MAX_KDF_MEMORY_KIB;
-    use shadow_crypt_core::profile::SecurityProfile;
+    use shadow_crypt_core::{
+        memory::{SecureBytes, SecureString},
+        profile::SecurityProfile,
+    };
 
     #[test]
     fn test_v1_oversized_kdf_params_rejected_before_derivation() {
@@ -172,7 +158,7 @@ mod tests {
         let header =
             v2::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3])
                 .unwrap();
-        let mut bytes = v2::header_ops::serialize(&header);
+        let mut bytes = header.serialize();
         bytes.extend_from_slice(b"ciphertext");
 
         let password = SecureString::new("pw".to_string());
@@ -190,8 +176,9 @@ mod tests {
         let content_nonce = [2u8; 24];
         let filename_nonce = [3u8; 24];
 
-        let (key, _) =
-            v2::key_ops::derive_key(password.as_str().as_bytes(), &salt, &kdf_params).unwrap();
+        let (key, _) = kdf_params
+            .derive_key(password.as_str().as_bytes(), &salt)
+            .unwrap();
         let binding =
             v2::header::HeaderBinding::new(&salt, &kdf_params, &content_nonce, &filename_nonce);
 
@@ -221,7 +208,7 @@ mod tests {
             content_ct,     // filename slot holds the content ciphertext
         )
         .unwrap();
-        let mut bytes = v2::header_ops::serialize(&swapped_header);
+        let mut bytes = swapped_header.serialize();
         bytes.extend_from_slice(&filename_ct);
 
         assert!(decrypt_v2(&bytes, &password).is_err());
@@ -232,42 +219,27 @@ mod tests {
         let password = SecureString::new("testpassword".to_string());
         let salt = [1u8; 16];
         let kdf_params = v2::key::KeyDerivationParams::from(SecurityProfile::Test);
-        let content_nonce = [2u8; 24];
-        let filename_nonce = [3u8; 24];
 
-        let (key, _) =
-            v2::key_ops::derive_key(password.as_str().as_bytes(), &salt, &kdf_params).unwrap();
-        let binding =
-            v2::header::HeaderBinding::new(&salt, &kdf_params, &content_nonce, &filename_nonce);
+        let (key, _) = kdf_params
+            .derive_key(password.as_str().as_bytes(), &salt)
+            .unwrap();
 
-        let (filename_ct, _) = v2::crypt::encrypt_bytes(
-            b"name.txt",
-            key.as_bytes(),
-            &filename_nonce,
-            &binding.aad(v2::header::AadPurpose::Filename),
-        )
-        .unwrap();
-        let (content_ct, _) = v2::crypt::encrypt_bytes(
-            b"content",
-            key.as_bytes(),
-            &content_nonce,
-            &binding.aad(v2::header::AadPurpose::Content),
-        )
-        .unwrap();
-
-        let header = v2::header::FileHeader::new(
-            salt,
+        let plaintext_file = v2::file::PlaintextFile::new(
+            SecureString::new("name.txt".to_string()),
+            SecureBytes::new(b"content".to_vec()),
+        );
+        let sealed = v2::file::EncryptedFile::seal(
+            &plaintext_file,
+            &key,
             kdf_params,
-            content_nonce,
-            filename_nonce,
-            filename_ct,
+            salt,
+            [2u8; 24],
+            [3u8; 24],
         )
         .unwrap();
-        let mut bytes = v2::header_ops::serialize(&header);
-        bytes.extend_from_slice(&content_ct);
 
-        let (filename, content, _) = decrypt_v2(&bytes, &password).unwrap();
-        assert_eq!(filename.as_str(), "name.txt");
-        assert_eq!(content.as_slice(), b"content");
+        let decrypted = decrypt_v2(&sealed.to_bytes(), &password).unwrap();
+        assert_eq!(decrypted.filename().as_str(), "name.txt");
+        assert_eq!(decrypted.content().as_slice(), b"content");
     }
 }

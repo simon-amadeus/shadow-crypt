@@ -70,9 +70,10 @@ mod v1_props {
 
 mod v2_props {
     use super::*;
+    use shadow_crypt_core::memory::SecureKey;
     use v2::{
+        file::EncryptedFile,
         header::{AadPurpose, FileHeader, HeaderBinding},
-        header_ops,
         key::KeyDerivationParams,
     };
 
@@ -90,7 +91,7 @@ mod v2_props {
         ) {
             let params = KeyDerivationParams::new(memory_cost, time_cost, parallelism, key_size);
             let header = FileHeader::new(salt, params, content_nonce, filename_nonce, filename_ct.clone()).unwrap();
-            let parsed = header_ops::try_deserialize(&header_ops::serialize(&header)).unwrap();
+            let parsed = FileHeader::try_deserialize(&header.serialize()).unwrap();
 
             prop_assert_eq!(parsed.version, 2);
             prop_assert_eq!(parsed.salt, salt);
@@ -105,7 +106,7 @@ mod v2_props {
 
         #[test]
         fn try_deserialize_never_panics(bytes in proptest::collection::vec(any::<u8>(), 0..300)) {
-            let _ = header_ops::try_deserialize(&bytes);
+            let _ = FileHeader::try_deserialize(&bytes);
         }
 
         #[test]
@@ -193,7 +194,7 @@ mod v2_props {
                 salt, params, content_nonce, filename_nonce, filename_ct,
             ).unwrap();
 
-            let mut bytes = header_ops::serialize(&header);
+            let mut bytes = header.serialize();
             bytes.extend_from_slice(&content_ct);
 
             let index = flip_index.index(bytes.len());
@@ -201,26 +202,11 @@ mod v2_props {
 
             // Whatever was corrupted, the file must not decrypt cleanly end
             // to end with the original semantics.
-            let decrypt_all = || -> Result<(Vec<u8>, Vec<u8>), ()> {
-                let parsed = header_ops::try_deserialize(&bytes).map_err(|_| ())?;
-                let parsed_binding = parsed.binding();
-                let content_bytes = &bytes[parsed.header_length as usize..];
-                let (name, _) = v2::crypt::decrypt_bytes(
-                    &parsed.filename_ciphertext,
-                    &key,
-                    &parsed.filename_nonce,
-                    &parsed_binding.aad(AadPurpose::Filename),
-                ).map_err(|_| ())?;
-                let (content, _) = v2::crypt::decrypt_bytes(
-                    content_bytes,
-                    &key,
-                    &parsed.content_nonce,
-                    &parsed_binding.aad(AadPurpose::Content),
-                ).map_err(|_| ())?;
-                Ok((name.as_slice().to_vec(), content.as_slice().to_vec()))
-            };
+            let decrypted = EncryptedFile::from_bytes(&bytes)
+                .map_err(|_| ())
+                .and_then(|parsed| parsed.decrypt(&SecureKey::new(key)).map_err(|_| ()));
 
-            prop_assert!(decrypt_all().is_err());
+            prop_assert!(decrypted.is_err());
         }
     }
 }

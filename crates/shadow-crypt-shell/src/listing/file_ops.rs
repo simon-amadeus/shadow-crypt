@@ -79,7 +79,7 @@ pub fn load_file_header_bytes(file: &ShadowFile) -> WorkflowResult<SecureBytes> 
         }
         Version::V2 => {
             let fixed = read_n_bytes_from_file(&file.path, v2::header::FileHeader::min_length())?;
-            v2::header_ops::get_length_from_bytes(fixed.as_slice())?
+            v2::header::FileHeader::read_header_length(fixed.as_slice())?
         }
     };
     read_n_bytes_from_file(&file.path, header_length as usize)
@@ -125,7 +125,7 @@ mod tests {
 
     fn create_shadow_file_v2(dir: &TempDir, filename: &str) -> std::path::PathBuf {
         let path = dir.path().join(filename);
-        let serialized = v2::header_ops::serialize(&create_test_header_v2());
+        let serialized = create_test_header_v2().serialize();
         let mut content = serialized;
         content.extend_from_slice(b"dummy content");
         fs::write(&path, content).unwrap();
@@ -248,7 +248,7 @@ mod tests {
         let shadow_file = try_create_shadow_file(&path).unwrap();
 
         let header_bytes = load_file_header_bytes(&shadow_file).unwrap();
-        let header = v2::header_ops::try_deserialize(header_bytes.as_slice()).unwrap();
+        let header = v2::header::FileHeader::try_deserialize(header_bytes.as_slice()).unwrap();
 
         assert_eq!(header.magic, *b"SHADOW");
         assert_eq!(header.version, 2);

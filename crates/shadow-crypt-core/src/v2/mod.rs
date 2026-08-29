@@ -9,36 +9,41 @@
 //! ciphertexts within a file or tampering with header fields without
 //! detection.
 //!
+//! The intended entry points are [`file::EncryptedFile::seal`] and
+//! [`file::EncryptedFile::decrypt`], which own the AEAD choreography
+//! (nonce/ciphertext pairing, domain separation, header binding); the
+//! submodules expose the underlying pieces.
+//!
 //! This module is deliberately independent of [`crate::v1`]: the two formats
 //! share no code, so changes to one can never silently alter the other.
+
+use crate::algorithm::Algorithm;
 
 /// Encryption and decryption primitives (AAD-authenticated).
 pub mod crypt;
 
-/// Encrypted file structures.
+/// Encrypted file structures and whole-file seal/decrypt operations.
 pub mod file;
 
-/// Encrypted file operations.
-pub mod file_ops;
-
-/// File header structures and header binding for AAD.
+/// File header structures, serialization, and header binding for AAD.
 pub mod header;
 
-/// File header serialization and deserialization.
-pub mod header_ops;
-
-/// Key derivation parameters.
+/// Key derivation parameters and operations.
 pub mod key;
 
-/// Key derivation operations.
-pub mod key_ops;
+/// The AEAD algorithm used by every v2 file.
+pub const ALGORITHM: Algorithm = Algorithm::XChaCha20Poly1305;
 
 #[cfg(test)]
 mod tests {
-    use crate::v2::{
-        crypt::{decrypt_bytes, encrypt_bytes},
-        header::{AadPurpose, FileHeader, HeaderBinding},
-        key::KeyDerivationParams,
+    use crate::{
+        memory::{SecureBytes, SecureString},
+        v2::{
+            crypt::{decrypt_bytes, encrypt_bytes},
+            file::{EncryptedFile, PlaintextFile},
+            header::{AadPurpose, HeaderBinding},
+            key::KeyDerivationParams,
+        },
     };
 
     /// The v1 weakness this format fixes: filename and content ciphertexts
@@ -135,52 +140,45 @@ mod tests {
         );
     }
 
-    /// Full round trip through header construction, exactly as the shell does it.
+    /// Full round trip through the seal/decrypt façade, including
+    /// serialization to raw bytes and back.
     #[test]
-    fn header_round_trip_decrypts_with_header_binding() {
-        let key = [4u8; 32];
+    fn seal_decrypt_round_trip_via_bytes() {
         let salt = [1u8; 16];
         let params = KeyDerivationParams::test_defaults();
-        let content_nonce = [2u8; 24];
-        let filename_nonce = [3u8; 24];
-        let binding = HeaderBinding::new(&salt, &params, &content_nonce, &filename_nonce);
+        let (key, _) = params.derive_key(b"password", &salt).unwrap();
 
-        let (filename_ct, _) = encrypt_bytes(
-            b"name.txt",
-            &key,
-            &filename_nonce,
-            &binding.aad(AadPurpose::Filename),
-        )
-        .unwrap();
-        let (content_ct, _) = encrypt_bytes(
-            b"hello",
-            &key,
-            &content_nonce,
-            &binding.aad(AadPurpose::Content),
-        )
-        .unwrap();
+        let plaintext_file = PlaintextFile::new(
+            SecureString::new("name.txt".to_string()),
+            SecureBytes::new(b"hello".to_vec()),
+        );
 
-        let header =
-            FileHeader::new(salt, params, content_nonce, filename_nonce, filename_ct).unwrap();
-        let serialized = crate::v2::header_ops::serialize(&header);
-        let parsed = crate::v2::header_ops::try_deserialize(&serialized).unwrap();
+        let sealed =
+            EncryptedFile::seal(&plaintext_file, &key, params, salt, [2u8; 24], [3u8; 24]).unwrap();
 
-        let (name, _) = decrypt_bytes(
-            &parsed.filename_ciphertext,
-            &key,
-            &parsed.filename_nonce,
-            &parsed.binding().aad(AadPurpose::Filename),
-        )
-        .unwrap();
-        let (content, _) = decrypt_bytes(
-            &content_ct,
-            &key,
-            &parsed.content_nonce,
-            &parsed.binding().aad(AadPurpose::Content),
-        )
-        .unwrap();
+        let parsed = EncryptedFile::from_bytes(&sealed.to_bytes()).unwrap();
+        let decrypted = parsed.decrypt(&key).unwrap();
 
-        assert_eq!(name.as_slice(), b"name.txt");
-        assert_eq!(content.as_slice(), b"hello");
+        assert_eq!(decrypted.filename().as_str(), "name.txt");
+        assert_eq!(decrypted.content().as_slice(), b"hello");
+    }
+
+    /// Decrypting with a key derived from the wrong password must fail.
+    #[test]
+    fn seal_decrypt_with_wrong_key_fails() {
+        let salt = [1u8; 16];
+        let params = KeyDerivationParams::test_defaults();
+        let (key, _) = params.derive_key(b"password", &salt).unwrap();
+        let (wrong_key, _) = params.derive_key(b"wrong", &salt).unwrap();
+
+        let plaintext_file = PlaintextFile::new(
+            SecureString::new("name.txt".to_string()),
+            SecureBytes::new(b"hello".to_vec()),
+        );
+
+        let sealed =
+            EncryptedFile::seal(&plaintext_file, &key, params, salt, [2u8; 24], [3u8; 24]).unwrap();
+
+        assert!(sealed.decrypt(&wrong_key).is_err());
     }
 }

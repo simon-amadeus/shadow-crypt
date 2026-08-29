@@ -1,4 +1,4 @@
-use shadow_crypt_core::errors::{CryptError, HeaderError, KeyDerivationError};
+use shadow_crypt_core::errors::{CryptError, FileError, HeaderError, KeyDerivationError};
 use std::io;
 use thiserror::Error;
 
@@ -33,6 +33,9 @@ pub enum WorkflowError {
 
     #[error("Header error: {0}")]
     HeaderError(#[from] HeaderError),
+
+    #[error("File format error: {0}")]
+    Format(#[from] FileError),
 
     #[error("Parse error: {0}")]
     Parse(String),

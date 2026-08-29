@@ -1,16 +1,9 @@
 use rayon::prelude::*;
 use shadow_crypt_core::{
-    algorithm::Algorithm,
     memory::SecureString,
     progress::ProgressCounter,
     report::EncryptionReport,
-    v2::{
-        crypt::encrypt_bytes,
-        file::{EncryptedFile, PlaintextFile},
-        header::{AadPurpose, FileHeader, HeaderBinding},
-        key::KeyDerivationParams,
-        key_ops::derive_key,
-    },
+    v2::{self, file::EncryptedFile, key::KeyDerivationParams},
 };
 
 use crate::{
@@ -70,41 +63,21 @@ fn process_file_encryption(
 
     let salt: [u8; 16] = generate_salt()?;
     let (key, _) = with_kdf_memory_permit(kdf_params.memory_cost, || {
-        derive_key(password.as_str().as_bytes(), salt.as_ref(), kdf_params)
+        kdf_params.derive_key(password.as_str().as_bytes(), salt.as_ref())
     })?;
 
     let filename_nonce: [u8; 24] = generate_nonce()?;
     let content_nonce: [u8; 24] = generate_nonce()?;
-    let plaintext_file: PlaintextFile = load_plaintext_file(&file)?;
+    let plaintext_file = load_plaintext_file(&file)?;
 
-    // Bind the header fields to both ciphertexts, with distinct domains for
-    // filename and content, so neither the header nor the pairing of the two
-    // ciphertexts can be tampered with undetected.
-    let binding = HeaderBinding::new(&salt, kdf_params, &content_nonce, &filename_nonce);
-
-    let (filename_ciphertext, _): (Vec<u8>, Algorithm) = encrypt_bytes(
-        file.filename.as_bytes(),
-        key.as_bytes(),
-        &filename_nonce,
-        &binding.aad(AadPurpose::Filename),
-    )?;
-
-    let (content_ciphertext, algorithm): (Vec<u8>, Algorithm) = encrypt_bytes(
-        plaintext_file.content().as_slice(),
-        key.as_bytes(),
-        &content_nonce,
-        &binding.aad(AadPurpose::Content),
-    )?;
-
-    let header = FileHeader::new(
-        salt,
+    let encrypted_file = EncryptedFile::seal(
+        &plaintext_file,
+        &key,
         kdf_params.clone(),
+        salt,
         content_nonce,
         filename_nonce,
-        filename_ciphertext,
     )?;
-
-    let encrypted_file = EncryptedFile::new(header, content_ciphertext);
     let output_file = store_encrypted_file(&encrypted_file, output_dir)?;
 
     let duration = start_time.elapsed();
@@ -113,6 +86,6 @@ fn process_file_encryption(
         file.filename,
         output_file.filename,
         duration,
-        algorithm,
+        v2::ALGORITHM,
     ))
 }
