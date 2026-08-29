@@ -15,7 +15,6 @@ use crate::{
     errors::{WorkflowError, WorkflowResult},
     kdf::derive_key_from_untrusted_params,
     ui::{display_decryption_report, display_progress},
-    utils::parse_string_from_bytes,
 };
 
 pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
@@ -63,7 +62,7 @@ fn process_file_decryption(
             let plaintext = decrypt_v1(&bytes, password)?;
             (
                 store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?,
-                shadow_crypt_core::algorithm::Algorithm::XChaCha20Poly1305,
+                v1::ALGORITHM,
             )
         }
         Version::V2 => {
@@ -86,32 +85,18 @@ fn process_file_decryption(
 }
 
 fn decrypt_v1(bytes: &[u8], password: &SecureString) -> WorkflowResult<v1::file::PlaintextFile> {
-    let encrypted_file = v1::file_ops::get_encrypted_file_from_bytes(bytes)?;
-    let header = encrypted_file.header();
+    let encrypted_file = v1::file::EncryptedFile::from_bytes(bytes)?;
+    let kdf_params = encrypted_file.header().kdf_params();
 
-    let kdf_params = v1::header_ops::get_kdf_params(header);
     let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
-        || v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
+        || kdf_params.derive_key(password.as_str().as_bytes(), &encrypted_file.header().salt),
     )?;
 
-    let (filename_bytes, _) = v1::crypt::decrypt_bytes(
-        &header.filename_ciphertext,
-        key.as_bytes(),
-        &header.filename_nonce,
-    )?;
-    let filename = parse_string_from_bytes(&filename_bytes)?;
-
-    let (content, _) = v1::crypt::decrypt_bytes(
-        encrypted_file.ciphertext(),
-        key.as_bytes(),
-        &header.content_nonce,
-    )?;
-
-    Ok(v1::file::PlaintextFile::new(filename, content))
+    Ok(encrypted_file.decrypt(&key)?)
 }
 
 fn decrypt_v2(bytes: &[u8], password: &SecureString) -> WorkflowResult<v2::file::PlaintextFile> {
@@ -145,7 +130,7 @@ mod tests {
         let kdf_params = v1::key::KeyDerivationParams::new(MAX_KDF_MEMORY_KIB + 1, 1, 1, 32);
         let header =
             v1::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
-        let mut bytes = v1::header_ops::serialize(&header);
+        let mut bytes = header.serialize();
         bytes.extend_from_slice(b"ciphertext");
 
         let password = SecureString::new("pw".to_string());

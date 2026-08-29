@@ -11,7 +11,6 @@ use crate::{
         file_ops::{load_file_header_bytes, scan_directory_for_shadow_files},
     },
     ui,
-    utils::parse_string_from_bytes,
 };
 
 pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
@@ -43,26 +42,19 @@ fn decipher_original_filename(
 }
 
 fn decipher_v1(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
-    let header = v1::header_ops::try_deserialize(header_bytes).ok()?;
-    let kdf_params = v1::header_ops::get_kdf_params(&header);
+    let header = v1::header::FileHeader::try_deserialize(header_bytes).ok()?;
+    let kdf_params = header.kdf_params();
 
     let key = derive_key_from_untrusted_params(
         kdf_params.memory_cost,
         kdf_params.time_cost,
         kdf_params.parallelism,
         kdf_params.key_size,
-        || v1::key_ops::derive_key(password.as_str().as_bytes(), &header.salt, &kdf_params),
+        || kdf_params.derive_key(password.as_str().as_bytes(), &header.salt),
     )
     .ok()?;
 
-    let (filename_bytes, _) = v1::crypt::decrypt_bytes(
-        &header.filename_ciphertext,
-        key.as_bytes(),
-        &header.filename_nonce,
-    )
-    .ok()?;
-
-    parse_string_from_bytes(&filename_bytes).ok()
+    header.decrypt_filename(&key).ok()
 }
 
 fn decipher_v2(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
@@ -107,7 +99,7 @@ mod tests {
         let kdf_params = v1::key::KeyDerivationParams::from(SecurityProfile::Test);
         let filename_nonce = [0u8; 24];
 
-        let (key, _) = v1::key_ops::derive_key(password.as_bytes(), &salt, &kdf_params).unwrap();
+        let (key, _) = kdf_params.derive_key(password.as_bytes(), &salt).unwrap();
         let (filename_ciphertext, _) = v1::crypt::encrypt_bytes(
             original_filename.as_bytes(),
             key.as_bytes(),
@@ -122,7 +114,7 @@ mod tests {
             filename_nonce,
             filename_ciphertext,
         );
-        v1::header_ops::serialize(&header)
+        header.serialize()
     }
 
     fn build_v2_header_bytes(password: &str, original_filename: &str) -> Vec<u8> {
@@ -197,7 +189,7 @@ mod tests {
         let kdf_params = v1::key::KeyDerivationParams::new(u32::MAX, u32::MAX, u32::MAX, u8::MAX);
         let header =
             v1::header::FileHeader::new([0u8; 16], kdf_params, [0u8; 24], [0u8; 24], vec![1, 2, 3]);
-        let header_bytes = v1::header_ops::serialize(&header);
+        let header_bytes = header.serialize();
 
         let password = SecureString::new("testpassword".to_string());
         let result = decipher_original_filename(&header_bytes, Version::V1, &password);

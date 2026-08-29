@@ -29,7 +29,7 @@ pub mod password;
 /// Shared user interface utilities for displaying progress and results.
 pub mod ui;
 
-/// Shared utility functions for file operations and data parsing.
+/// Shared utility functions for file operations.
 pub mod utils;
 
 // Re-export commonly used items

@@ -13,7 +13,7 @@ const MAX_FILENAME_CT: usize = 2048;
 
 mod v1_props {
     use super::*;
-    use v1::{header::FileHeader, header_ops, key::KeyDerivationParams};
+    use v1::{header::FileHeader, key::KeyDerivationParams};
 
     proptest! {
         #[test]
@@ -29,7 +29,7 @@ mod v1_props {
         ) {
             let params = KeyDerivationParams::new(memory_cost, time_cost, parallelism, key_size);
             let header = FileHeader::new(salt, params, content_nonce, filename_nonce, filename_ct.clone());
-            let parsed = header_ops::try_deserialize(&header_ops::serialize(&header)).unwrap();
+            let parsed = FileHeader::try_deserialize(&header.serialize()).unwrap();
 
             prop_assert_eq!(parsed.salt, salt);
             prop_assert_eq!(parsed.kdf_memory, memory_cost);
@@ -43,7 +43,7 @@ mod v1_props {
 
         #[test]
         fn try_deserialize_never_panics(bytes in proptest::collection::vec(any::<u8>(), 0..300)) {
-            let _ = header_ops::try_deserialize(&bytes);
+            let _ = FileHeader::try_deserialize(&bytes);
         }
 
         #[test]

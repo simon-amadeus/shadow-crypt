@@ -37,9 +37,6 @@ pub enum WorkflowError {
     #[error("File format error: {0}")]
     Format(#[from] FileError),
 
-    #[error("Parse error: {0}")]
-    Parse(String),
-
     #[error("Encryption error: {0}")]
     Encryption(String),
 
