@@ -9,7 +9,9 @@
 //! ciphertexts within a file or tampering with header fields without
 //! detection.
 //!
-//! The intended entry points are [`file::EncryptedFile::seal`] and
+//! This format is legacy: new files are always written as v3, and v2
+//! support exists to decrypt and list existing files. The intended entry
+//! points are [`file::EncryptedFile::seal`] (kept for round-trip tests) and
 //! [`file::EncryptedFile::decrypt`], which own the AEAD choreography
 //! (nonce/ciphertext pairing, domain separation, header binding); the
 //! submodules expose the underlying pieces.

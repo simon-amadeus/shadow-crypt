@@ -2,55 +2,36 @@
 //!
 //! Password-based file encryption with filename obfuscation.
 //!
+//! `shadow` turns files and directories into anonymously named `.shadow`
+//! containers. `unshadow` restores them. `shadows` lists them.
+//!
 //! ## Features
 //!
-//! - **Strong Algorithms**: XChaCha20-Poly1305 cipher, Argon2id key derivation
-//! - **No Storage**: Sensitive data is retained only in memory during operation
-//! - **Memory Safety**: Zeroizes sensitive data in memory after use
-//! - **No Dependencies**: Pure Rust implementation
+//! - **Strong cryptography**: XChaCha20-Poly1305 authenticated encryption,
+//!   Argon2id key derivation
+//! - **Nothing leaks**: filenames, timestamps, and permissions travel inside
+//!   an encrypted metadata envelope; a directory becomes a single archive
+//!   that hides even its file count and sizes
+//! - **Tamper-evident**: headers are bound to the ciphertext as AEAD
+//!   associated data; chunk counters make reordering and truncation fail
+//! - **Any size**: streaming encryption and decryption with bounded memory
+//! - **Pure Rust**: no C or system libraries
 //!
-//! ## Command Line Usage
+//! ## Command line usage
 //!
-//! This crate provides three command-line tools:
+//! ```bash
+//! shadow notes.txt photos/     # encrypt files and directories
+//! unshadow mzpuTgQmBPJfTAJh.shadow
+//! shadows                      # list .shadow files (no password needed)
+//! ```
 //!
-//! - `shadow` - Encrypt files
-//! - `unshadow` - Decrypt files  
-//! - `shadows` - List encrypted files
+//! See the repository's `docs/FORMAT.md` for the file format specification
+//! and `docs/THREAT_MODEL.md` for the threat model.
 //!
 //! ## Architecture
 //!
-//! The implementation is split into two main modules:
-//!
 //! - [`core`] - Core cryptographic operations and types (deterministic, no I/O)
 //! - [`shell`] - Command-line interface and file I/O operations
-//!
-//! ## Security
-//!
-//! All sensitive data is automatically zeroized from memory after use. The implementation
-//! uses well-established cryptographic primitives and follows security best practices.
-//!
-//! ## Installation
-//!
-//! ```bash
-//! cargo install shadow-crypt
-//! ```
-//!
-//! ## Examples
-//!
-//! ### Encrypt Files
-//! ```bash
-//! shadow file1.txt file*.jpg
-//! ```
-//!
-//! ### Decrypt Files
-//! ```bash
-//! unshadow mzpuTgQmBPJfTAJh.shadow RzxZGbTQAxxBseaI.shadow
-//! ```
-//!
-//! ### List Encrypted Files
-//! ```bash
-//! shadows
-//! ```
 
 // Re-export the shell crate for unified documentation
 /// Main workflows and I/O operations.

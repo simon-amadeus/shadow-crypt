@@ -1,10 +1,10 @@
 //! Version 1 of the encryption protocol.
 //!
-//! Uses XChaCha20-Poly1305 with Argon2id key derivation. Unlike v2, the
-//! header fields are not authenticated. This format is legacy: new files are
-//! always written as v2, and v1 support exists only to decrypt and list
-//! existing files via [`file::EncryptedFile::decrypt`] and
-//! [`header::FileHeader::decrypt_filename`].
+//! Uses XChaCha20-Poly1305 with Argon2id key derivation. Unlike later
+//! versions, the header fields are not authenticated. This format is
+//! legacy: new files are always written as v3, and v1 support exists only
+//! to decrypt and list existing files via [`file::EncryptedFile::decrypt`]
+//! and [`header::FileHeader::decrypt_filename`].
 //!
 //! This module is deliberately independent of [`crate::v2`]: the two formats
 //! share no code, so changes to one can never silently alter the other.

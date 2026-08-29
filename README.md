@@ -7,56 +7,65 @@
 
 Password-based file encryption with filename obfuscation.
 
+`shadow` turns files and directories into anonymously named `.shadow` containers.
+`unshadow` restores them. `shadows` lists them.
+
 ## Features
 
-- **Strong Algorithms**: XChaCha20-Poly1305 cipher, Argon2id key derivation
-- **Authenticated Headers**: File headers are bound to the ciphertext as AEAD associated data, so header tampering and ciphertext swapping are detected (v2 format; v1 files remain readable)
-- **No Storage**: Sensitive data is retained only in memory during operation
-- **Memory Safety**: Zeroizes sensitive data in memory after use
-- **Pure Rust**: No C or system libraries — builds with Cargo alone
+- **Strong cryptography** — XChaCha20-Poly1305 authenticated encryption, Argon2id key derivation
+- **Nothing leaks** — filenames, timestamps, and permissions travel inside an encrypted metadata envelope; a directory becomes a single archive that hides even its file count and sizes
+- **Tamper-evident** — headers are bound to the ciphertext as AEAD associated data; chunk counters make reordering, truncation, and extension fail authentication
+- **Any size** — streaming encryption and decryption with bounded memory
+- **Safe by default** — crash-safe atomic writes, no overwrites without `--force`, no data destroyed before its replacement is verified, path-traversal-proof extraction
+- **Pure Rust** — no C or system libraries; builds with Cargo alone
 
 ## Installation
-- Ensure you have [Rust and Cargo](https://www.rust-lang.org/tools/install) installed.
-
-### Using Cargo (Recommended)
 
 ```bash
 cargo install shadow-crypt
 ```
 
-### From Source
-
-```bash
-git clone git@github.com:simon-amadeus/shadow-crypt.git
-cd shadow-crypt
-cargo install --path .
-```
+Or from source: `git clone` this repository and `cargo install --path .`
 
 ## Usage
 
-### Encrypt Files
 ```bash
-shadow file1.txt file*.jpg
-```
+# Encrypt files (prompts for a password)
+shadow notes.txt photos*.jpg
 
-### Decrypt Files
-```bash
-unshadow mzpuTgQmBPJfTAJh.shadow RzxZGbTQAxxBseaI.shadow
-```
+# Encrypt a directory into a single archive
+shadow photos/
 
-### List Encrypted Files
-```bash
+# Encrypt and delete the originals afterwards
+shadow --delete taxes/
+
+# Decrypt
+unshadow mzpuTgQmBPJfTAJh.shadow
+
+# List encrypted files in a directory (no password needed)
 shadows
+
+# ...including their original filenames (prompts for the password)
+shadows --names
 ```
+
+For scripting: `--password-file`, `--output-dir`, `--quiet`, `shadows --json`,
+and distinct exit codes (see `--help`).
+
+Key derivation cost is chosen by profile: `standard` (OWASP-recommended, the
+default) or `paranoid` (1 GiB memory, for high-value archives). Files record
+their parameters, so any profile decrypts with any build. See `shadow --profiles`.
 
 ## Documentation
 
+- [📖 Format specification](docs/FORMAT.md)
+- [🛡️ Threat model](docs/THREAT_MODEL.md)
 - [📝 Changelog](CHANGELOG.md)
-- [📚 Complete API Documentation](https://docs.rs/shadow-crypt)
+- [📚 API documentation](https://docs.rs/shadow-crypt)
 
 ## Contributing
 
-Contributions are welcome! Please open issues or submit pull requests on [Github](https://github.com/simon-amadeus/shadow-crypt).
+Contributions are welcome! Please open issues or submit pull requests on [GitHub](https://github.com/simon-amadeus/shadow-crypt).
 
 ## License
 
