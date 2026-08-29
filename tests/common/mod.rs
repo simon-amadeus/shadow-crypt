@@ -53,6 +53,7 @@ pub fn encrypt_paths(
         SecureString::new(password.to_string()),
         SecurityProfile::Test,
         output_dir.to_path_buf(),
+        false,
     ))
 }
 
@@ -71,6 +72,7 @@ pub fn decrypt_files(files: &[&Path], password: &str, output_dir: &Path) -> Work
         valid_args.files,
         SecureString::new(password.to_string()),
         output_dir.to_path_buf(),
+        false,
         false,
     ))
 }

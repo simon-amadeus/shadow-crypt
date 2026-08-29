@@ -14,6 +14,7 @@ pub struct ValidDecryptionArgs {
     pub output_dir: Option<PathBuf>,
     pub password_file: Option<PathBuf>,
     pub force: bool,
+    pub quiet: bool,
 }
 
 pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptionArgs> {
@@ -34,6 +35,7 @@ pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptio
         output_dir: input.output_dir,
         password_file: input.password_file,
         force: input.force,
+        quiet: input.quiet,
     })
 }
 

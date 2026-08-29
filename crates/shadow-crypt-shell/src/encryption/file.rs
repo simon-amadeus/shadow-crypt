@@ -28,6 +28,8 @@ pub struct EncryptionInput {
     pub password: SecureString,
     pub security_profile: SecurityProfile,
     pub output_dir: PathBuf,
+    /// Suppress progress and per-file success output (errors still shown).
+    pub quiet: bool,
 }
 impl EncryptionInput {
     pub fn new(
@@ -35,12 +37,14 @@ impl EncryptionInput {
         password: SecureString,
         security_profile: SecurityProfile,
         output_dir: PathBuf,
+        quiet: bool,
     ) -> Self {
         Self {
             files,
             password,
             security_profile,
             output_dir,
+            quiet,
         }
     }
 }

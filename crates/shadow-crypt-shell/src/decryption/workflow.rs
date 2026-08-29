@@ -13,7 +13,7 @@ use crate::{
     },
     errors::{WorkflowError, WorkflowResult},
     kdf::derive_untrusted_key,
-    ui::{display_decryption_report, display_progress},
+    ui::{display_decryption_success, display_error, display_progress},
     utils::read_n_bytes_from_file,
 };
 
@@ -22,30 +22,45 @@ pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
     let counter = ProgressCounter::new(total as u64);
 
     // Process files in parallel using rayon
-    let failures: usize = input
+    let failures: Vec<WorkflowError> = input
         .files
         .par_iter()
-        .map(|input_file| {
+        .filter_map(|input_file| {
             let result = process_file_decryption(
                 input_file.to_owned(),
                 &input.password,
                 &input.output_dir,
                 input.force,
             )
-            .map_err(|e| WorkflowError::Decryption(format!("'{}': {}", input_file.filename, e)));
+            .map_err(|e| WorkflowError::per_file(&input_file.filename, e));
             counter.increment();
-            display_progress(&counter);
-            let failed = result.is_err();
-            display_decryption_report(result);
-            usize::from(failed)
+            if !input.quiet {
+                display_progress(&counter);
+            }
+            match result {
+                Ok(report) => {
+                    if !input.quiet {
+                        display_decryption_success(&report);
+                    }
+                    None
+                }
+                Err(e) => {
+                    display_error(&e);
+                    Some(e)
+                }
+            }
         })
-        .sum();
+        .collect();
 
-    if failures > 0 {
-        return Err(WorkflowError::Decryption(format!(
-            "{} of {} file(s) failed to decrypt",
-            failures, total
-        )));
+    if !failures.is_empty() {
+        let message = format!("{} of {} file(s) failed to decrypt", failures.len(), total);
+        // Distinguish "everything failed to authenticate" (wrong password /
+        // corruption) so scripts get a dedicated exit code.
+        return Err(if failures.iter().all(|e| e.is_authentication_failure()) {
+            WorkflowError::Authentication(message)
+        } else {
+            WorkflowError::Decryption(message)
+        });
     }
 
     Ok(())

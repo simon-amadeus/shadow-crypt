@@ -17,7 +17,7 @@ use crate::{
     },
     errors::{WorkflowError, WorkflowResult},
     kdf::with_kdf_memory_permit,
-    ui::{display_encryption_report, display_progress, display_warning},
+    ui::{display_encryption_success, display_error, display_progress, display_warning},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
@@ -37,12 +37,23 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
                 &params,
                 &input.output_dir,
             )
-            .map_err(|e| WorkflowError::Encryption(format!("'{}': {}", input_file.filename, e)));
+            .map_err(|e| WorkflowError::per_file(&input_file.filename, e));
             counter.increment();
-            display_progress(&counter);
-            let failed = result.is_err();
-            display_encryption_report(result);
-            usize::from(failed)
+            if !input.quiet {
+                display_progress(&counter);
+            }
+            match result {
+                Ok(report) => {
+                    if !input.quiet {
+                        display_encryption_success(&report);
+                    }
+                    0
+                }
+                Err(e) => {
+                    display_error(&e);
+                    1
+                }
+            }
         })
         .sum();
 

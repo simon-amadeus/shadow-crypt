@@ -6,10 +6,7 @@ use shadow_crypt_core::{
     v3::key::KeyDerivationParams,
 };
 
-use crate::{
-    errors::{WorkflowError, WorkflowResult},
-    listing::file::FileInfoList,
-};
+use crate::{errors::WorkflowError, listing::file::FileInfoList};
 
 pub fn display_progress(counter: &ProgressCounter) {
     println!(
@@ -23,7 +20,7 @@ pub fn display_success(message: &str) {
     println!("{} {}", "✓".green().bold(), message);
 }
 
-pub fn display_error(error: WorkflowError) {
+pub fn display_error(error: &WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }
 
@@ -96,38 +93,24 @@ pub fn display_key_derivation_report(report: &KeyDerivationReport) {
     println!("  Key Size (Bytes): {}", report.key_size_bytes);
 }
 
-pub fn display_encryption_report(result: WorkflowResult<EncryptionReport>) {
-    match result {
-        Ok(report) => {
-            let msg = format!(
-                "Encrypted '{}' -> '{}' in {:#?} using {}",
-                report.input_filename, report.output_filename, report.duration, report.algorithm
-            );
-            display_success(&msg);
-            println!(
-                "  Note: '{}' was not deleted — remove it manually if it is no longer needed.",
-                report.input_filename
-            );
-        }
-        Err(err) => {
-            display_error(err);
-        }
-    }
+pub fn display_encryption_success(report: &EncryptionReport) {
+    let msg = format!(
+        "Encrypted '{}' -> '{}' in {:#?} using {}",
+        report.input_filename, report.output_filename, report.duration, report.algorithm
+    );
+    display_success(&msg);
+    println!(
+        "  Note: '{}' was not deleted — remove it manually if it is no longer needed.",
+        report.input_filename
+    );
 }
 
-pub fn display_decryption_report(result: WorkflowResult<DecryptionReport>) {
-    match result {
-        Ok(report) => {
-            let msg = format!(
-                "Decrypted '{}' -> '{}' in {:#?} using {}",
-                report.input_filename, report.output_filename, report.duration, report.algorithm
-            );
-            display_success(&msg);
-        }
-        Err(err) => {
-            display_error(err);
-        }
-    }
+pub fn display_decryption_success(report: &DecryptionReport) {
+    let msg = format!(
+        "Decrypted '{}' -> '{}' in {:#?} using {}",
+        report.input_filename, report.output_filename, report.duration, report.algorithm
+    );
+    display_success(&msg);
 }
 
 /// Displays the listing. `names_requested` says whether original filenames
@@ -221,6 +204,49 @@ pub fn display_file_info_list(info_list: &FileInfoList, names_requested: bool) {
     }
 }
 
+/// Prints the listing as a JSON array on stdout, for scripting.
+/// `original_filename` is null when names were not requested or a name
+/// could not be decrypted.
+pub fn display_file_info_list_json(info_list: &FileInfoList) {
+    println!("[");
+    for (i, info) in info_list.items.iter().enumerate() {
+        let original = match &info.original_filename {
+            Some(name) => format!("\"{}\"", json_escape(name.as_str())),
+            None => "null".to_string(),
+        };
+        let comma = if i + 1 < info_list.items.len() {
+            ","
+        } else {
+            ""
+        };
+        println!(
+            "  {{\"obfuscated_filename\":\"{}\",\"version\":\"{}\",\"size\":{},\"original_filename\":{}}}{}",
+            json_escape(&info.obfuscated_filename),
+            info.version.as_str(),
+            info.size,
+            original,
+            comma
+        );
+    }
+    println!("]");
+}
+
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => out.push_str(&format!("\\u{:04x}", c as u32)),
+            c => out.push(c),
+        }
+    }
+    out
+}
+
 fn format_size(bytes: u64) -> String {
     const UNITS: &[&str] = &["B", "KB", "MB", "GB", "TB"];
     let mut size = bytes as f64;
@@ -243,5 +269,19 @@ fn truncate_string(s: &str, max_len: usize) -> String {
         s.to_string()
     } else {
         format!("{}...", &s[..max_len.saturating_sub(3)])
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_json_escape() {
+        assert_eq!(json_escape("plain.txt"), "plain.txt");
+        assert_eq!(json_escape("a\"b\\c"), "a\\\"b\\\\c");
+        assert_eq!(json_escape("line\nbreak\ttab"), "line\\nbreak\\ttab");
+        assert_eq!(json_escape("bell\u{07}"), "bell\\u0007");
+        assert_eq!(json_escape("unicode café 日本"), "unicode café 日本");
     }
 }

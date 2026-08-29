@@ -5,7 +5,13 @@ use clap::Parser;
 
 /// Decryption CLI arguments structure
 #[derive(Debug, Clone, Default, Parser)]
-#[command(name = "unshadow", about = "Decrypt shadow files", version)]
+#[command(
+    name = "unshadow",
+    about = "Decrypt shadow files",
+    version,
+    after_help = "Exit codes: 0 success; 1 operation failed; 2 invalid usage or input; \
+                  3 authentication failure (wrong password or corrupted file)."
+)]
 pub struct DecryptionCliArgs {
     /// Input files to decrypt
     #[arg(value_name = "FILE")]
@@ -22,6 +28,10 @@ pub struct DecryptionCliArgs {
     /// Overwrite existing output files instead of failing
     #[arg(long = "force", short = 'f')]
     pub force: bool,
+
+    /// Suppress progress and per-file success output (errors are still shown)
+    #[arg(long = "quiet", short = 'q')]
+    pub quiet: bool,
 }
 
 /// Parse decryption command line arguments

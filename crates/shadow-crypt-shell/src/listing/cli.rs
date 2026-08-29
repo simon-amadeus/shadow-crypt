@@ -26,6 +26,10 @@ pub struct ListingCliArgs {
     /// Read the password from this file instead of prompting (implies --names)
     #[arg(long = "password-file", value_name = "FILE")]
     pub password_file: Option<PathBuf>,
+
+    /// Print the listing as JSON (original_filename is null without --names)
+    #[arg(long = "json")]
+    pub json: bool,
 }
 
 /// Parse listing command line arguments

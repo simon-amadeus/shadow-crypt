@@ -9,10 +9,16 @@ pub struct ListingInput {
     /// plaintext header metadata without any key derivation.
     pub password: Option<SecureString>,
     pub work_dir: PathBuf,
+    /// Print the listing as JSON instead of a table.
+    pub json: bool,
 }
 impl ListingInput {
-    pub fn new(password: Option<SecureString>, work_dir: PathBuf) -> Self {
-        Self { password, work_dir }
+    pub fn new(password: Option<SecureString>, work_dir: PathBuf, json: bool) -> Self {
+        Self {
+            password,
+            work_dir,
+            json,
+        }
     }
 }
 

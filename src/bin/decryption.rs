@@ -30,6 +30,7 @@ fn run() -> Result<(), WorkflowError> {
         password,
         output_dir,
         input.force,
+        input.quiet,
     ))?;
 
     Ok(())
@@ -37,7 +38,7 @@ fn run() -> Result<(), WorkflowError> {
 
 fn main() {
     if let Err(error) = run() {
-        display_error(error);
-        process::exit(1);
+        display_error(&error);
+        process::exit(error.exit_code());
     }
 }

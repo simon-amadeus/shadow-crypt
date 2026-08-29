@@ -39,7 +39,9 @@ impl From<CliProfile> for SecurityProfile {
                   files are instead encrypted individually (sync-friendly: one .shadow \
                   per file), preserving their relative paths.\n\n\
                   Run with --profiles to see each security profile's key derivation \
-                  parameters."
+                  parameters.\n\n\
+                  Exit codes: 0 success; 1 operation failed; 2 invalid usage or input; \
+                  3 authentication failure (wrong password or corrupted file)."
 )]
 pub struct EncryptionCliArgs {
     /// Input files or directories to encrypt
@@ -65,6 +67,10 @@ pub struct EncryptionCliArgs {
     /// Read the password from this file instead of prompting (one trailing newline is ignored)
     #[arg(long = "password-file", value_name = "FILE")]
     pub password_file: Option<PathBuf>,
+
+    /// Suppress progress and per-file success output (errors are still shown)
+    #[arg(long = "quiet", short = 'q')]
+    pub quiet: bool,
 }
 
 /// Parse encryption command line arguments

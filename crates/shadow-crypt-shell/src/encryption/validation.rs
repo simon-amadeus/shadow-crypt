@@ -17,6 +17,7 @@ pub struct ValidEncryptionArgs {
     pub security_profile: SecurityProfile,
     pub output_dir: Option<PathBuf>,
     pub password_file: Option<PathBuf>,
+    pub quiet: bool,
 }
 
 pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptionArgs> {
@@ -36,6 +37,7 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
         security_profile: input.profile.into(),
         output_dir: input.output_dir,
         password_file: input.password_file,
+        quiet: input.quiet,
     })
 }
 

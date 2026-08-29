@@ -15,6 +15,8 @@ pub struct DecryptionInput {
     pub output_dir: PathBuf,
     /// Overwrite existing output files instead of failing.
     pub force: bool,
+    /// Suppress progress and per-file success output (errors still shown).
+    pub quiet: bool,
 }
 impl DecryptionInput {
     pub fn new(
@@ -22,12 +24,14 @@ impl DecryptionInput {
         password: SecureString,
         output_dir: PathBuf,
         force: bool,
+        quiet: bool,
     ) -> Self {
         Self {
             files,
             password,
             output_dir,
             force,
+            quiet,
         }
     }
 }

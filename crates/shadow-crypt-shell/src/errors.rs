@@ -47,6 +47,53 @@ pub enum WorkflowError {
     #[error("Decryption error: {0}")]
     Decryption(String),
 
+    /// Like [`WorkflowError::Decryption`], but every failed file failed
+    /// authentication (wrong password, or corrupted files).
+    #[error("Decryption error: {0}")]
+    Authentication(String),
+
     #[error("Listing error: {0}")]
     Listing(String),
+
+    /// A failure while processing one file of a batch, keeping the
+    /// underlying error's kind intact.
+    #[error("'{filename}': {source}")]
+    PerFile {
+        filename: String,
+        source: Box<WorkflowError>,
+    },
+}
+
+impl WorkflowError {
+    pub fn per_file(filename: &str, source: WorkflowError) -> Self {
+        WorkflowError::PerFile {
+            filename: filename.to_string(),
+            source: Box::new(source),
+        }
+    }
+
+    /// True when the error means the content did not authenticate: a wrong
+    /// password, or a corrupted/tampered file. Indistinguishable by design.
+    pub fn is_authentication_failure(&self) -> bool {
+        match self {
+            WorkflowError::Format(FileError::Crypt(CryptError::DecryptionError(_))) => true,
+            WorkflowError::Authentication(_) => true,
+            WorkflowError::PerFile { source, .. } => source.is_authentication_failure(),
+            _ => false,
+        }
+    }
+
+    /// Process exit code for this error, so scripts can react:
+    /// 1 = operation failed, 2 = invalid usage or input,
+    /// 3 = authentication failure (wrong password or corrupted file).
+    pub fn exit_code(&self) -> i32 {
+        if self.is_authentication_failure() {
+            return 3;
+        }
+        match self {
+            WorkflowError::UserInput(_) | WorkflowError::Password(_) => 2,
+            WorkflowError::PerFile { source, .. } => source.exit_code(),
+            _ => 1,
+        }
+    }
 }

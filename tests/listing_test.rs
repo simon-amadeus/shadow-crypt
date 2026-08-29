@@ -30,10 +30,16 @@ fn test_listing_workflow() {
     let listing_input = ListingInput::new(
         Some(SecureString::new(TEST_PASSWORD.to_string())),
         temp_dir.path().to_path_buf(),
+        false,
     );
     run_listing_workflow(listing_input).unwrap();
 
     // Without a password the listing must still succeed, showing only the
     // plaintext header metadata.
-    run_listing_workflow(ListingInput::new(None, temp_dir.path().to_path_buf())).unwrap();
+    run_listing_workflow(ListingInput::new(
+        None,
+        temp_dir.path().to_path_buf(),
+        false,
+    ))
+    .unwrap();
 }

@@ -28,7 +28,11 @@ pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
 
     let info_list: FileInfoList = FileInfoList::new(file_infos);
 
-    ui::display_file_info_list(&info_list, names_requested);
+    if input.json {
+        ui::display_file_info_list_json(&info_list);
+    } else {
+        ui::display_file_info_list(&info_list, names_requested);
+    }
     Ok(())
 }
 

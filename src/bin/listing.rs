@@ -30,13 +30,13 @@ fn run() -> Result<(), WorkflowError> {
         None
     };
 
-    run_workflow(ListingInput::new(password, work_dir))?;
+    run_workflow(ListingInput::new(password, work_dir, args.json))?;
     Ok(())
 }
 
 fn main() {
     if let Err(error) = run() {
-        display_error(error);
-        process::exit(1);
+        display_error(&error);
+        process::exit(error.exit_code());
     }
 }
