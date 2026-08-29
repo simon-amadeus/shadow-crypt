@@ -42,11 +42,11 @@ shadow --delete taxes/
 # Decrypt
 unshadow mzpuTgQmBPJfTAJh.shadow
 
-# List encrypted files in a directory (no password needed)
+# List encrypted files with their original filenames (prompts for the password)
 shadows
 
-# ...including their original filenames (prompts for the password)
-shadows --names
+# ...or without decrypting anything (no password needed)
+shadows --no-names
 ```
 
 For scripting: `--password-file`, `--output-dir`, `--quiet`, `shadows --json`,

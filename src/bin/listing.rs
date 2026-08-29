@@ -1,8 +1,9 @@
 //! Binary for listing files encrypted with shadow-crypt.
 //!
-//! This binary provides the command-line interface for listing encrypted files,
-//! displaying their obfuscated names and metadata. With `--names` it also
-//! decrypts and shows the original filenames, which requires the password.
+//! This binary provides the command-line interface for listing encrypted
+//! files with their decrypted original filenames (requires the password).
+//! With `--no-names` it lists only the obfuscated names and plaintext header
+//! metadata, needing no password.
 
 use std::process;
 
@@ -21,13 +22,12 @@ fn run() -> Result<(), WorkflowError> {
         None => std::env::current_dir()?,
     };
 
-    // Only decrypting original filenames needs a password; the default
-    // listing reads plaintext header metadata without any key derivation.
-    // --password-file implies --names.
-    let password: Option<SecureString> = if args.names || args.password_file.is_some() {
-        Some(resolve_password(args.password_file.as_deref())?)
-    } else {
+    // Only decrypting original filenames needs a password; --no-names reads
+    // plaintext header metadata without any key derivation.
+    let password: Option<SecureString> = if args.no_names {
         None
+    } else {
+        Some(resolve_password(args.password_file.as_deref())?)
     };
 
     run_workflow(ListingInput::new(password, work_dir, args.json))?;

@@ -148,7 +148,7 @@ pub fn display_file_info_list(info_list: &FileInfoList, names_requested: bool) {
         if names_requested {
             let original = match &info.original_filename {
                 Some(name) => name.as_str().green(),
-                None => "N/A".red(),
+                None => "(wrong password)".red(),
             };
             println!(
                 "{:<30} {:<30} {:<10} {:<10}",
@@ -171,21 +171,26 @@ pub fn display_file_info_list(info_list: &FileInfoList, names_requested: bool) {
     println!("{} files found", info_list.items.len().to_string().bold());
 
     if names_requested {
-        let decrypted = sorted_items
+        let failed = sorted_items
             .iter()
-            .filter(|i| i.original_filename.is_some())
+            .filter(|i| i.original_filename.is_none())
             .count();
-        if decrypted == 0 {
+        if failed == sorted_items.len() {
             println!(
                 "{}",
                 "No filenames could be decrypted — wrong password?".yellow()
             );
+        } else if failed > 0 {
+            println!(
+                "{}",
+                format!(
+                    "{} filename{} could not be decrypted — encrypted with a different password?",
+                    failed,
+                    if failed == 1 { "" } else { "s" }
+                )
+                .yellow()
+            );
         }
-    } else {
-        println!(
-            "{}",
-            "Run with --names to decrypt the original filenames.".dimmed()
-        );
     }
 }
 

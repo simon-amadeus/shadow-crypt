@@ -22,7 +22,7 @@
 //! ```bash
 //! shadow notes.txt photos/     # encrypt files and directories
 //! unshadow mzpuTgQmBPJfTAJh.shadow
-//! shadows                      # list .shadow files (no password needed)
+//! shadows                      # list .shadow files with original names
 //! ```
 //!
 //! See the repository's `docs/FORMAT.md` for the file format specification

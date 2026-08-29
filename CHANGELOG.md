@@ -21,7 +21,7 @@ order `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - Add `--force` to let decryption replace an existing output file; the existing file is destroyed only after its replacement has fully authenticated
 - Add security profiles (`--profile standard|paranoid`, `--profiles`) with an OWASP-based default; files record their KDF parameters, so any profile decrypts with any build
 - Add scripting support: `--password-file`, `--output-dir`, `--quiet`, `shadows --json`, and distinct exit codes (0 success, 1 failure, 2 usage, 3 authentication)
-- Add passwordless listing: `shadows` shows plaintext header metadata by default; `--names` decrypts the original filenames
+- Add `shadows --no-names` to list plaintext header metadata without a password, and an optional directory argument (previously only the current directory); files the password does not open are listed by their obfuscated names instead of failing the run
 - Add crash-safe output writing: content goes to a temporary file that is fsynced and atomically renamed over the claimed output path
 - Add cargo-fuzz targets for every parser, a CI fuzz-build job, and a format version-independence test
 
