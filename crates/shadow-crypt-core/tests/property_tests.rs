@@ -28,17 +28,17 @@ mod v1_props {
             filename_ct in proptest::collection::vec(any::<u8>(), 0..MAX_FILENAME_CT),
         ) {
             let params = KeyDerivationParams::new(memory_cost, time_cost, parallelism, key_size);
-            let header = FileHeader::new(salt, params, content_nonce, filename_nonce, filename_ct.clone());
-            let parsed = FileHeader::try_deserialize(&header.serialize()).unwrap();
+            let header = FileHeader::new(salt, params.clone(), content_nonce, filename_nonce, filename_ct.clone());
+            let serialized = header.serialize();
+            prop_assert_eq!(&serialized[0..6], b"SHADOW");
+            prop_assert_eq!(serialized[6], 1);
 
-            prop_assert_eq!(parsed.salt, salt);
-            prop_assert_eq!(parsed.kdf_memory, memory_cost);
-            prop_assert_eq!(parsed.kdf_iterations, time_cost);
-            prop_assert_eq!(parsed.kdf_parallelism, parallelism);
-            prop_assert_eq!(parsed.kdf_key_length, key_size);
-            prop_assert_eq!(parsed.content_nonce, content_nonce);
-            prop_assert_eq!(parsed.filename_nonce, filename_nonce);
-            prop_assert_eq!(parsed.filename_ciphertext, filename_ct);
+            let parsed = FileHeader::try_deserialize(&serialized).unwrap();
+            prop_assert_eq!(parsed.salt(), &salt);
+            prop_assert_eq!(parsed.kdf_params(), &params);
+            prop_assert_eq!(parsed.content_nonce(), &content_nonce);
+            prop_assert_eq!(parsed.filename_nonce(), &filename_nonce);
+            prop_assert_eq!(parsed.filename_ciphertext(), filename_ct.as_slice());
         }
 
         #[test]
@@ -90,18 +90,17 @@ mod v2_props {
             filename_ct in proptest::collection::vec(any::<u8>(), 0..MAX_FILENAME_CT),
         ) {
             let params = KeyDerivationParams::new(memory_cost, time_cost, parallelism, key_size);
-            let header = FileHeader::new(salt, params, content_nonce, filename_nonce, filename_ct.clone()).unwrap();
-            let parsed = FileHeader::try_deserialize(&header.serialize()).unwrap();
+            let header = FileHeader::new(salt, params.clone(), content_nonce, filename_nonce, filename_ct.clone()).unwrap();
+            let serialized = header.serialize();
+            prop_assert_eq!(&serialized[0..6], b"SHADOW");
+            prop_assert_eq!(serialized[6], 2);
 
-            prop_assert_eq!(parsed.version, 2);
-            prop_assert_eq!(parsed.salt, salt);
-            prop_assert_eq!(parsed.kdf_memory, memory_cost);
-            prop_assert_eq!(parsed.kdf_iterations, time_cost);
-            prop_assert_eq!(parsed.kdf_parallelism, parallelism);
-            prop_assert_eq!(parsed.kdf_key_length, key_size);
-            prop_assert_eq!(parsed.content_nonce, content_nonce);
-            prop_assert_eq!(parsed.filename_nonce, filename_nonce);
-            prop_assert_eq!(parsed.filename_ciphertext, filename_ct);
+            let parsed = FileHeader::try_deserialize(&serialized).unwrap();
+            prop_assert_eq!(parsed.salt(), &salt);
+            prop_assert_eq!(parsed.kdf_params(), &params);
+            prop_assert_eq!(parsed.content_nonce(), &content_nonce);
+            prop_assert_eq!(parsed.filename_nonce(), &filename_nonce);
+            prop_assert_eq!(parsed.filename_ciphertext(), filename_ct.as_slice());
         }
 
         #[test]

@@ -226,9 +226,7 @@ mod tests {
         let header_bytes = load_file_header_bytes(&shadow_file).unwrap();
         let header = v1::header::FileHeader::try_deserialize(header_bytes.as_slice()).unwrap();
 
-        assert_eq!(header.magic, *b"SHADOW");
-        assert_eq!(header.version, 1);
-        assert_eq!(header.salt, [1u8; 16]);
+        assert_eq!(header.salt(), &[1u8; 16]);
     }
 
     #[test]
@@ -240,8 +238,6 @@ mod tests {
         let header_bytes = load_file_header_bytes(&shadow_file).unwrap();
         let header = v2::header::FileHeader::try_deserialize(header_bytes.as_slice()).unwrap();
 
-        assert_eq!(header.magic, *b"SHADOW");
-        assert_eq!(header.version, 2);
-        assert_eq!(header.salt, [1u8; 16]);
+        assert_eq!(header.salt(), &[1u8; 16]);
     }
 }

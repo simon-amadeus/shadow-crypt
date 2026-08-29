@@ -95,7 +95,7 @@ impl ParsedFile {
             Inner::V1(f) => {
                 let p = f.header().kdf_params();
                 KdfRequest {
-                    salt: f.header().salt,
+                    salt: *f.header().salt(),
                     memory_cost: p.memory_cost,
                     time_cost: p.time_cost,
                     parallelism: p.parallelism,
@@ -105,7 +105,7 @@ impl ParsedFile {
             Inner::V2(f) => {
                 let p = f.header().kdf_params();
                 KdfRequest {
-                    salt: f.header().salt,
+                    salt: *f.header().salt(),
                     memory_cost: p.memory_cost,
                     time_cost: p.time_cost,
                     parallelism: p.parallelism,
@@ -125,11 +125,11 @@ impl ParsedFile {
             Inner::V1(f) => f
                 .header()
                 .kdf_params()
-                .derive_key(password, &f.header().salt),
+                .derive_key(password, f.header().salt()),
             Inner::V2(f) => f
                 .header()
                 .kdf_params()
-                .derive_key(password, &f.header().salt),
+                .derive_key(password, f.header().salt()),
         }
     }
 

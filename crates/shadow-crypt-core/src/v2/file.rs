@@ -66,9 +66,7 @@ impl EncryptedFile {
     /// Parses a serialized v2 file into its header and content ciphertext.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self, HeaderError> {
         let header = FileHeader::try_deserialize(bytes)?;
-        let header_length = header.header_length as usize;
-
-        let ciphertext = bytes[header_length..].to_vec();
+        let ciphertext = bytes[header.header_length()..].to_vec();
 
         Ok(Self::new(header, ciphertext))
     }
@@ -88,7 +86,7 @@ impl EncryptedFile {
         let (content, _) = crypt::decrypt_bytes(
             &self.ciphertext,
             key.as_bytes(),
-            &self.header.content_nonce,
+            self.header.content_nonce(),
             &self.header.binding().aad(AadPurpose::Content),
         )?;
 

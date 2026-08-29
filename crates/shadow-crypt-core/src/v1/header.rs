@@ -4,22 +4,39 @@ use crate::{
     v1::{crypt, key::KeyDerivationParams},
 };
 
-/// Complete v1 file header
+/// Complete v1 file header.
+///
+/// The struct holds only the header's actual information content; the layout
+/// artifacts of the serialized form (magic, version byte, length fields) are
+/// computed during (de)serialization and never stored.
+///
+/// Serialized layout:
+///
+/// | field                      | size     |
+/// |----------------------------|----------|
+/// | magic ("SHADOW")           | 6 bytes  |
+/// | version (1)                | 1 byte   |
+/// | header_length              | 4 bytes  |
+/// | salt                       | 16 bytes |
+/// | kdf_memory                 | 4 bytes  |
+/// | kdf_iterations             | 4 bytes  |
+/// | kdf_parallelism            | 4 bytes  |
+/// | kdf_key_length             | 1 byte   |
+/// | content_nonce              | 24 bytes |
+/// | filename_nonce             | 24 bytes |
+/// | filename_ciphertext_length | 2 bytes  |
+/// | filename_ciphertext        | variable |
 #[derive(Debug, Clone)]
 pub struct FileHeader {
-    pub magic: [u8; 6],                  // 6 bytes: "SHADOW"
-    pub version: u8,                     // 1 byte: Version number (1)
-    pub header_length: u32,              // 4 byte: Total header size
-    pub salt: [u8; 16],                  // 16 bytes: Argon2id salt
-    pub kdf_memory: u32,                 // 4 bytes: Argon2id memory parameter
-    pub kdf_iterations: u32,             // 4 bytes: Argon2id iterations parameter
-    pub kdf_parallelism: u32,            // 4 bytes: Argon2id parallelism parameter
-    pub kdf_key_length: u8,              // 1 byte: XChaCha20 key length
-    pub content_nonce: [u8; 24],         // 24 bytes: XChaCha20 nonce
-    pub filename_nonce: [u8; 24],        // 24 bytes: XChaCha20 nonce for filename
-    pub filename_ciphertext_length: u16, // 2 bytes: Length of encrypted filename ciphertext
-    pub filename_ciphertext: Vec<u8>,    // Encrypted filename ciphertext (variable length)
+    salt: [u8; 16],
+    kdf_params: KeyDerivationParams,
+    content_nonce: [u8; 24],
+    filename_nonce: [u8; 24],
+    filename_ciphertext: Vec<u8>,
 }
+
+const MAGIC: [u8; 6] = *b"SHADOW";
+const VERSION: u8 = 1;
 
 impl FileHeader {
     pub fn new(
@@ -29,28 +46,18 @@ impl FileHeader {
         filename_nonce: [u8; 24],
         filename_ciphertext: Vec<u8>,
     ) -> Self {
-        let filename_ciphertext_length = filename_ciphertext.len() as u16;
-        let size = Self::min_length() + filename_ciphertext.len();
-
         FileHeader {
-            magic: *b"SHADOW",
-            version: 1,
-            header_length: size as u32,
             salt,
-            kdf_memory: kdf_params.memory_cost,
-            kdf_iterations: kdf_params.time_cost,
-            kdf_parallelism: kdf_params.parallelism,
-            kdf_key_length: kdf_params.key_size,
+            kdf_params,
             content_nonce,
             filename_nonce,
-            filename_ciphertext_length,
             filename_ciphertext,
         }
     }
 
-    /// Minimum length of the header without the variable-length filename ciphertext.
-    /// Changing the fixed fields above requires updating this value.
-    pub const fn min_length() -> usize {
+    /// Minimum length of the serialized header without the variable-length
+    /// filename ciphertext. Changing the layout requires updating this value.
+    pub(crate) const fn min_length() -> usize {
         6  // magic ("SHADOW")
         + 1  // version (u8)
         + 4  // header_length (u32)
@@ -64,39 +71,28 @@ impl FileHeader {
         + 2 // filename_ciphertext_length (u16)
     }
 
-    pub fn serialize(&self) -> Vec<u8> {
-        let mut bytes = Vec::new();
-
-        bytes.extend_from_slice(self.magic.as_slice());
-        bytes.push(self.version);
-        bytes.extend_from_slice(self.header_length.to_le_bytes().as_slice());
-        bytes.extend_from_slice(self.salt.as_slice());
-        bytes.extend_from_slice(self.kdf_memory.to_le_bytes().as_slice());
-        bytes.extend_from_slice(self.kdf_iterations.to_le_bytes().as_slice());
-        bytes.extend_from_slice(self.kdf_parallelism.to_le_bytes().as_slice());
-        bytes.push(self.kdf_key_length);
-        bytes.extend_from_slice(self.content_nonce.as_slice());
-        bytes.extend_from_slice(self.filename_nonce.as_slice());
-        bytes.extend_from_slice(self.filename_ciphertext_length.to_le_bytes().as_slice());
-        bytes.extend_from_slice(self.filename_ciphertext.as_slice());
-
-        bytes
+    /// Total length of this header's serialized form.
+    pub fn header_length(&self) -> usize {
+        Self::min_length() + self.filename_ciphertext.len()
     }
 
-    /// Reads the total header length out of the fixed header fields, so a
-    /// caller can learn how many bytes to feed to [`FileHeader::try_deserialize`]
-    /// without knowing the header layout.
-    pub fn read_header_length(bytes: &[u8]) -> Result<u32, HeaderError> {
-        if bytes.len() < 11 {
-            return Err(HeaderError::InsufficientBytes);
-        }
-        let length_bytes = &bytes[7..11];
-        let length = u32::from_le_bytes(
-            length_bytes
-                .try_into()
-                .map_err(|_| HeaderError::InvalidData)?,
-        );
-        Ok(length)
+    pub fn serialize(&self) -> Vec<u8> {
+        let mut bytes = Vec::with_capacity(self.header_length());
+
+        bytes.extend_from_slice(&MAGIC);
+        bytes.push(VERSION);
+        bytes.extend_from_slice(&(self.header_length() as u32).to_le_bytes());
+        bytes.extend_from_slice(&self.salt);
+        bytes.extend_from_slice(&self.kdf_params.memory_cost.to_le_bytes());
+        bytes.extend_from_slice(&self.kdf_params.time_cost.to_le_bytes());
+        bytes.extend_from_slice(&self.kdf_params.parallelism.to_le_bytes());
+        bytes.push(self.kdf_params.key_size);
+        bytes.extend_from_slice(&self.content_nonce);
+        bytes.extend_from_slice(&self.filename_nonce);
+        bytes.extend_from_slice(&(self.filename_ciphertext.len() as u16).to_le_bytes());
+        bytes.extend_from_slice(&self.filename_ciphertext);
+
+        bytes
     }
 
     pub fn try_deserialize(bytes: &[u8]) -> Result<FileHeader, HeaderError> {
@@ -104,7 +100,7 @@ impl FileHeader {
             return Err(HeaderError::InsufficientBytes);
         }
 
-        let length: u32 = Self::read_header_length(bytes)?;
+        let length = read_header_length(bytes)?;
 
         if bytes.len() < length as usize {
             return Err(HeaderError::InsufficientBytes);
@@ -120,8 +116,8 @@ impl FileHeader {
         if bytes.len() < FileHeader::min_length() {
             return None;
         }
-        let magic = bytes[0..6].try_into().ok()?;
-        let version = bytes[6];
+        // v1 historically accepts any magic and version bytes here; the
+        // dispatcher validates them before selecting this module.
         let header_length = u32::from_le_bytes(bytes[7..11].try_into().ok()?);
         let salt = bytes[11..27].try_into().ok()?;
         let kdf_memory = u32::from_le_bytes(bytes[27..31].try_into().ok()?);
@@ -142,34 +138,41 @@ impl FileHeader {
             return None;
         }
 
-        let filename_ciphertext = bytes[FileHeader::min_length()
-            ..(FileHeader::min_length() + filename_ciphertext_length as usize)]
-            .to_vec();
+        let filename_ciphertext = bytes[FileHeader::min_length()..expected_length].to_vec();
 
         Some(FileHeader {
-            magic,
-            version,
-            header_length,
             salt,
-            kdf_memory,
-            kdf_iterations,
-            kdf_parallelism,
-            kdf_key_length,
+            kdf_params: KeyDerivationParams::new(
+                kdf_memory,
+                kdf_iterations,
+                kdf_parallelism,
+                kdf_key_length,
+            ),
             content_nonce,
             filename_nonce,
-            filename_ciphertext_length,
             filename_ciphertext,
         })
     }
 
+    pub fn salt(&self) -> &[u8; 16] {
+        &self.salt
+    }
+
     /// The key derivation parameters recorded in this header.
-    pub fn kdf_params(&self) -> KeyDerivationParams {
-        KeyDerivationParams {
-            memory_cost: self.kdf_memory,
-            time_cost: self.kdf_iterations,
-            parallelism: self.kdf_parallelism,
-            key_size: self.kdf_key_length,
-        }
+    pub fn kdf_params(&self) -> &KeyDerivationParams {
+        &self.kdf_params
+    }
+
+    pub fn content_nonce(&self) -> &[u8; 24] {
+        &self.content_nonce
+    }
+
+    pub fn filename_nonce(&self) -> &[u8; 24] {
+        &self.filename_nonce
+    }
+
+    pub fn filename_ciphertext(&self) -> &[u8] {
+        &self.filename_ciphertext
     }
 
     /// Decrypts the original filename stored in this header.
@@ -183,6 +186,20 @@ impl FileHeader {
             .map_err(|_| FileError::InvalidFilename)?;
         Ok(SecureString::new(filename))
     }
+}
+
+/// Reads the total header length out of the fixed header fields.
+fn read_header_length(bytes: &[u8]) -> Result<u32, HeaderError> {
+    if bytes.len() < 11 {
+        return Err(HeaderError::InsufficientBytes);
+    }
+    let length_bytes = &bytes[7..11];
+    let length = u32::from_le_bytes(
+        length_bytes
+            .try_into()
+            .map_err(|_| HeaderError::InvalidData)?,
+    );
+    Ok(length)
 }
 
 #[cfg(test)]
@@ -207,17 +224,10 @@ mod tests {
     }
 
     #[test]
-    fn default_values_are_correct() {
-        let header = FileHeader::new(
-            [0u8; 16],
-            get_test_params(),
-            [0u8; 24],
-            [0u8; 24],
-            vec![1, 2, 3, 4],
-        );
-
-        assert_eq!(&header.magic, b"SHADOW");
-        assert_eq!(header.version, 1);
+    fn serialized_magic_and_version_are_correct() {
+        let serialized = create_test_header().serialize();
+        assert_eq!(&serialized[0..6], b"SHADOW");
+        assert_eq!(serialized[6], 1);
     }
 
     #[test]
@@ -231,9 +241,8 @@ mod tests {
             filename_ciphertext.clone(),
         );
 
-        let expected_size: u32 = 90 + filename_ciphertext.len() as u32;
-
-        assert_eq!(header.header_length, expected_size);
+        assert_eq!(header.header_length(), 90 + filename_ciphertext.len());
+        assert_eq!(header.serialize().len(), header.header_length());
     }
 
     #[test]
@@ -246,35 +255,61 @@ mod tests {
             [0u8; 24],
             vec![1, 2, 3],
         );
-        assert_eq!(header.kdf_params(), params);
+        assert_eq!(header.kdf_params(), &params);
+    }
+
+    #[test]
+    fn test_serialize_field_offsets() {
+        let header = create_test_header();
+        let serialized = header.serialize();
+        let params = header.kdf_params();
+
+        assert_eq!(serialized.len(), header.header_length());
+        assert_eq!(&serialized[0..6], b"SHADOW");
+        assert_eq!(serialized[6], 1);
+        assert_eq!(
+            u32::from_le_bytes(serialized[7..11].try_into().unwrap()) as usize,
+            header.header_length()
+        );
+        assert_eq!(&serialized[11..27], header.salt());
+        assert_eq!(
+            u32::from_le_bytes(serialized[27..31].try_into().unwrap()),
+            params.memory_cost
+        );
+        assert_eq!(
+            u32::from_le_bytes(serialized[31..35].try_into().unwrap()),
+            params.time_cost
+        );
+        assert_eq!(
+            u32::from_le_bytes(serialized[35..39].try_into().unwrap()),
+            params.parallelism
+        );
+        assert_eq!(serialized[39], params.key_size);
+        assert_eq!(&serialized[40..64], header.content_nonce());
+        assert_eq!(&serialized[64..88], header.filename_nonce());
+        assert_eq!(
+            u16::from_le_bytes(serialized[88..90].try_into().unwrap()) as usize,
+            header.filename_ciphertext().len()
+        );
+        assert_eq!(
+            &serialized[FileHeader::min_length()..],
+            header.filename_ciphertext()
+        );
     }
 
     #[test]
     fn test_round_trip_serialization() {
         let original = create_test_header();
         let serialized = original.serialize();
-        assert_eq!(serialized.len(), original.header_length as usize);
-        assert_eq!(&serialized[0..6], b"SHADOW");
-        assert_eq!(serialized[6], 1);
 
         let deserialized = FileHeader::try_deserialize(&serialized).unwrap();
-        assert_eq!(deserialized.magic, original.magic);
-        assert_eq!(deserialized.version, original.version);
-        assert_eq!(deserialized.header_length, original.header_length);
-        assert_eq!(deserialized.salt, original.salt);
-        assert_eq!(deserialized.kdf_memory, original.kdf_memory);
-        assert_eq!(deserialized.kdf_iterations, original.kdf_iterations);
-        assert_eq!(deserialized.kdf_parallelism, original.kdf_parallelism);
-        assert_eq!(deserialized.kdf_key_length, original.kdf_key_length);
-        assert_eq!(deserialized.content_nonce, original.content_nonce);
-        assert_eq!(deserialized.filename_nonce, original.filename_nonce);
+        assert_eq!(deserialized.salt(), original.salt());
+        assert_eq!(deserialized.kdf_params(), original.kdf_params());
+        assert_eq!(deserialized.content_nonce(), original.content_nonce());
+        assert_eq!(deserialized.filename_nonce(), original.filename_nonce());
         assert_eq!(
-            deserialized.filename_ciphertext_length,
-            original.filename_ciphertext_length
-        );
-        assert_eq!(
-            deserialized.filename_ciphertext,
-            original.filename_ciphertext
+            deserialized.filename_ciphertext(),
+            original.filename_ciphertext()
         );
     }
 
@@ -288,53 +323,6 @@ mod tests {
     }
 
     #[test]
-    fn test_try_deserialize_inconsistent_lengths() {
-        let mut serialized = create_test_header().serialize();
-        // header_length no longer matches min_length + filename_ciphertext_length
-        serialized[7..11].copy_from_slice(&(200u32.to_le_bytes()));
-
-        assert!(FileHeader::try_deserialize(&serialized).is_err());
-    }
-
-    #[test]
-    fn test_serialize_field_offsets() {
-        let header = create_test_header();
-        let serialized = header.serialize();
-
-        assert_eq!(serialized.len(), header.header_length as usize);
-        assert_eq!(&serialized[0..6], b"SHADOW");
-        assert_eq!(serialized[6], 1);
-        assert_eq!(
-            u32::from_le_bytes(serialized[7..11].try_into().unwrap()),
-            header.header_length
-        );
-        assert_eq!(&serialized[11..27], &header.salt);
-        assert_eq!(
-            u32::from_le_bytes(serialized[27..31].try_into().unwrap()),
-            header.kdf_memory
-        );
-        assert_eq!(
-            u32::from_le_bytes(serialized[31..35].try_into().unwrap()),
-            header.kdf_iterations
-        );
-        assert_eq!(
-            u32::from_le_bytes(serialized[35..39].try_into().unwrap()),
-            header.kdf_parallelism
-        );
-        assert_eq!(serialized[39], header.kdf_key_length);
-        assert_eq!(&serialized[40..64], &header.content_nonce);
-        assert_eq!(&serialized[64..88], &header.filename_nonce);
-        assert_eq!(
-            u16::from_le_bytes(serialized[88..90].try_into().unwrap()),
-            header.filename_ciphertext_length
-        );
-        assert_eq!(
-            &serialized[FileHeader::min_length()..],
-            &header.filename_ciphertext[..]
-        );
-    }
-
-    #[test]
     fn test_try_deserialize_invalid_data() {
         let mut bytes = vec![0u8; 100];
         // Set invalid header length (smaller than min_length)
@@ -342,6 +330,15 @@ mod tests {
 
         let result = FileHeader::try_deserialize(&bytes);
         assert!(matches!(result.unwrap_err(), HeaderError::InvalidData));
+    }
+
+    #[test]
+    fn test_try_deserialize_inconsistent_lengths() {
+        let mut serialized = create_test_header().serialize();
+        // header_length no longer matches min_length + filename_ciphertext_length
+        serialized[7..11].copy_from_slice(&(200u32.to_le_bytes()));
+
+        assert!(FileHeader::try_deserialize(&serialized).is_err());
     }
 
     #[test]
@@ -366,8 +363,7 @@ mod tests {
         let header = FileHeader::new([1u8; 16], get_test_params(), [2u8; 24], [3u8; 24], vec![]);
 
         let deserialized = FileHeader::try_deserialize(&header.serialize()).unwrap();
-        assert_eq!(deserialized.filename_ciphertext_length, 0);
-        assert!(deserialized.filename_ciphertext.is_empty());
+        assert!(deserialized.filename_ciphertext().is_empty());
     }
 
     #[test]
@@ -381,7 +377,6 @@ mod tests {
         );
 
         let deserialized = FileHeader::try_deserialize(&header.serialize()).unwrap();
-        assert_eq!(deserialized.filename_ciphertext_length, 1000);
-        assert_eq!(deserialized.filename_ciphertext, vec![4u8; 1000]);
+        assert_eq!(deserialized.filename_ciphertext(), &[4u8; 1000][..]);
     }
 }
