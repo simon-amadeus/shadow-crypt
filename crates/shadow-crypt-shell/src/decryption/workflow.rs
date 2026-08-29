@@ -84,7 +84,10 @@ fn process_file_decryption(
     ))
 }
 
-fn decrypt_v1(bytes: &[u8], password: &SecureString) -> WorkflowResult<v1::file::PlaintextFile> {
+fn decrypt_v1(
+    bytes: &[u8],
+    password: &SecureString,
+) -> WorkflowResult<shadow_crypt_core::file::PlaintextFile> {
     let encrypted_file = v1::file::EncryptedFile::from_bytes(bytes)?;
     let kdf_params = encrypted_file.header().kdf_params();
 
@@ -99,7 +102,10 @@ fn decrypt_v1(bytes: &[u8], password: &SecureString) -> WorkflowResult<v1::file:
     Ok(encrypted_file.decrypt(&key)?)
 }
 
-fn decrypt_v2(bytes: &[u8], password: &SecureString) -> WorkflowResult<v2::file::PlaintextFile> {
+fn decrypt_v2(
+    bytes: &[u8],
+    password: &SecureString,
+) -> WorkflowResult<shadow_crypt_core::file::PlaintextFile> {
     let encrypted_file = v2::file::EncryptedFile::from_bytes(bytes)?;
     let kdf_params = encrypted_file.header().kdf_params();
 
@@ -209,7 +215,7 @@ mod tests {
             .derive_key(password.as_str().as_bytes(), &salt)
             .unwrap();
 
-        let plaintext_file = v2::file::PlaintextFile::new(
+        let plaintext_file = shadow_crypt_core::file::PlaintextFile::new(
             SecureString::new("name.txt".to_string()),
             SecureBytes::new(b"content".to_vec()),
         );

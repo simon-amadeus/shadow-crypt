@@ -1,6 +1,7 @@
 use crate::{
     errors::{FileError, HeaderError},
-    memory::{SecureBytes, SecureKey, SecureString},
+    file::PlaintextFile,
+    memory::SecureKey,
     v1::crypt,
 };
 
@@ -51,24 +52,5 @@ impl EncryptedFile {
     }
     pub fn ciphertext(&self) -> &[u8] {
         &self.ciphertext
-    }
-}
-
-/// Represents a plaintext file with filename and content
-#[derive(Debug)]
-pub struct PlaintextFile {
-    filename: SecureString, // Decrypted filename
-    content: SecureBytes,   // Decrypted file content
-}
-
-impl PlaintextFile {
-    pub fn new(filename: SecureString, content: SecureBytes) -> Self {
-        Self { filename, content }
-    }
-    pub fn filename(&self) -> &SecureString {
-        &self.filename
-    }
-    pub fn content(&self) -> &SecureBytes {
-        &self.content
     }
 }

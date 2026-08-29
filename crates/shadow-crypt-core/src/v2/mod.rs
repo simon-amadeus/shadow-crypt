@@ -37,10 +37,11 @@ pub const ALGORITHM: Algorithm = Algorithm::XChaCha20Poly1305;
 #[cfg(test)]
 mod tests {
     use crate::{
+        file::PlaintextFile,
         memory::{SecureBytes, SecureString},
         v2::{
             crypt::{decrypt_bytes, encrypt_bytes},
-            file::{EncryptedFile, PlaintextFile},
+            file::EncryptedFile,
             header::{AadPurpose, HeaderBinding},
             key::KeyDerivationParams,
         },

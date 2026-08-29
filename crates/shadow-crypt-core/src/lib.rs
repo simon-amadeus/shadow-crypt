@@ -11,6 +11,9 @@ pub mod algorithm;
 /// Error types for cryptographic operations.
 pub mod errors;
 
+/// Version-independent file types shared by all format versions.
+pub mod file;
+
 /// Secure memory management with automatic zeroization of sensitive data.
 pub mod memory;
 

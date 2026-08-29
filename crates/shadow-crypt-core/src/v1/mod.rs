@@ -28,14 +28,8 @@ pub const ALGORITHM: Algorithm = Algorithm::XChaCha20Poly1305;
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        memory::{SecureBytes, SecureString},
-        v1::{
-            crypt::encrypt_bytes,
-            file::{EncryptedFile, PlaintextFile},
-            header::FileHeader,
-            key::KeyDerivationParams,
-        },
+    use crate::v1::{
+        crypt::encrypt_bytes, file::EncryptedFile, header::FileHeader, key::KeyDerivationParams,
     };
 
     /// Round trip through the decrypt façade against a manually assembled v1
@@ -76,17 +70,5 @@ mod tests {
         let file = EncryptedFile::new(header, content_ct);
 
         assert!(file.decrypt(&wrong_key).is_err());
-    }
-
-    // PlaintextFile is referenced so the shared structure stays exercised
-    // even though v1 files are never sealed anymore.
-    #[test]
-    fn plaintext_file_accessors() {
-        let file = PlaintextFile::new(
-            SecureString::new("a.txt".to_string()),
-            SecureBytes::new(vec![1, 2, 3]),
-        );
-        assert_eq!(file.filename().as_str(), "a.txt");
-        assert_eq!(file.content().as_slice(), &[1, 2, 3]);
     }
 }

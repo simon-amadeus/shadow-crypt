@@ -5,8 +5,9 @@ use std::{
 
 use rand::rand_core::{OsRng, TryRngCore};
 use shadow_crypt_core::{
+    file::PlaintextFile,
     memory::{SecureBytes, SecureString},
-    v2::file::{EncryptedFile, PlaintextFile},
+    v2::file::EncryptedFile,
 };
 
 use crate::{
