@@ -52,8 +52,8 @@ pub struct WalkedEntry {
 
 /// Recursively walks a directory in sorted order, listing directories before
 /// their contents. Entries that cannot be archived (symlinks, special
-/// files, non-UTF-8 names) are skipped; the count of skipped entries is
-/// returned alongside.
+/// files, non-UTF-8 or backslash-containing names) are skipped; the count
+/// of skipped entries is returned alongside.
 pub fn walk_directory(root: &Path) -> WorkflowResult<(Vec<WalkedEntry>, usize)> {
     let mut entries = Vec::new();
     let mut skipped = 0;
@@ -75,6 +75,13 @@ fn walk_into(
             *skipped += 1;
             continue;
         };
+        // The archive format rejects backslashes in entry paths (they are
+        // separators on the extracting side); skip such names like non-UTF-8
+        // ones instead of aborting the whole directory at encode time.
+        if name.contains('\\') {
+            *skipped += 1;
+            continue;
+        }
         let rel = if prefix.is_empty() {
             name
         } else {
@@ -194,8 +201,8 @@ pub fn stream_encrypt_directory(
 }
 
 /// Feeds exactly `declared_len` bytes of a file into the pump, failing if
-/// the file shrank since it was walked (a longer file is archived truncated
-/// to the declared length, keeping the entry consistent).
+/// the file shrank or grew since it was walked (either way the entry no
+/// longer matches the file on disk).
 fn feed_file_content<W: Write>(
     pump: &mut ChunkPump<W>,
     path: &Path,
@@ -217,6 +224,15 @@ fn feed_file_content<W: Write>(
         }
         pump.feed(&buf[..n])?;
         remaining -= n as u64;
+    }
+    // A file that grew since the walk would be archived truncated to the
+    // stale declared length — silent data loss once --delete removes the
+    // original. Treat growth like shrinkage: the file changed, so fail.
+    if read_up_to(&mut reader, &mut buf[..1])? > 0 {
+        return Err(WorkflowError::File(format!(
+            "File changed while archiving: {}",
+            path.display()
+        )));
     }
     Ok(())
 }
@@ -240,8 +256,10 @@ pub fn stream_encrypt_file(
 
         let mut reader = std::fs::File::open(&file.path)?;
         let chunk_size = sealer.chunk_plaintext_len();
-        let mut current = vec![0u8; chunk_size];
-        let mut next = vec![0u8; chunk_size];
+        // The buffers hold plaintext: zeroize on drop like every other
+        // plaintext buffer in this module.
+        let mut current = Zeroizing::new(vec![0u8; chunk_size]);
+        let mut next = Zeroizing::new(vec![0u8; chunk_size]);
 
         // Double-buffered read: a chunk is final when the read after it
         // returns nothing, so exact-multiple files end on a full final chunk
@@ -440,6 +458,48 @@ mod tests {
             .decrypt(&key)
             .unwrap();
         assert!(decrypted.content().as_slice().is_empty());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn test_walk_skips_backslash_names() {
+        let temp_dir = TempDir::new().unwrap();
+        fs::write(temp_dir.path().join("a\\b.txt"), b"x").unwrap();
+        fs::write(temp_dir.path().join("ok.txt"), b"x").unwrap();
+
+        let (entries, skipped) = walk_directory(temp_dir.path()).unwrap();
+        assert_eq!(skipped, 1);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].rel, "ok.txt");
+    }
+
+    #[test]
+    fn test_archive_errors_when_file_grew_since_walk() {
+        let temp_dir = TempDir::new().unwrap();
+        let path = temp_dir.path().join("grow.txt");
+        fs::write(&path, b"0123456789").unwrap();
+        // Declared size is stale: the file has more bytes than the walk saw.
+        let entries = vec![WalkedEntry {
+            path: path.clone(),
+            rel: "grow.txt".to_string(),
+            is_dir: false,
+            size: 5,
+        }];
+
+        let out_dir = TempDir::new().unwrap();
+        let key = SecureKey::new([7u8; 32]);
+        let metadata = gather_path_metadata(&path, "grow.txt".to_string()).into_archive();
+        let (header, sealer) = StreamSealer::begin(
+            &metadata,
+            &key,
+            KeyDerivationParams::test_defaults(),
+            [1u8; 16],
+            [2u8; 16],
+            [3u8; 24],
+        )
+        .unwrap();
+
+        assert!(stream_encrypt_directory(&entries, &header, sealer, out_dir.path()).is_err());
     }
 
     #[test]
