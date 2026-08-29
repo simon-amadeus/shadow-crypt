@@ -1,9 +1,32 @@
 use std::path::PathBuf;
 
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use shadow_crypt_core::profile::SecurityProfile;
 
 use crate::errors::{WorkflowError, WorkflowResult};
+
+/// The security profile as selected on the command line. Run with
+/// `--profiles` for each profile's key derivation parameters.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, ValueEnum)]
+pub enum CliProfile {
+    /// OWASP-recommended key derivation (the default)
+    #[default]
+    Standard,
+    /// Maximum-cost key derivation; needs 1 GiB of free RAM per file
+    Paranoid,
+    /// For automated testing only — insecure, skips password strength checks
+    Test,
+}
+
+impl From<CliProfile> for SecurityProfile {
+    fn from(profile: CliProfile) -> Self {
+        match profile {
+            CliProfile::Standard => SecurityProfile::Standard,
+            CliProfile::Paranoid => SecurityProfile::Paranoid,
+            CliProfile::Test => SecurityProfile::Test,
+        }
+    }
+}
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone, Default, Parser)]
@@ -14,7 +37,9 @@ use crate::errors::{WorkflowError, WorkflowResult};
     after_help = "A directory input becomes a single encrypted archive that hides the file \
                   count, names, and sizes inside it. With --recursive, the directory's \
                   files are instead encrypted individually (sync-friendly: one .shadow \
-                  per file), preserving their relative paths."
+                  per file), preserving their relative paths.\n\n\
+                  Run with --profiles to see each security profile's key derivation \
+                  parameters."
 )]
 pub struct EncryptionCliArgs {
     /// Input files or directories to encrypt
@@ -25,9 +50,13 @@ pub struct EncryptionCliArgs {
     #[arg(long = "recursive", short = 'r')]
     pub recursive: bool,
 
-    /// Use test security profile for faster key derivation (not recommended for production)
-    #[arg(long = "test-mode", short = 't')]
-    pub test_mode: bool,
+    /// Security profile controlling the key derivation cost
+    #[arg(long = "profile", value_enum, default_value_t = CliProfile::Standard)]
+    pub profile: CliProfile,
+
+    /// Print the available security profiles and their parameters, then exit
+    #[arg(long = "profiles")]
+    pub list_profiles: bool,
 
     /// Write encrypted files to this directory (created if missing; defaults to the current directory)
     #[arg(long = "output-dir", short = 'o', value_name = "DIR")]
@@ -52,7 +81,7 @@ pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<EncryptionCliArgs> {
         WorkflowError::UserInput(e.to_string())
     })?;
 
-    if cli_args.input_files.is_empty() {
+    if !cli_args.list_profiles && cli_args.input_files.is_empty() {
         return Err(WorkflowError::UserInput(
             "No input files provided".to_string(),
         ));
@@ -61,31 +90,35 @@ pub fn get_cli_args(args: Vec<String>) -> WorkflowResult<EncryptionCliArgs> {
     Ok(cli_args)
 }
 
-pub fn get_security_profile(test_mode: bool) -> SecurityProfile {
-    if test_mode {
-        SecurityProfile::Test
-    } else {
-        SecurityProfile::Production
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
-    fn test_get_security_profile_test_mode() {
-        match get_security_profile(true) {
-            SecurityProfile::Test => {}
-            _ => panic!("Expected Test profile"),
-        }
+    fn test_profile_defaults_to_standard() {
+        let args = get_cli_args(vec!["shadow".to_string(), "file1.txt".to_string()]).unwrap();
+        assert_eq!(args.profile, CliProfile::Standard);
+        assert_eq!(
+            SecurityProfile::from(args.profile),
+            SecurityProfile::Standard
+        );
     }
 
     #[test]
-    fn test_get_security_profile_production() {
-        match get_security_profile(false) {
-            SecurityProfile::Production => {}
-            _ => panic!("Expected Production profile"),
+    fn test_profile_parses_all_levels() {
+        for (name, expected) in [
+            ("standard", SecurityProfile::Standard),
+            ("paranoid", SecurityProfile::Paranoid),
+            ("test", SecurityProfile::Test),
+        ] {
+            let args = get_cli_args(vec![
+                "shadow".to_string(),
+                "--profile".to_string(),
+                name.to_string(),
+                "file1.txt".to_string(),
+            ])
+            .unwrap();
+            assert_eq!(SecurityProfile::from(args.profile), expected);
         }
     }
 
@@ -101,19 +134,6 @@ mod tests {
             cli_args.input_files,
             vec!["file1.txt".to_string(), "file2.txt".to_string()]
         );
-        assert!(!cli_args.test_mode);
-    }
-
-    #[test]
-    fn test_parse_cli_args_with_test_mode() {
-        let args = vec![
-            "shadow".to_string(),
-            "--test-mode".to_string(),
-            "file1.txt".to_string(),
-        ];
-        let cli_args = get_cli_args(args).unwrap();
-        assert_eq!(cli_args.input_files, vec!["file1.txt".to_string()]);
-        assert!(cli_args.test_mode);
     }
 
     #[test]
@@ -126,5 +146,12 @@ mod tests {
         } else {
             panic!("Expected UserInput error");
         }
+    }
+
+    #[test]
+    fn test_profiles_flag_needs_no_input_files() {
+        let args = get_cli_args(vec!["shadow".to_string(), "--profiles".to_string()]).unwrap();
+        assert!(args.list_profiles);
+        assert!(args.input_files.is_empty());
     }
 }

@@ -6,9 +6,9 @@
 use std::process;
 
 use shadow_crypt_shell::{
-    SecurityProfile, display_error,
+    display_error,
     encryption::{
-        cli::{get_cli_args, get_security_profile},
+        cli::get_cli_args,
         file::EncryptionInput,
         validation::{ValidEncryptionArgs, validate_input},
         workflow::run_workflow,
@@ -16,18 +16,23 @@ use shadow_crypt_shell::{
     errors::WorkflowError,
     memory::SecureString,
     password::resolve_encryption_password,
+    ui::display_profiles,
     utils::resolve_output_dir,
 };
 
 fn run() -> Result<(), WorkflowError> {
-    let input: ValidEncryptionArgs =
-        get_cli_args(std::env::args().collect()).and_then(validate_input)?;
-    let security_profile: SecurityProfile = get_security_profile(input.test_mode);
+    let args = get_cli_args(std::env::args().collect())?;
+    if args.list_profiles {
+        display_profiles();
+        return Ok(());
+    }
+
+    let input: ValidEncryptionArgs = validate_input(args)?;
     let password: SecureString =
-        resolve_encryption_password(input.password_file.as_deref(), &security_profile)?;
+        resolve_encryption_password(input.password_file.as_deref(), &input.security_profile)?;
     let output_dir = resolve_output_dir(input.output_dir)?;
     let encryption_input =
-        EncryptionInput::new(input.files, password, security_profile, output_dir);
+        EncryptionInput::new(input.files, password, input.security_profile, output_dir);
 
     run_workflow(encryption_input)?;
 

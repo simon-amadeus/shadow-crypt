@@ -1,7 +1,9 @@
 use colored::Colorize;
 use shadow_crypt_core::{
+    profile::SecurityProfile,
     progress::ProgressCounter,
     report::{DecryptionReport, EncryptionReport, KeyDerivationReport},
+    v3::key::KeyDerivationParams,
 };
 
 use crate::{
@@ -27,6 +29,57 @@ pub fn display_error(error: WorkflowError) {
 
 pub fn display_warning(message: &str) {
     eprintln!("{} {}", "!".yellow().bold(), message);
+}
+
+/// Prints every security profile with its Argon2id parameters (as written by
+/// the current format version), so the costs are inspectable without reading
+/// code.
+pub fn display_profiles() {
+    println!("{}", "Security Profiles (Argon2id key derivation)".bold());
+    println!();
+
+    let profiles = [
+        (
+            SecurityProfile::Standard,
+            "standard",
+            "(default)",
+            "OWASP Password Storage Cheat Sheet recommended configuration,\n\
+             using the highest-memory option of the equivalent set.",
+        ),
+        (
+            SecurityProfile::Paranoid,
+            "paranoid",
+            "",
+            "Maximum-cost derivation for high-value archives.\n\
+             Needs 1 GiB of free RAM and takes seconds per file.",
+        ),
+        (
+            SecurityProfile::Test,
+            "test",
+            "",
+            "For automated testing only — insecure, and password strength\n\
+             checks are skipped.",
+        ),
+    ];
+
+    for (profile, name, tag, description) in profiles {
+        let params = KeyDerivationParams::from(profile);
+        println!("  {} {}", name.bold().cyan(), tag.dimmed());
+        println!(
+            "      memory {} MiB, iterations {}, parallelism {}, key size {} bytes",
+            params.memory_cost / 1024,
+            params.time_cost,
+            params.parallelism,
+            params.key_size
+        );
+        for line in description.lines() {
+            println!("      {}", line.trim().dimmed());
+        }
+        println!();
+    }
+
+    println!("Files record their parameters in the header, so any profile decrypts");
+    println!("with any build of this tool.");
 }
 
 pub fn display_key_derivation_report(report: &KeyDerivationReport) {

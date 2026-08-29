@@ -1,5 +1,7 @@
 use std::path::PathBuf;
 
+use shadow_crypt_core::profile::SecurityProfile;
+
 use crate::{
     encryption::{
         cli::EncryptionCliArgs,
@@ -12,7 +14,7 @@ use crate::{
 
 pub struct ValidEncryptionArgs {
     pub files: Vec<EncryptionInputFile>,
-    pub test_mode: bool,
+    pub security_profile: SecurityProfile,
     pub output_dir: Option<PathBuf>,
     pub password_file: Option<PathBuf>,
 }
@@ -31,7 +33,7 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
 
     Ok(ValidEncryptionArgs {
         files: validated_files,
-        test_mode: input.test_mode,
+        security_profile: input.profile.into(),
         output_dir: input.output_dir,
         password_file: input.password_file,
     })
@@ -130,7 +132,6 @@ mod tests {
     fn test_validate_input_no_files() {
         let input = EncryptionCliArgs {
             input_files: vec![],
-            test_mode: false,
             ..Default::default()
         };
         let result = validate_input(input);
@@ -146,7 +147,6 @@ mod tests {
     fn test_validate_input_file_does_not_exist() {
         let input = EncryptionCliArgs {
             input_files: vec!["nonexistent_file.txt".to_string()],
-            test_mode: false,
             ..Default::default()
         };
         let result = validate_input(input);
@@ -167,7 +167,6 @@ mod tests {
 
         let input = EncryptionCliArgs {
             input_files: vec![dir.to_str().unwrap().to_string()],
-            test_mode: false,
             ..Default::default()
         };
         let valid = validate_input(input).unwrap();
@@ -186,7 +185,6 @@ mod tests {
 
         let input = EncryptionCliArgs {
             input_files: vec![dir.to_str().unwrap().to_string()],
-            test_mode: false,
             recursive: true,
             ..Default::default()
         };
@@ -217,14 +215,14 @@ mod tests {
 
         let input = EncryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
-            test_mode: true,
+            profile: crate::encryption::cli::CliProfile::Test,
             ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_ok());
         let valid_args = result.unwrap();
         assert_eq!(valid_args.files.len(), 1);
-        assert!(valid_args.test_mode);
+        assert_eq!(valid_args.security_profile, SecurityProfile::Test);
         let file = &valid_args.files[0];
         assert_eq!(file.path, file_path);
         assert_eq!(
@@ -249,14 +247,13 @@ mod tests {
                 path1.to_str().unwrap().to_string(),
                 path2.to_str().unwrap().to_string(),
             ],
-            test_mode: false,
             ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_ok());
         let valid_args = result.unwrap();
         assert_eq!(valid_args.files.len(), 2);
-        assert!(!valid_args.test_mode);
+        assert_eq!(valid_args.security_profile, SecurityProfile::Standard);
 
         // Check first file
         let file1 = &valid_args.files[0];

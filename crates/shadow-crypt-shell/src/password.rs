@@ -106,8 +106,10 @@ fn validate_password_requirements(
 
     // Professional entropy validation (the only security requirement that matters)
     match security_profile {
-        SecurityProfile::Test => Ok(()), // Skip entropy check in test mode
-        SecurityProfile::Production => validate_password_entropy(password),
+        SecurityProfile::Test => Ok(()), // Skip entropy check in the test profile
+        SecurityProfile::Standard | SecurityProfile::Paranoid => {
+            validate_password_entropy(password)
+        }
     }
 }
 
@@ -189,13 +191,13 @@ mod tests {
     #[test]
     fn test_validate_password_requirements_production_weak() {
         let password = SecureString::new("password".to_string());
-        assert!(validate_password_requirements(&password, &SecurityProfile::Production).is_err());
+        assert!(validate_password_requirements(&password, &SecurityProfile::Standard).is_err());
     }
 
     #[test]
     fn test_validate_password_requirements_production_strong() {
         let password = SecureString::new("Tr0ub4dour&3!".to_string());
-        assert!(validate_password_requirements(&password, &SecurityProfile::Production).is_ok());
+        assert!(validate_password_requirements(&password, &SecurityProfile::Standard).is_ok());
     }
 
     #[test]

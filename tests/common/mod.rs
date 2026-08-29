@@ -43,7 +43,7 @@ pub fn encrypt_paths(
             .iter()
             .map(|path| path.to_str().unwrap().to_string())
             .collect(),
-        test_mode: true,
+        profile: shadow_crypt_shell::encryption::cli::CliProfile::Test,
         recursive,
         ..Default::default()
     };

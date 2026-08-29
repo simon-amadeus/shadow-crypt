@@ -25,13 +25,30 @@ impl KeyDerivationParams {
         }
     }
 
-    /// Production defaults for Argon2id parameters.
+    /// Standard-profile Argon2id parameters: the OWASP Password Storage
+    /// Cheat Sheet's recommended configuration with the highest memory
+    /// hardness of the equivalent set.
+    ///
+    /// - Memory Cost: 47,104 KiB (46 MiB)
+    /// - Time Cost: 1 iteration
+    /// - Parallelism: 1 thread
+    /// - Key Size: 32 bytes (256 bits)
+    pub fn standard_defaults() -> Self {
+        Self {
+            memory_cost: 46 * 1024, // 47,104 KiB (46 MiB)
+            time_cost: 1,           // 1 iteration
+            parallelism: 1,         // 1 thread
+            key_size: 32,           // 32 bytes (256 bits)
+        }
+    }
+
+    /// Paranoid-profile Argon2id parameters for high-value archives.
     ///
     /// - Memory Cost: 1,048,576 KiB (1 GiB)
     /// - Time Cost: 10 iterations
     /// - Parallelism: 4 threads
     /// - Key Size: 32 bytes (256 bits)
-    pub fn production_defaults() -> Self {
+    pub fn paranoid_defaults() -> Self {
         Self {
             memory_cost: 1024 * 1024, // 1,048,576 KiB (1 GiB)
             time_cost: 10,            // 10 iterations
@@ -104,7 +121,8 @@ impl KeyDerivationParams {
 impl From<SecurityProfile> for KeyDerivationParams {
     fn from(profile: SecurityProfile) -> Self {
         match profile {
-            SecurityProfile::Production => KeyDerivationParams::production_defaults(),
+            SecurityProfile::Standard => KeyDerivationParams::standard_defaults(),
+            SecurityProfile::Paranoid => KeyDerivationParams::paranoid_defaults(),
             SecurityProfile::Test => KeyDerivationParams::test_defaults(),
         }
     }
@@ -116,11 +134,17 @@ mod tests {
 
     #[test]
     fn test_key_derivation_params_defaults() {
-        let prod = KeyDerivationParams::production_defaults();
-        assert_eq!(prod.memory_cost, 1024 * 1024);
-        assert_eq!(prod.time_cost, 10);
-        assert_eq!(prod.parallelism, 4);
-        assert_eq!(prod.key_size, 32);
+        let standard = KeyDerivationParams::standard_defaults();
+        assert_eq!(standard.memory_cost, 46 * 1024);
+        assert_eq!(standard.time_cost, 1);
+        assert_eq!(standard.parallelism, 1);
+        assert_eq!(standard.key_size, 32);
+
+        let paranoid = KeyDerivationParams::paranoid_defaults();
+        assert_eq!(paranoid.memory_cost, 1024 * 1024);
+        assert_eq!(paranoid.time_cost, 10);
+        assert_eq!(paranoid.parallelism, 4);
+        assert_eq!(paranoid.key_size, 32);
 
         let test = KeyDerivationParams::test_defaults();
         assert_eq!(test.memory_cost, 1024);
@@ -131,13 +155,14 @@ mod tests {
 
     #[test]
     fn test_from_security_profile() {
-        let prod_params: KeyDerivationParams = SecurityProfile::Production.into();
-        let expected_prod = KeyDerivationParams::production_defaults();
-        assert_eq!(prod_params, expected_prod);
+        let standard_params: KeyDerivationParams = SecurityProfile::Standard.into();
+        assert_eq!(standard_params, KeyDerivationParams::standard_defaults());
+
+        let paranoid_params: KeyDerivationParams = SecurityProfile::Paranoid.into();
+        assert_eq!(paranoid_params, KeyDerivationParams::paranoid_defaults());
 
         let test_params: KeyDerivationParams = SecurityProfile::Test.into();
-        let expected_test = KeyDerivationParams::test_defaults();
-        assert_eq!(test_params, expected_test);
+        assert_eq!(test_params, KeyDerivationParams::test_defaults());
     }
 
     #[test]

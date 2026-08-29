@@ -260,8 +260,8 @@ mod tests {
     }
 
     #[test]
-    fn test_production_params_accepted() {
-        let params = shadow_crypt_core::v1::key::KeyDerivationParams::production_defaults();
+    fn test_paranoid_params_accepted() {
+        let params = shadow_crypt_core::v1::key::KeyDerivationParams::paranoid_defaults();
         assert!(
             validate_kdf_request(&request(
                 params.memory_cost,
