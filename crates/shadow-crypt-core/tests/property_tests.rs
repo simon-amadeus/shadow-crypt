@@ -5,7 +5,7 @@
 //! *any* byte soup, and v2's domain separation holds for *any* inputs.
 
 use proptest::prelude::*;
-use shadow_crypt_core::{v1, v2, v3, version};
+use shadow_crypt_core::{v1, v2, version};
 
 /// Filename ciphertexts up to a few KiB; the length field allows up to
 /// u16::MAX but large vectors only slow the tests without adding coverage.
@@ -347,7 +347,7 @@ mod version_props {
             let mut bytes = b"SHADOW".to_vec();
             bytes.push(version_byte);
             let result = version::read_file_version(&bytes);
-            prop_assert_eq!(result.is_ok(), matches!(version_byte, 1 | 2 | 3));
+            prop_assert_eq!(result.is_ok(), matches!(version_byte, 1..=3));
         }
     }
 }
