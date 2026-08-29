@@ -16,8 +16,9 @@ order `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 
 ### Added
 - Add v3 file format: content is encrypted as a stream of AEAD chunks, so files of any size are processed with bounded memory; per-chunk nonces carry a counter and final-chunk flag, making reordering, truncation, and extension fail authentication. The header stores an encrypted metadata envelope (filename plus optional mtime and Unix mode) instead of a bare filename ciphertext. New files are written as v3; v1 and v2 files remain fully readable
-- Add directory encryption: a directory input becomes a single encrypted archive that hides the file count, names, and sizes inside it; decryption restores the tree with per-entry mtimes and permissions
+- Add directory encryption: a directory input becomes a single encrypted archive that hides the file count, names, and sizes inside it; decryption restores the tree with per-entry mtimes and permissions, validating every path so a malicious archive cannot write outside the output directory
 - Add `--delete` to remove originals after successful encryption, guarded against data loss: it refuses when any entry was skipped during archiving or when the output landed inside the input directory
+- Add `--force` to let decryption replace an existing output file; the existing file is destroyed only after its replacement has fully authenticated
 - Add security profiles (`--profile standard|paranoid`, `--profiles`) with an OWASP-based default; files record their KDF parameters, so any profile decrypts with any build
 - Add scripting support: `--password-file`, `--output-dir`, `--quiet`, `shadows --json`, and distinct exit codes (0 success, 1 failure, 2 usage, 3 authentication)
 - Add passwordless listing: `shadows` shows plaintext header metadata by default; `--names` decrypts the original filenames
@@ -25,23 +26,7 @@ order `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`.
 - Add cargo-fuzz targets for every parser, a CI fuzz-build job, and a format version-independence test
 
 ### Changed
-- **Breaking:** remove `--recursive`; directories always encrypt as one archive
-- Hide the test profile from `--help` and `--profiles` (still accepted for automated tests)
-- Merge the per-version `*_ops` modules into their owning modules and expose version-erased reads through a `vault` facade
 - Distinguish wrong-password failures from corrupted files and report per-file error context
-
-### Fixed
-- Fix mtime overflow on extreme timestamps
-- Fail encryption when a file grows while being archived instead of silently truncating it
-- Skip files with backslashes in their names (with a warning) instead of aborting the whole directory encryption
-- Restore directory mtimes on Windows by opening directories with backup semantics, so extraction no longer reports failure after succeeding
-
-### Security
-- Defer `--force` overwrites until the decrypted content authenticates: a failed decryption leaves the pre-existing output file intact
-- Refuse to extract through a symlinked archive root, keeping all writes (and `--force` replacements) inside the output directory
-- Reject Windows drive prefixes and `:` components in decrypted paths, closing a path traversal on Windows
-- Drop setuid/setgid/sticky bits when restoring permissions from sender-controlled metadata
-- Zeroize plaintext chunk buffers in streaming encryption
 
 ## [2.0.0] - 2026-07-20
 
