@@ -357,19 +357,23 @@ fn try_parse_entry_header(
 
 /// Splits a `SystemTime` into (seconds, nanoseconds) relative to the Unix
 /// epoch, with pre-epoch times as negative seconds and nanos in `[0, 1e9)`.
+/// Total for any `SystemTime`: the seconds saturate at the i64 range
+/// (hundreds of billions of years out), so extreme timestamps can never
+/// overflow — found by fuzzing with `mtime_secs = i64::MIN`.
 fn systemtime_to_parts(t: SystemTime) -> (i64, u32) {
-    match t.duration_since(UNIX_EPOCH) {
-        Ok(d) => (d.as_secs() as i64, d.subsec_nanos()),
+    let (secs, nanos): (i128, u32) = match t.duration_since(UNIX_EPOCH) {
+        Ok(d) => (d.as_secs().into(), d.subsec_nanos()),
         Err(e) => {
             let d = e.duration();
-            let (secs, nanos) = (d.as_secs() as i64, d.subsec_nanos());
+            let (secs, nanos) = (i128::from(d.as_secs()), d.subsec_nanos());
             if nanos == 0 {
                 (-secs, 0)
             } else {
                 (-(secs + 1), 1_000_000_000 - nanos)
             }
         }
-    }
+    };
+    (secs.clamp(i64::MIN.into(), i64::MAX.into()) as i64, nanos)
 }
 
 fn parts_to_systemtime(secs: i64, nanos: u32) -> Option<SystemTime> {

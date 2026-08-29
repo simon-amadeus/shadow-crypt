@@ -129,19 +129,23 @@ pub fn parse(envelope: &[u8]) -> Result<FileMetadata, FileError> {
 
 /// Splits a `SystemTime` into (seconds, nanoseconds) relative to the Unix
 /// epoch, with pre-epoch times as negative seconds and nanos in `[0, 1e9)`.
+/// Total for any `SystemTime`: the seconds saturate at the i64 range
+/// (hundreds of billions of years out), so extreme timestamps can never
+/// overflow — found by fuzzing with `mtime_secs = i64::MIN`.
 fn systemtime_to_parts(t: SystemTime) -> (i64, u32) {
-    match t.duration_since(UNIX_EPOCH) {
-        Ok(d) => (d.as_secs() as i64, d.subsec_nanos()),
+    let (secs, nanos): (i128, u32) = match t.duration_since(UNIX_EPOCH) {
+        Ok(d) => (d.as_secs().into(), d.subsec_nanos()),
         Err(e) => {
             let d = e.duration();
-            let (secs, nanos) = (d.as_secs() as i64, d.subsec_nanos());
+            let (secs, nanos) = (i128::from(d.as_secs()), d.subsec_nanos());
             if nanos == 0 {
                 (-secs, 0)
             } else {
                 (-(secs + 1), 1_000_000_000 - nanos)
             }
         }
-    }
+    };
+    (secs.clamp(i64::MIN.into(), i64::MAX.into()) as i64, nanos)
 }
 
 fn parts_to_systemtime(secs: i64, nanos: u32) -> Option<SystemTime> {
@@ -194,6 +198,24 @@ mod tests {
         let parsed = round_trip(&archive_meta);
         assert_eq!(parsed.filename().as_str(), "photos");
         assert_eq!(parsed.kind(), crate::file::ContentKind::Archive);
+    }
+
+    /// Regression (found by fuzzing): mtime_secs = i64::MIN parses into a
+    /// valid SystemTime whose re-serialization must not overflow.
+    #[test]
+    fn round_trip_extreme_mtimes() {
+        for secs in [i64::MIN, i64::MIN + 1, i64::MAX] {
+            let mut envelope = vec![1u8]; // flags: mtime only
+            envelope.extend_from_slice(&1u16.to_le_bytes());
+            envelope.push(b'f');
+            envelope.extend_from_slice(&secs.to_le_bytes());
+            envelope.extend_from_slice(&0u32.to_le_bytes());
+
+            if let Ok(parsed) = parse(&envelope) {
+                let reparsed = parse(serialize(&parsed).unwrap().as_slice()).unwrap();
+                assert_eq!(reparsed.mtime(), parsed.mtime(), "secs {secs}");
+            }
+        }
     }
 
     #[test]
