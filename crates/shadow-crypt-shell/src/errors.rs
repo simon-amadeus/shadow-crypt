@@ -34,7 +34,7 @@ pub enum WorkflowError {
     #[error("Header error: {0}")]
     HeaderError(#[from] HeaderError),
 
-    #[error("File format error: {0}")]
+    #[error("{0}")]
     Format(#[from] FileError),
 
     #[error("Encryption error: {0}")]

@@ -23,7 +23,10 @@ pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
         .par_iter()
         .map(|input_file| {
             let result =
-                process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir);
+                process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir)
+                    .map_err(|e| {
+                        WorkflowError::Decryption(format!("'{}': {}", input_file.filename, e))
+                    });
             counter.increment();
             display_progress(&counter);
             let failed = result.is_err();

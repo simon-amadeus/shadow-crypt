@@ -34,7 +34,8 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
                 &input.password,
                 &params,
                 &input.output_dir,
-            );
+            )
+            .map_err(|e| WorkflowError::Encryption(format!("'{}': {}", input_file.filename, e)));
             counter.increment();
             display_progress(&counter);
             let failed = result.is_err();

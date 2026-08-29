@@ -24,7 +24,13 @@ pub fn decrypt_bytes(
     let cipher = XChaCha20Poly1305::new(key.into());
     let plaintext = cipher
         .decrypt(nonce.into(), ciphertext)
-        .map_err(|e| CryptError::DecryptionError(format!("Decryption failed: {}", e)))?;
+        // The AEAD reports authentication failure without a cause; wrong
+        // password and corruption are indistinguishable by design.
+        .map_err(|_| {
+            CryptError::DecryptionError(
+                "authentication failed (wrong password, or the file is corrupted)".to_string(),
+            )
+        })?;
 
     Ok((SecureBytes::new(plaintext), Algorithm::XChaCha20Poly1305))
 }
