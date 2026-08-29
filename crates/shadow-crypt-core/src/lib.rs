@@ -8,6 +8,10 @@
 /// Supported encryption algorithms.
 pub mod algorithm;
 
+/// The archive payload format for directory trees, carried inside an
+/// encrypted file's content stream.
+pub mod archive;
+
 /// Error types for cryptographic operations.
 pub mod errors;
 

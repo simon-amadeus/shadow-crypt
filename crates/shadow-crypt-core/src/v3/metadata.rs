@@ -12,6 +12,10 @@
 //! | mtime_nanos  | 4 bytes  | flags bit 0           |
 //! | mode         | 4 bytes  | flags bit 1           |
 //!
+//! Flags bit 2 marks the content as a [`crate::archive`] stream (a
+//! directory tree) instead of a single file's bytes; `filename` is then the
+//! directory name.
+//!
 //! Trailing unknown bytes are rejected: this layout is fixed for the v3
 //! format, and any extension is a new format version.
 
@@ -19,12 +23,13 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::{
     errors::{FileError, HeaderError},
-    file::FileMetadata,
+    file::{ContentKind, FileMetadata},
     memory::{SecureBytes, SecureString},
 };
 
 const FLAG_MTIME: u8 = 0b0000_0001;
 const FLAG_MODE: u8 = 0b0000_0010;
+const FLAG_ARCHIVE: u8 = 0b0000_0100;
 
 /// Largest serialized envelope that still fits the header's u16 ciphertext
 /// length field once the 16-byte AEAD tag is added.
@@ -47,6 +52,9 @@ pub fn serialize(metadata: &FileMetadata) -> Result<SecureBytes, HeaderError> {
     }
     if metadata.mode().is_some() {
         flags |= FLAG_MODE;
+    }
+    if metadata.kind() == ContentKind::Archive {
+        flags |= FLAG_ARCHIVE;
     }
 
     let mut envelope = Vec::with_capacity(1 + 2 + filename.len() + 12 + 4);
@@ -74,7 +82,7 @@ pub fn parse(envelope: &[u8]) -> Result<FileMetadata, FileError> {
     let err = || FileError::InvalidMetadata;
 
     let (&flags, rest) = envelope.split_first().ok_or_else(err)?;
-    if flags & !(FLAG_MTIME | FLAG_MODE) != 0 {
+    if flags & !(FLAG_MTIME | FLAG_MODE | FLAG_ARCHIVE) != 0 {
         return Err(err());
     }
 
@@ -111,11 +119,12 @@ pub fn parse(envelope: &[u8]) -> Result<FileMetadata, FileError> {
         return Err(err());
     }
 
-    Ok(FileMetadata::new(
-        SecureString::new(filename.to_string()),
-        mtime,
-        mode,
-    ))
+    let metadata = FileMetadata::new(SecureString::new(filename.to_string()), mtime, mode);
+    Ok(if flags & FLAG_ARCHIVE != 0 {
+        metadata.into_archive()
+    } else {
+        metadata
+    })
 }
 
 /// Splits a `SystemTime` into (seconds, nanoseconds) relative to the Unix
@@ -176,6 +185,15 @@ mod tests {
         assert_eq!(parsed.filename().as_str(), "a.txt");
         assert_eq!(parsed.mtime(), None);
         assert_eq!(parsed.mode(), None);
+        assert_eq!(parsed.kind(), crate::file::ContentKind::File);
+    }
+
+    #[test]
+    fn round_trip_archive_kind() {
+        let archive_meta = meta("photos", None, Some(0o755)).into_archive();
+        let parsed = round_trip(&archive_meta);
+        assert_eq!(parsed.filename().as_str(), "photos");
+        assert_eq!(parsed.kind(), crate::file::ContentKind::Archive);
     }
 
     #[test]

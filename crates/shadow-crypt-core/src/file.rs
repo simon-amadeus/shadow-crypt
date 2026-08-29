@@ -9,6 +9,15 @@ use std::time::SystemTime;
 
 use crate::memory::{SecureBytes, SecureString};
 
+/// What an encrypted file's content stream contains.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ContentKind {
+    /// The content is the bytes of a single file.
+    File,
+    /// The content is a [`crate::archive`] stream holding a directory tree.
+    Archive,
+}
+
 /// Metadata of a plaintext file, stored encrypted alongside the content.
 ///
 /// Which fields a format version actually preserves varies: v1/v2 store only
@@ -18,6 +27,7 @@ pub struct FileMetadata {
     filename: SecureString,
     mtime: Option<SystemTime>,
     mode: Option<u32>, // Unix permission bits
+    kind: ContentKind,
 }
 
 impl FileMetadata {
@@ -26,7 +36,15 @@ impl FileMetadata {
             filename,
             mtime,
             mode,
+            kind: ContentKind::File,
         }
+    }
+
+    /// Marks this metadata as describing an archive (directory tree) rather
+    /// than a single file. For archives, `filename` is the directory name.
+    pub fn into_archive(mut self) -> Self {
+        self.kind = ContentKind::Archive;
+        self
     }
 
     pub fn filename(&self) -> &SecureString {
@@ -37,6 +55,9 @@ impl FileMetadata {
     }
     pub fn mode(&self) -> Option<u32> {
         self.mode
+    }
+    pub fn kind(&self) -> ContentKind {
+        self.kind
     }
 }
 
