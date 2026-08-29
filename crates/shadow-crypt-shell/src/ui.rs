@@ -50,13 +50,8 @@ pub fn display_profiles() {
             "Maximum-cost derivation for high-value archives.\n\
              Needs 1 GiB of free RAM and takes seconds per file.",
         ),
-        (
-            SecurityProfile::Test,
-            "test",
-            "",
-            "For automated testing only — insecure, and password strength\n\
-             checks are skipped.",
-        ),
+        // The test profile exists but is deliberately not advertised here
+        // or in --help: it is insecure and for automated testing only.
     ];
 
     for (profile, name, tag, description) in profiles {
