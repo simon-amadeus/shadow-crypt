@@ -85,6 +85,7 @@ fn process_file_encryption(
     let nonce_prefix: [u8; 16] = generate_nonce_prefix()?;
     let metadata_nonce: [u8; 24] = generate_nonce()?;
 
+    let mut skipped_entries = 0;
     let output_file = match file.kind {
         InputKind::File => {
             let metadata = gather_metadata(&file);
@@ -100,9 +101,10 @@ fn process_file_encryption(
         }
         InputKind::Directory => {
             let (entries, skipped) = walk_directory(&file.path)?;
+            skipped_entries = skipped;
             if skipped > 0 {
                 display_warning(&format!(
-                    "Skipped {} unsupported entr{} (symlinks, special files) in '{}'",
+                    "Skipped {} unsupported entr{} (symlinks, special files, unsupported names) in '{}'",
                     skipped,
                     if skipped == 1 { "y" } else { "ies" },
                     file.filename
@@ -125,9 +127,33 @@ fn process_file_encryption(
     // deletion is an error (scripts relying on --delete must notice), but
     // the encrypted output itself is complete and valid at this point.
     if delete_original {
+        // Skipped entries exist only in the original tree — deleting it
+        // would destroy them with no encrypted copy anywhere.
+        if skipped_entries > 0 {
+            return Err(WorkflowError::File(format!(
+                "encrypted successfully to '{}', but {} skipped entr{} exist only in the original; refusing to delete it",
+                output_file.filename,
+                skipped_entries,
+                if skipped_entries == 1 { "y" } else { "ies" },
+            )));
+        }
         let removal = match file.kind {
             InputKind::File => std::fs::remove_file(&file.path),
-            InputKind::Directory => std::fs::remove_dir_all(&file.path),
+            InputKind::Directory => {
+                // If the output landed inside the input tree (e.g.
+                // --output-dir mydir/out for input mydir), deleting the
+                // tree would destroy the ciphertext along with the
+                // originals.
+                let output_path = std::fs::canonicalize(&output_file.path)?;
+                let input_path = std::fs::canonicalize(&file.path)?;
+                if output_path.starts_with(&input_path) {
+                    return Err(WorkflowError::File(format!(
+                        "encrypted successfully to '{}', but the output is inside the input directory; refusing to delete it",
+                        output_file.filename,
+                    )));
+                }
+                std::fs::remove_dir_all(&file.path)
+            }
         };
         removal.map_err(|e| {
             WorkflowError::File(format!(
