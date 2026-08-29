@@ -11,15 +11,16 @@ pub struct ValidEncryptionArgs {
 }
 
 pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptionArgs> {
-    ensure_not_empty(&input)?;
+    if input.input_files.is_empty() {
+        return Err(WorkflowError::UserInput(
+            "No input files provided".to_string(),
+        ));
+    }
 
     let validated_files: Vec<EncryptionInputFile> = input
         .input_files
         .iter()
-        .map(PathBuf::from)
-        .map(ensure_exists)
-        .map(ensure_is_regular_file)
-        .map(create_input_file)
+        .map(|file| validate_file(PathBuf::from(file)))
         .collect::<WorkflowResult<Vec<EncryptionInputFile>>>()?;
 
     Ok(ValidEncryptionArgs {
@@ -28,40 +29,21 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
     })
 }
 
-fn ensure_not_empty(input: &EncryptionCliArgs) -> WorkflowResult<()> {
-    if input.input_files.is_empty() {
-        return Err(WorkflowError::UserInput(
-            "No input files provided".to_string(),
-        ));
-    }
-    Ok(())
-}
-
-fn ensure_exists(path: PathBuf) -> WorkflowResult<PathBuf> {
+fn validate_file(path: PathBuf) -> WorkflowResult<EncryptionInputFile> {
     if !path.exists() {
         return Err(WorkflowError::UserInput(format!(
             "Input file does not exist: {}",
             path.display()
         )));
     }
-    Ok(path)
-}
-
-fn ensure_is_regular_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<PathBuf> {
-    if let Ok(path) = &path
-        && !path.is_file()
-    {
+    if !path.is_file() {
         return Err(WorkflowError::UserInput(format!(
             "Input path is not a file: {}",
             path.display()
         )));
     }
-    path
-}
 
-fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<EncryptionInputFile> {
-    let path = path?;
-    let name: String = path
+    let filename: String = path
         .file_name()
         .and_then(|n| n.to_str())
         .ok_or_else(|| {
@@ -80,7 +62,7 @@ fn create_input_file(path: WorkflowResult<PathBuf>) -> WorkflowResult<Encryption
 
     Ok(EncryptionInputFile {
         path,
-        filename: name,
+        filename,
         size,
     })
 }
