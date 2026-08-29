@@ -25,6 +25,10 @@ pub fn display_error(error: WorkflowError) {
     eprintln!("{} {}", "✗".red().bold(), error);
 }
 
+pub fn display_warning(message: &str) {
+    eprintln!("{} {}", "!".yellow().bold(), message);
+}
+
 pub fn display_key_derivation_report(report: &KeyDerivationReport) {
     println!("Derived key in {:#?}:", report.duration);
     println!("  Algorithm: {}", report.algorithm);

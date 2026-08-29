@@ -7,11 +7,23 @@ use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Encryption CLI arguments structure
 #[derive(Debug, Clone, Default, Parser)]
-#[command(name = "shadow", about = "Encrypt files using shadow format", version)]
+#[command(
+    name = "shadow",
+    about = "Encrypt files using shadow format",
+    version,
+    after_help = "A directory input becomes a single encrypted archive that hides the file \
+                  count, names, and sizes inside it. With --recursive, the directory's \
+                  files are instead encrypted individually (sync-friendly: one .shadow \
+                  per file), preserving their relative paths."
+)]
 pub struct EncryptionCliArgs {
-    /// Input files to encrypt
-    #[arg(value_name = "FILE")]
+    /// Input files or directories to encrypt
+    #[arg(value_name = "PATH")]
     pub input_files: Vec<String>,
+
+    /// Encrypt a directory's files individually instead of as one archive
+    #[arg(long = "recursive", short = 'r')]
+    pub recursive: bool,
 
     /// Use test security profile for faster key derivation (not recommended for production)
     #[arg(long = "test-mode", short = 't')]

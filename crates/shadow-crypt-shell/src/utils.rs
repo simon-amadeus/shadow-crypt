@@ -2,7 +2,7 @@ use std::io::Read;
 
 use shadow_crypt_core::memory::SecureBytes;
 
-use crate::errors::WorkflowResult;
+use crate::errors::{WorkflowError, WorkflowResult};
 
 pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResult<SecureBytes> {
     let f = std::fs::File::open(path)?;
@@ -10,6 +10,37 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
     f.take(n as u64).read_to_end(&mut buffer)?;
 
     Ok(SecureBytes::new(buffer))
+}
+
+/// Sanitizes a '/'-separated path from decrypted metadata into a relative
+/// path that cannot escape the output directory: rejects `..` components and
+/// backslashes, drops empty and `.` components (which also relativizes
+/// absolute paths). The decrypted name is deliberately not echoed into
+/// error messages.
+pub fn sanitize_relative_path(name: &str) -> WorkflowResult<std::path::PathBuf> {
+    if name.contains('\\') {
+        return Err(WorkflowError::File(
+            "Decrypted path contains unsupported separators".to_string(),
+        ));
+    }
+    let mut out = std::path::PathBuf::new();
+    for component in name.split('/') {
+        match component {
+            "" | "." => continue,
+            ".." => {
+                return Err(WorkflowError::File(
+                    "Decrypted path contains unsafe components".to_string(),
+                ));
+            }
+            component => out.push(component),
+        }
+    }
+    if out.as_os_str().is_empty() {
+        return Err(WorkflowError::File(
+            "Decrypted path contains no usable components".to_string(),
+        ));
+    }
+    Ok(out)
 }
 
 /// Reads from `reader` until `buf` is full or EOF; returns the bytes read.
@@ -99,6 +130,33 @@ mod tests {
         assert!(result.is_err());
         // Should be Io error
         assert!(matches!(result, Err(WorkflowError::Io(_))));
+    }
+
+    #[test]
+    fn test_sanitize_relative_path() {
+        use std::path::PathBuf;
+
+        assert_eq!(
+            sanitize_relative_path("a/b/c.txt").unwrap(),
+            PathBuf::from("a/b/c.txt")
+        );
+        assert_eq!(
+            sanitize_relative_path("plain.txt").unwrap(),
+            PathBuf::from("plain.txt")
+        );
+        // Absolute and dot components are relativized/dropped.
+        assert_eq!(
+            sanitize_relative_path("/abs/path").unwrap(),
+            PathBuf::from("abs/path")
+        );
+        assert_eq!(
+            sanitize_relative_path("./a//b/.").unwrap(),
+            PathBuf::from("a/b")
+        );
+        // Escapes and unsupported separators are rejected outright.
+        for evil in ["..", "../x", "a/../b", "a/..", "a\\b", "", ".", "//"] {
+            assert!(sanitize_relative_path(evil).is_err(), "accepted {evil:?}");
+        }
     }
 
     #[test]

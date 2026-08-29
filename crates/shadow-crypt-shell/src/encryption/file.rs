@@ -4,11 +4,23 @@ use shadow_crypt_core::profile::SecurityProfile;
 
 use crate::memory::SecureString;
 
+/// What an encryption work item refers to on disk.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum InputKind {
+    /// A single file; its content becomes the encrypted content.
+    File,
+    /// A directory; its tree is archived into one encrypted file.
+    Directory,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EncryptionInputFile {
     pub path: PathBuf,
+    /// Stored name: the file's name (possibly a relative path in recursive
+    /// mode) or the directory's name for archives.
     pub filename: String,
     pub size: u64,
+    pub kind: InputKind,
 }
 
 pub struct EncryptionInput {

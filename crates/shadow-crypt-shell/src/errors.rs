@@ -1,3 +1,4 @@
+use shadow_crypt_core::archive::ArchiveError;
 use shadow_crypt_core::errors::{CryptError, FileError, HeaderError, KeyDerivationError};
 use std::io;
 use thiserror::Error;
@@ -36,6 +37,9 @@ pub enum WorkflowError {
 
     #[error("{0}")]
     Format(#[from] FileError),
+
+    #[error("{0}")]
+    Archive(#[from] ArchiveError),
 
     #[error("Encryption error: {0}")]
     Encryption(String),

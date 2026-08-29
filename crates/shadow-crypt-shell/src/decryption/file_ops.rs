@@ -1,45 +1,25 @@
 use std::io::{Read, Seek, SeekFrom, Write};
+use std::path::{Path, PathBuf};
 
 use shadow_crypt_core::{
-    file::FileMetadata,
+    archive::{ArchiveEvent, ArchiveParser},
+    file::{ContentKind, FileMetadata},
     memory::{SecureKey, SecureString},
-    vault::ParsedFile,
+    vault::{ContentDecryptor, ParsedFile},
 };
 
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
-    utils::read_up_to,
+    utils::{read_up_to, sanitize_relative_path},
 };
 
-/// Creates the plaintext output file for a decrypted filename, enforcing the
-/// no-traversal and no-overwrite policies.
-fn create_output_file(
-    filename: &SecureString,
-    output_dir: &std::path::Path,
-    force: bool,
-) -> WorkflowResult<(std::fs::File, DecryptionOutputFile)> {
-    // Reject any path traversal by taking only the bare filename component.
-    // This prevents a malicious .shadow file from writing to an arbitrary path.
-    let safe_name = std::path::Path::new(filename.as_str())
-        .file_name()
-        .ok_or_else(|| {
-            WorkflowError::File("Decrypted filename contains invalid path components".to_string())
-        })?;
-    let safe_name_str = safe_name
-        .to_str()
-        .ok_or_else(|| WorkflowError::File("Decrypted filename is not valid UTF-8".to_string()))?
-        .to_string();
-
-    let output_file = DecryptionOutputFile {
-        path: output_dir.join(safe_name),
-        filename: safe_name_str,
-    };
-
+/// Opens a fresh file at `path`, enforcing the no-overwrite policy.
+fn open_new_file(path: &Path, display_name: &str, force: bool) -> WorkflowResult<std::fs::File> {
     // With --force, remove the existing file first (rather than truncating)
     // so a symlink at the target is never followed to clobber elsewhere.
     if force {
-        match std::fs::remove_file(output_file.path.as_path()) {
+        match std::fs::remove_file(path) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             Err(e) => return Err(e.into()),
@@ -49,18 +29,42 @@ fn create_output_file(
     // create_new makes the no-overwrite check atomic: no window between an
     // exists() check and creation, and symlinks are never followed to clobber
     // an existing target.
-    let f = std::fs::File::create_new(output_file.path.as_path()).map_err(|e| {
+    std::fs::File::create_new(path).map_err(|e| {
         if e.kind() == std::io::ErrorKind::AlreadyExists {
             WorkflowError::File(format!(
                 "Output file '{}' already exists (use --force to overwrite)",
-                output_file.filename
+                display_name
             ))
         } else {
             WorkflowError::Io(e)
         }
-    })?;
+    })
+}
 
-    Ok((f, output_file))
+/// Creates the plaintext output file for a decrypted filename, enforcing the
+/// no-traversal and no-overwrite policies. Multi-component names (from
+/// recursive encryption) recreate their directories under `output_dir`.
+fn create_output_file(
+    filename: &SecureString,
+    output_dir: &Path,
+    force: bool,
+) -> WorkflowResult<(std::fs::File, DecryptionOutputFile)> {
+    let safe_rel = sanitize_relative_path(filename.as_str())?;
+    let path = output_dir.join(&safe_rel);
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+
+    let display_name = safe_rel.to_string_lossy().into_owned();
+    let f = open_new_file(&path, &display_name, force)?;
+
+    Ok((
+        f,
+        DecryptionOutputFile {
+            path,
+            filename: display_name,
+        },
+    ))
 }
 
 /// Restores preserved metadata onto the decrypted file. Applied after the
@@ -77,12 +81,73 @@ fn apply_metadata(f: &std::fs::File, metadata: &FileMetadata) -> WorkflowResult<
     Ok(())
 }
 
-/// Streams the encrypted input file's content through the parsed file's
-/// decryptor into the plaintext output file, then restores the preserved
-/// metadata. Memory is bounded by the format's chunk size (formats without
-/// chunking are decrypted as one piece). A partially written output is
-/// removed on failure.
+/// Feeds the encrypted file's content ciphertext (everything after the
+/// header) through the decryptor, passing each decrypted piece to `sink`.
+fn pump_content(
+    file: &DecryptionInputFile,
+    parsed: &ParsedFile,
+    decryptor: &mut ContentDecryptor<'_>,
+    mut sink: impl FnMut(&[u8]) -> WorkflowResult<()>,
+) -> WorkflowResult<()> {
+    let mut reader = std::fs::File::open(&file.path)?;
+    reader.seek(SeekFrom::Start(parsed.header_length() as u64))?;
+
+    match decryptor.chunk_len() {
+        // The whole content is a single AEAD message: feed it at once.
+        None => {
+            let mut content = Vec::new();
+            reader.read_to_end(&mut content)?;
+            sink(decryptor.decrypt_chunk(&content, true)?.as_slice())?;
+        }
+        // Chunked content: double-buffered read, a chunk is final when the
+        // read after it returns nothing.
+        Some(chunk_len) => {
+            let mut current = vec![0u8; chunk_len];
+            let mut next = vec![0u8; chunk_len];
+            let mut current_len = read_up_to(&mut reader, &mut current)?;
+            loop {
+                let next_len = read_up_to(&mut reader, &mut next)?;
+                let is_last = next_len == 0;
+                sink(
+                    decryptor
+                        .decrypt_chunk(&current[..current_len], is_last)?
+                        .as_slice(),
+                )?;
+                if is_last {
+                    break;
+                }
+                std::mem::swap(&mut current, &mut next);
+                current_len = next_len;
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Streams the encrypted input file's content into plaintext output: a
+/// single file, or an extracted directory tree when the metadata marks the
+/// content as an archive. Preserved metadata is restored afterwards. Memory
+/// is bounded by the format's chunk size (formats without chunking are
+/// decrypted as one piece).
 pub fn stream_decrypt_file(
+    file: &DecryptionInputFile,
+    parsed: &ParsedFile,
+    key: &SecureKey,
+    metadata: &FileMetadata,
+    output_dir: &std::path::Path,
+    force: bool,
+) -> WorkflowResult<DecryptionOutputFile> {
+    match metadata.kind() {
+        ContentKind::File => {
+            stream_decrypt_single_file(file, parsed, key, metadata, output_dir, force)
+        }
+        ContentKind::Archive => extract_archive(file, parsed, key, metadata, output_dir, force),
+    }
+}
+
+/// Single-file case: the content stream is the file's bytes. A partially
+/// written output is removed on failure.
+fn stream_decrypt_single_file(
     file: &DecryptionInputFile,
     parsed: &ParsedFile,
     key: &SecureKey,
@@ -93,40 +158,11 @@ pub fn stream_decrypt_file(
     let (mut out, output_file) = create_output_file(metadata.filename(), output_dir, force)?;
 
     let result = (|| -> WorkflowResult<()> {
-        let mut reader = std::fs::File::open(&file.path)?;
-        reader.seek(SeekFrom::Start(parsed.header_length() as u64))?;
-
         let mut decryptor = parsed.content_decryptor(key);
-        match decryptor.chunk_len() {
-            // The whole content is a single AEAD message: feed it at once.
-            None => {
-                let mut content = Vec::new();
-                reader.read_to_end(&mut content)?;
-                out.write_all(decryptor.decrypt_chunk(&content, true)?.as_slice())?;
-            }
-            // Chunked content: double-buffered read, a chunk is final when
-            // the read after it returns nothing.
-            Some(chunk_len) => {
-                let mut current = vec![0u8; chunk_len];
-                let mut next = vec![0u8; chunk_len];
-                let mut current_len = read_up_to(&mut reader, &mut current)?;
-                loop {
-                    let next_len = read_up_to(&mut reader, &mut next)?;
-                    let is_last = next_len == 0;
-                    out.write_all(
-                        decryptor
-                            .decrypt_chunk(&current[..current_len], is_last)?
-                            .as_slice(),
-                    )?;
-                    if is_last {
-                        break;
-                    }
-                    std::mem::swap(&mut current, &mut next);
-                    current_len = next_len;
-                }
-            }
-        }
-
+        pump_content(file, parsed, &mut decryptor, |plaintext| {
+            out.write_all(plaintext)?;
+            Ok(())
+        })?;
         apply_metadata(&out, metadata)?;
         Ok(())
     })();
@@ -138,6 +174,112 @@ pub fn stream_decrypt_file(
             Err(e)
         }
     }
+}
+
+/// Archive case: the content stream is a directory tree, extracted under
+/// `output_dir/<archive name>`. Already-completed entries are kept on
+/// failure (they are valid files); only the entry being written is removed.
+fn extract_archive(
+    file: &DecryptionInputFile,
+    parsed: &ParsedFile,
+    key: &SecureKey,
+    metadata: &FileMetadata,
+    output_dir: &std::path::Path,
+    force: bool,
+) -> WorkflowResult<DecryptionOutputFile> {
+    let root_rel = sanitize_relative_path(metadata.filename().as_str())?;
+    let root = output_dir.join(&root_rel);
+    let display_name = root_rel.to_string_lossy().into_owned();
+
+    if root.symlink_metadata().is_ok() {
+        if !force {
+            return Err(WorkflowError::File(format!(
+                "Output directory '{}' already exists (use --force to extract into it)",
+                display_name
+            )));
+        }
+        if !root.is_dir() {
+            return Err(WorkflowError::File(format!(
+                "Output path '{}' exists and is not a directory",
+                display_name
+            )));
+        }
+    } else {
+        std::fs::create_dir_all(&root)?;
+    }
+
+    let mut parser = ArchiveParser::new();
+    // (open handle, on-disk path, entry metadata) of the file being written.
+    let mut current: Option<(std::fs::File, PathBuf, FileMetadata)> = None;
+    let mut directory_metas: Vec<(PathBuf, FileMetadata)> = Vec::new();
+
+    let result = (|| -> WorkflowResult<()> {
+        let mut decryptor = parsed.content_decryptor(key);
+        pump_content(file, parsed, &mut decryptor, |plaintext| {
+            parser.feed(plaintext);
+            while let Some(event) = parser.next_event()? {
+                match event {
+                    ArchiveEvent::Directory { metadata } => {
+                        let path = root.join(sanitize_relative_path(metadata.filename().as_str())?);
+                        std::fs::create_dir_all(&path)?;
+                        directory_metas.push((path, metadata));
+                    }
+                    ArchiveEvent::FileStart { metadata, .. } => {
+                        let rel = sanitize_relative_path(metadata.filename().as_str())?;
+                        let path = root.join(&rel);
+                        if let Some(parent) = path.parent() {
+                            std::fs::create_dir_all(parent)?;
+                        }
+                        let f = open_new_file(&path, &rel.to_string_lossy(), force)?;
+                        current = Some((f, path, metadata));
+                    }
+                    ArchiveEvent::FileData(data) => {
+                        let (f, _, _) = current.as_mut().ok_or_else(|| {
+                            WorkflowError::File("Archive stream out of order".to_string())
+                        })?;
+                        f.write_all(data.as_slice())?;
+                    }
+                    ArchiveEvent::FileEnd => {
+                        let (f, _, entry_metadata) = current.take().ok_or_else(|| {
+                            WorkflowError::File("Archive stream out of order".to_string())
+                        })?;
+                        apply_metadata(&f, &entry_metadata)?;
+                    }
+                    ArchiveEvent::End => {}
+                }
+            }
+            Ok(())
+        })?;
+        parser.finish()?;
+
+        // Restore directory metadata deepest-first: writing children bumps a
+        // parent's mtime, so parents must be stamped after their contents.
+        directory_metas.sort_by_key(|(path, _)| std::cmp::Reverse(path.components().count()));
+        for (path, dir_metadata) in &directory_metas {
+            apply_path_metadata(path, dir_metadata)?;
+        }
+        apply_path_metadata(&root, metadata)?;
+        Ok(())
+    })();
+
+    match result {
+        Ok(()) => Ok(DecryptionOutputFile {
+            path: root,
+            filename: display_name,
+        }),
+        Err(e) => {
+            if let Some((_, path, _)) = current {
+                let _ = std::fs::remove_file(path);
+            }
+            Err(e)
+        }
+    }
+}
+
+/// [`apply_metadata`] for paths without an open handle (directories).
+fn apply_path_metadata(path: &Path, metadata: &FileMetadata) -> WorkflowResult<()> {
+    let f = std::fs::File::open(path)?;
+    apply_metadata(&f, metadata)
 }
 
 #[cfg(test)]

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use shadow_crypt_core::{memory::SecureString, vault::ParsedFile};
+use shadow_crypt_core::{file::ContentKind, memory::SecureString, vault::ParsedFile};
 
 use crate::{
     errors::WorkflowResult,
@@ -39,7 +39,14 @@ fn decipher_original_filename(
 ) -> Option<SecureString> {
     let parsed = ParsedFile::parse(header_bytes).ok()?;
     let key = derive_untrusted_key(&parsed, password).ok()?;
-    parsed.decrypt_filename(&key).ok()
+    let metadata = parsed.decrypt_metadata(&key).ok()?;
+
+    // Archives are shown with a trailing '/' to mark them as directory trees.
+    let mut name = metadata.filename().as_str().to_string();
+    if metadata.kind() == ContentKind::Archive {
+        name.push('/');
+    }
+    Some(SecureString::new(name))
 }
 
 fn get_shadow_file_info(

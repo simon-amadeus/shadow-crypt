@@ -8,14 +8,16 @@ use shadow_crypt_core::{
 
 use crate::{
     encryption::{
-        file::{EncryptionInput, EncryptionInputFile},
-        file_ops::{gather_metadata, stream_encrypt_file},
+        file::{EncryptionInput, EncryptionInputFile, InputKind},
+        file_ops::{
+            gather_metadata, stream_encrypt_directory, stream_encrypt_file, walk_directory,
+        },
         nonce::{generate_nonce, generate_nonce_prefix},
         salt::generate_salt,
     },
     errors::{WorkflowError, WorkflowResult},
     kdf::with_kdf_memory_permit,
-    ui::{display_encryption_report, display_progress},
+    ui::{display_encryption_report, display_progress, display_warning},
 };
 
 pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
@@ -69,17 +71,42 @@ fn process_file_encryption(
 
     let nonce_prefix: [u8; 16] = generate_nonce_prefix()?;
     let metadata_nonce: [u8; 24] = generate_nonce()?;
-    let metadata = gather_metadata(&file);
 
-    let (header, sealer) = StreamSealer::begin(
-        &metadata,
-        &key,
-        kdf_params.clone(),
-        salt,
-        nonce_prefix,
-        metadata_nonce,
-    )?;
-    let output_file = stream_encrypt_file(&file, &header, sealer, output_dir)?;
+    let output_file = match file.kind {
+        InputKind::File => {
+            let metadata = gather_metadata(&file);
+            let (header, sealer) = StreamSealer::begin(
+                &metadata,
+                &key,
+                kdf_params.clone(),
+                salt,
+                nonce_prefix,
+                metadata_nonce,
+            )?;
+            stream_encrypt_file(&file, &header, sealer, output_dir)?
+        }
+        InputKind::Directory => {
+            let (entries, skipped) = walk_directory(&file.path)?;
+            if skipped > 0 {
+                display_warning(&format!(
+                    "Skipped {} unsupported entr{} (symlinks, special files) in '{}'",
+                    skipped,
+                    if skipped == 1 { "y" } else { "ies" },
+                    file.filename
+                ));
+            }
+            let metadata = gather_metadata(&file).into_archive();
+            let (header, sealer) = StreamSealer::begin(
+                &metadata,
+                &key,
+                kdf_params.clone(),
+                salt,
+                nonce_prefix,
+                metadata_nonce,
+            )?;
+            stream_encrypt_directory(&entries, &header, sealer, output_dir)?
+        }
+    };
 
     let duration = start_time.elapsed();
 
