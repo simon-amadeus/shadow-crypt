@@ -13,8 +13,9 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
 }
 
 /// Sanitizes a '/'-separated path from decrypted metadata into a relative
-/// path that cannot escape the output directory: rejects `..` components and
-/// backslashes, drops empty and `.` components (which also relativizes
+/// path that cannot escape the output directory: rejects `..` components,
+/// backslashes, and (on Windows) drive prefixes and `:` stream separators,
+/// drops empty and `.` components (which also relativizes
 /// absolute paths). The decrypted name is deliberately not echoed into
 /// error messages.
 pub fn sanitize_relative_path(name: &str) -> WorkflowResult<std::path::PathBuf> {
@@ -32,12 +33,33 @@ pub fn sanitize_relative_path(name: &str) -> WorkflowResult<std::path::PathBuf> 
                     "Decrypted path contains unsafe components".to_string(),
                 ));
             }
-            component => out.push(component),
+            component => {
+                // On Windows, ':' forms drive prefixes ("C:evil" makes
+                // Path::push discard everything accumulated so far) and NTFS
+                // alternate data streams.
+                if cfg!(windows) && component.contains(':') {
+                    return Err(WorkflowError::File(
+                        "Decrypted path contains unsafe components".to_string(),
+                    ));
+                }
+                out.push(component);
+            }
         }
     }
     if out.as_os_str().is_empty() {
         return Err(WorkflowError::File(
             "Decrypted path contains no usable components".to_string(),
+        ));
+    }
+    // Belt and braces: anything the platform parses as a prefix, root, or
+    // dot component would let output_dir.join(out) escape the output
+    // directory.
+    if !out
+        .components()
+        .all(|c| matches!(c, std::path::Component::Normal(_)))
+    {
+        return Err(WorkflowError::File(
+            "Decrypted path contains unsafe components".to_string(),
         ));
     }
     Ok(out)
@@ -254,6 +276,12 @@ mod tests {
         );
         // Escapes and unsupported separators are rejected outright.
         for evil in ["..", "../x", "a/../b", "a/..", "a\\b", "", ".", "//"] {
+            assert!(sanitize_relative_path(evil).is_err(), "accepted {evil:?}");
+        }
+        // Drive prefixes and stream separators escape only on Windows;
+        // on Unix a ':' is an ordinary filename character.
+        #[cfg(windows)]
+        for evil in ["C:evil", "C:/evil", "a/C:evil", "file:stream"] {
             assert!(sanitize_relative_path(evil).is_err(), "accepted {evil:?}");
         }
     }
