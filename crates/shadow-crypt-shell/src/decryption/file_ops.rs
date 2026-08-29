@@ -41,8 +41,9 @@ fn claim_output_path(path: &Path, display_name: &str, force: bool) -> WorkflowRe
 }
 
 /// Creates the plaintext output for a decrypted filename, enforcing the
-/// no-traversal and no-overwrite policies. Multi-component names (from
-/// recursive encryption) recreate their directories under `output_dir`.
+/// no-traversal and no-overwrite policies. Multi-component names (written
+/// by older versions' recursive mode) recreate their directories under
+/// `output_dir`.
 /// The returned writer is crash-safe: the final path holds an empty
 /// placeholder (or, with --force, the pre-existing file) until
 /// [`AtomicOutputFile::commit`] renames the finished content over it. The
@@ -349,6 +350,20 @@ mod tests {
         let output = write_output("test.txt", b"test content", temp_dir.path(), false).unwrap();
         assert_eq!(output.filename, "test.txt");
         assert_eq!(fs::read(&output.path).unwrap(), b"test content");
+    }
+
+    #[test]
+    fn test_multi_component_name_recreates_directories() {
+        // Files written by older versions' recursive mode store relative
+        // paths; decrypting them must keep working.
+        let temp_dir = tempfile::TempDir::new().unwrap();
+
+        let output = write_output("photos/sub/b.txt", b"bravo", temp_dir.path(), false).unwrap();
+        assert_eq!(output.filename, "photos/sub/b.txt");
+        assert_eq!(
+            fs::read(temp_dir.path().join("photos/sub/b.txt")).unwrap(),
+            b"bravo"
+        );
     }
 
     #[test]

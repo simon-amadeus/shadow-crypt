@@ -1,5 +1,5 @@
-//! Round trips for directory encryption: archive mode (one .shadow per
-//! directory) and recursive mode (one .shadow per file, paths preserved).
+//! Round trips for directory encryption: a directory becomes one encrypted
+//! archive.
 
 mod common;
 
@@ -7,7 +7,7 @@ use std::fs;
 use std::path::Path;
 use std::time::{Duration, UNIX_EPOCH};
 
-use common::{TEST_PASSWORD, decrypt_files, encrypt_files, encrypt_paths, find_shadow_files};
+use common::{TEST_PASSWORD, decrypt_files, encrypt_files, find_shadow_files};
 use tempfile::TempDir;
 
 /// Builds a small tree:
@@ -27,14 +27,14 @@ fn build_tree(parent: &Path) -> std::path::PathBuf {
     root
 }
 
-fn assert_tree_restored(root: &Path, expect_empty_dir: bool) {
+fn assert_tree_restored(root: &Path) {
     assert_eq!(fs::read(root.join("a.txt")).unwrap(), b"alpha");
     assert_eq!(fs::read(root.join("empty.bin")).unwrap(), b"");
     assert_eq!(
         fs::read(root.join("sub").join("b.txt")).unwrap(),
         b"bravo bravo"
     );
-    assert_eq!(root.join("empty-dir").is_dir(), expect_empty_dir);
+    assert!(root.join("empty-dir").is_dir());
 }
 
 #[test]
@@ -65,7 +65,7 @@ fn test_directory_archive_round_trip() {
     decrypt_files(&[&shadows[0]], TEST_PASSWORD, out_dir.path()).unwrap();
 
     let restored = out_dir.path().join("photos");
-    assert_tree_restored(&restored, true);
+    assert_tree_restored(&restored);
 
     // Per-entry metadata came back.
     assert_eq!(
@@ -105,26 +105,6 @@ fn test_directory_archive_no_overwrite_without_force() {
 }
 
 #[test]
-fn test_directory_recursive_round_trip() {
-    let src_dir = TempDir::new().unwrap();
-    let root = build_tree(src_dir.path());
-
-    let enc_dir = TempDir::new().unwrap();
-    encrypt_paths(&[&root], TEST_PASSWORD, enc_dir.path(), true).unwrap();
-
-    // One .shadow per file (three files; empty dirs are not represented).
-    let shadows = find_shadow_files(enc_dir.path());
-    assert_eq!(shadows.len(), 3);
-
-    let out_dir = TempDir::new().unwrap();
-    let shadow_refs: Vec<&Path> = shadows.iter().map(|p| p.as_path()).collect();
-    decrypt_files(&shadow_refs, TEST_PASSWORD, out_dir.path()).unwrap();
-
-    let restored = out_dir.path().join("photos");
-    assert_tree_restored(&restored, false);
-}
-
-#[test]
 fn test_empty_directory_archive_round_trip() {
     let src_dir = TempDir::new().unwrap();
     let root = src_dir.path().join("hollow");
@@ -146,8 +126,7 @@ fn test_delete_removes_original_file_after_encryption() {
     let input_file = temp_dir.path().join("secret.txt");
     fs::write(&input_file, b"delete me after").unwrap();
 
-    common::encrypt_with_options(&[&input_file], TEST_PASSWORD, temp_dir.path(), false, true)
-        .unwrap();
+    common::encrypt_with_options(&[&input_file], TEST_PASSWORD, temp_dir.path(), true).unwrap();
 
     assert!(!input_file.exists(), "original must be deleted");
     let shadows = find_shadow_files(temp_dir.path());
@@ -164,12 +143,12 @@ fn test_delete_removes_original_directory_after_archiving() {
     let root = build_tree(src_dir.path());
 
     let enc_dir = TempDir::new().unwrap();
-    common::encrypt_with_options(&[&root], TEST_PASSWORD, enc_dir.path(), false, true).unwrap();
+    common::encrypt_with_options(&[&root], TEST_PASSWORD, enc_dir.path(), true).unwrap();
 
     assert!(!root.exists(), "original tree must be deleted");
 
     let shadows = find_shadow_files(enc_dir.path());
     let out_dir = TempDir::new().unwrap();
     decrypt_files(&[&shadows[0]], TEST_PASSWORD, out_dir.path()).unwrap();
-    assert_tree_restored(&out_dir.path().join("photos"), true);
+    assert_tree_restored(&out_dir.path().join("photos"));
 }

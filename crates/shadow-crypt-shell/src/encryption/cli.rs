@@ -15,6 +15,7 @@ pub enum CliProfile {
     /// Maximum-cost key derivation; needs 1 GiB of free RAM per file
     Paranoid,
     /// For automated testing only — insecure, skips password strength checks
+    #[value(hide = true)]
     Test,
 }
 
@@ -35,9 +36,7 @@ impl From<CliProfile> for SecurityProfile {
     about = "Encrypt files using shadow format",
     version,
     after_help = "A directory input becomes a single encrypted archive that hides the file \
-                  count, names, and sizes inside it. With --recursive, the directory's \
-                  files are instead encrypted individually (sync-friendly: one .shadow \
-                  per file), preserving their relative paths.\n\n\
+                  count, names, and sizes inside it.\n\n\
                   Run with --profiles to see each security profile's key derivation \
                   parameters.\n\n\
                   Exit codes: 0 success; 1 operation failed; 2 invalid usage or input; \
@@ -47,10 +46,6 @@ pub struct EncryptionCliArgs {
     /// Input files or directories to encrypt
     #[arg(value_name = "PATH")]
     pub input_files: Vec<String>,
-
-    /// Encrypt a directory's files individually instead of as one archive
-    #[arg(long = "recursive", short = 'r')]
-    pub recursive: bool,
 
     /// Security profile controlling the key derivation cost
     #[arg(long = "profile", value_enum, default_value_t = CliProfile::Standard)]
@@ -74,7 +69,7 @@ pub struct EncryptionCliArgs {
 
     /// Delete originals after successful encryption. Best-effort removal:
     /// on SSDs and journaling filesystems the data may remain recoverable
-    /// until overwritten. With --recursive, emptied directories are kept.
+    /// until overwritten.
     #[arg(long = "delete")]
     pub delete: bool,
 }

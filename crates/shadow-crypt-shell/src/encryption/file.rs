@@ -16,8 +16,7 @@ pub enum InputKind {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EncryptionInputFile {
     pub path: PathBuf,
-    /// Stored name: the file's name (possibly a relative path in recursive
-    /// mode) or the directory's name for archives.
+    /// Stored name: the file's name, or the directory's name for archives.
     pub filename: String,
     pub size: u64,
     pub kind: InputKind,

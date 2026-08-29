@@ -6,10 +6,8 @@ use crate::{
     encryption::{
         cli::EncryptionCliArgs,
         file::{EncryptionInputFile, InputKind},
-        file_ops::walk_directory,
     },
     errors::{WorkflowError, WorkflowResult},
-    ui::display_warning,
 };
 
 pub struct ValidEncryptionArgs {
@@ -30,7 +28,7 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
 
     let mut validated_files: Vec<EncryptionInputFile> = Vec::new();
     for raw in &input.input_files {
-        validate_path(PathBuf::from(raw), input.recursive, &mut validated_files)?;
+        validate_path(PathBuf::from(raw), &mut validated_files)?;
     }
 
     Ok(ValidEncryptionArgs {
@@ -43,11 +41,7 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
     })
 }
 
-fn validate_path(
-    path: PathBuf,
-    recursive: bool,
-    out: &mut Vec<EncryptionInputFile>,
-) -> WorkflowResult<()> {
+fn validate_path(path: PathBuf, out: &mut Vec<EncryptionInputFile>) -> WorkflowResult<()> {
     if !path.exists() {
         return Err(WorkflowError::UserInput(format!(
             "Input path does not exist: {}",
@@ -58,35 +52,12 @@ fn validate_path(
     let name = path_name(&path)?;
 
     if path.is_dir() {
-        if recursive {
-            // Expand the directory into individual file items, each storing
-            // its path relative to the directory's parent (so decryption
-            // recreates the tree including the top directory).
-            let (entries, skipped) = walk_directory(&path)?;
-            if skipped > 0 {
-                display_warning(&format!(
-                    "Skipped {} unsupported entr{} (symlinks, special files) in '{}'",
-                    skipped,
-                    if skipped == 1 { "y" } else { "ies" },
-                    path.display()
-                ));
-            }
-            for entry in entries.iter().filter(|e| !e.is_dir) {
-                out.push(EncryptionInputFile {
-                    path: entry.path.clone(),
-                    filename: format!("{name}/{}", entry.rel),
-                    size: entry.size,
-                    kind: InputKind::File,
-                });
-            }
-        } else {
-            out.push(EncryptionInputFile {
-                path,
-                filename: name,
-                size: 0,
-                kind: InputKind::Directory,
-            });
-        }
+        out.push(EncryptionInputFile {
+            path,
+            filename: name,
+            size: 0,
+            kind: InputKind::Directory,
+        });
         return Ok(());
     }
 
@@ -177,37 +148,6 @@ mod tests {
         assert_eq!(valid.files.len(), 1);
         assert_eq!(valid.files[0].kind, InputKind::Directory);
         assert_eq!(valid.files[0].filename, "photos");
-    }
-
-    #[test]
-    fn test_validate_input_directory_recursive_expands_files() {
-        let temp_dir = tempfile::tempdir().unwrap();
-        let dir = temp_dir.path().join("photos");
-        std::fs::create_dir_all(dir.join("sub")).unwrap();
-        std::fs::write(dir.join("a.txt"), b"aaa").unwrap();
-        std::fs::write(dir.join("sub").join("b.txt"), b"b").unwrap();
-
-        let input = EncryptionCliArgs {
-            input_files: vec![dir.to_str().unwrap().to_string()],
-            recursive: true,
-            ..Default::default()
-        };
-        let valid = validate_input(input).unwrap();
-
-        let mut names: Vec<(String, u64)> = valid
-            .files
-            .iter()
-            .map(|f| (f.filename.clone(), f.size))
-            .collect();
-        names.sort();
-        assert_eq!(
-            names,
-            vec![
-                ("photos/a.txt".to_string(), 3),
-                ("photos/sub/b.txt".to_string(), 1),
-            ]
-        );
-        assert!(valid.files.iter().all(|f| f.kind == InputKind::File));
     }
 
     #[test]

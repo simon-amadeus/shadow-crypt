@@ -28,25 +28,14 @@ pub const TEST_PASSWORD: &str = "testpassword";
 /// Encrypts `files` into `output_dir` through the full validation + workflow
 /// path, using the test security profile.
 pub fn encrypt_files(files: &[&Path], password: &str, output_dir: &Path) -> WorkflowResult<()> {
-    encrypt_paths(files, password, output_dir, false)
+    encrypt_with_options(files, password, output_dir, false)
 }
 
-/// [`encrypt_files`] with control over recursive (per-file) directory mode.
-pub fn encrypt_paths(
-    paths: &[&Path],
-    password: &str,
-    output_dir: &Path,
-    recursive: bool,
-) -> WorkflowResult<()> {
-    encrypt_with_options(paths, password, output_dir, recursive, false)
-}
-
-/// [`encrypt_paths`] with control over deleting the originals.
+/// [`encrypt_files`] with control over deleting the originals.
 pub fn encrypt_with_options(
     paths: &[&Path],
     password: &str,
     output_dir: &Path,
-    recursive: bool,
     delete: bool,
 ) -> WorkflowResult<()> {
     let cli_args = EncryptionCliArgs {
@@ -55,7 +44,6 @@ pub fn encrypt_with_options(
             .map(|path| path.to_str().unwrap().to_string())
             .collect(),
         profile: shadow_crypt_shell::encryption::cli::CliProfile::Test,
-        recursive,
         ..Default::default()
     };
     let valid_args = validate_encryption_input(cli_args)?;
