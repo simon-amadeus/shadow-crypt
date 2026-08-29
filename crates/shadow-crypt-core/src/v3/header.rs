@@ -1,14 +1,18 @@
 use crate::{
     errors::{FileError, HeaderError},
-    memory::{SecureKey, SecureString},
-    v2::{crypt, key::KeyDerivationParams},
+    file::FileMetadata,
+    memory::SecureKey,
+    v3::{crypt, key::KeyDerivationParams, metadata},
 };
 
-/// Complete v2 file header.
+/// Complete v3 file header.
 ///
-/// The serialized layout matches v1 byte for byte, but the version byte is 2
-/// and the fixed fields are authenticated: they are bound as associated data
-/// to both AEAD operations via [`HeaderBinding`].
+/// Differences from v2: the content is encrypted as a sequence of AEAD
+/// chunks (see [`crate::v3::stream`]) using a 16-byte nonce prefix stored
+/// here, and the bare filename ciphertext is replaced by an encrypted
+/// metadata envelope carrying the filename plus optional mtime and Unix
+/// mode. All fixed fields are authenticated as associated data via
+/// [`HeaderBinding`], with distinct domains for metadata and content.
 ///
 /// The struct holds only the header's actual information content; the layout
 /// artifacts of the serialized form (magic, version byte, length fields) are
@@ -19,55 +23,67 @@ use crate::{
 /// | field                      | size     |
 /// |----------------------------|----------|
 /// | magic ("SHADOW")           | 6 bytes  |
-/// | version (2)                | 1 byte   |
+/// | version (3)                | 1 byte   |
 /// | header_length              | 4 bytes  |
 /// | salt                       | 16 bytes |
 /// | kdf_memory                 | 4 bytes  |
 /// | kdf_iterations             | 4 bytes  |
 /// | kdf_parallelism            | 4 bytes  |
 /// | kdf_key_length             | 1 byte   |
-/// | content_nonce              | 24 bytes |
-/// | filename_nonce             | 24 bytes |
-/// | filename_ciphertext_length | 2 bytes  |
-/// | filename_ciphertext        | variable |
+/// | nonce_prefix               | 16 bytes |
+/// | chunk_size                 | 4 bytes  |
+/// | metadata_nonce             | 24 bytes |
+/// | metadata_ciphertext_length | 2 bytes  |
+/// | metadata_ciphertext        | variable |
 #[derive(Debug, Clone)]
 pub struct FileHeader {
     salt: [u8; 16],
     kdf_params: KeyDerivationParams,
-    content_nonce: [u8; 24],
-    filename_nonce: [u8; 24],
-    filename_ciphertext: Vec<u8>,
+    nonce_prefix: [u8; 16],
+    chunk_size: u32,
+    metadata_nonce: [u8; 24],
+    metadata_ciphertext: Vec<u8>,
 }
 
 pub const MAGIC: [u8; 6] = *b"SHADOW";
-pub const VERSION: u8 = 2;
+pub const VERSION: u8 = 3;
+
+/// Largest chunk size accepted when parsing a header. Bounds the per-chunk
+/// allocation a crafted file can request.
+pub const MAX_ACCEPTED_CHUNK_SIZE: u32 = 64 * 1024 * 1024; // 64 MiB
 
 impl FileHeader {
-    /// Builds a v2 header. Fails with [`HeaderError::FilenameTooLong`] if the
-    /// filename ciphertext does not fit the u16 length field, instead of
-    /// silently truncating.
+    /// Builds a v3 header. Fails with [`HeaderError::MetadataTooLong`] if the
+    /// metadata ciphertext does not fit the u16 length field, and with
+    /// [`HeaderError::InvalidData`] for a chunk size outside
+    /// `1..=MAX_ACCEPTED_CHUNK_SIZE`.
     pub fn new(
         salt: [u8; 16],
         kdf_params: KeyDerivationParams,
-        content_nonce: [u8; 24],
-        filename_nonce: [u8; 24],
-        filename_ciphertext: Vec<u8>,
+        nonce_prefix: [u8; 16],
+        chunk_size: u32,
+        metadata_nonce: [u8; 24],
+        metadata_ciphertext: Vec<u8>,
     ) -> Result<Self, HeaderError> {
-        if u16::try_from(filename_ciphertext.len()).is_err() {
-            return Err(HeaderError::FilenameTooLong);
+        if u16::try_from(metadata_ciphertext.len()).is_err() {
+            return Err(HeaderError::MetadataTooLong);
+        }
+        if chunk_size == 0 || chunk_size > MAX_ACCEPTED_CHUNK_SIZE {
+            return Err(HeaderError::InvalidData);
         }
 
         Ok(FileHeader {
             salt,
             kdf_params,
-            content_nonce,
-            filename_nonce,
-            filename_ciphertext,
+            nonce_prefix,
+            chunk_size,
+            metadata_nonce,
+            metadata_ciphertext,
         })
     }
 
     /// Minimum length of the serialized header without the variable-length
-    /// filename ciphertext. Changing the layout requires updating this value.
+    /// metadata ciphertext. Changing the layout requires updating this value.
     pub(crate) const fn min_length() -> usize {
         6  // magic ("SHADOW")
         + 1  // version (u8)
@@ -77,14 +93,15 @@ impl FileHeader {
         + 4  // kdf_iterations (u32)
         + 4  // kdf_parallelism (u32)
         + 1  // kdf_key_length (u8)
-        + 24 // content_nonce ([u8; 24])
-        + 24 // filename_nonce ([u8; 24])
-        + 2 // filename_ciphertext_length (u16)
+        + 16 // nonce_prefix ([u8; 16])
+        + 4  // chunk_size (u32)
+        + 24 // metadata_nonce ([u8; 24])
+        + 2 // metadata_ciphertext_length (u16)
     }
 
     /// Total length of this header's serialized form.
     pub fn header_length(&self) -> usize {
-        Self::min_length() + self.filename_ciphertext.len()
+        Self::min_length() + self.metadata_ciphertext.len()
     }
 
     pub fn serialize(&self) -> Vec<u8> {
@@ -98,10 +115,11 @@ impl FileHeader {
         bytes.extend_from_slice(&self.kdf_params.time_cost.to_le_bytes());
         bytes.extend_from_slice(&self.kdf_params.parallelism.to_le_bytes());
         bytes.push(self.kdf_params.key_size);
-        bytes.extend_from_slice(&self.content_nonce);
-        bytes.extend_from_slice(&self.filename_nonce);
-        bytes.extend_from_slice(&(self.filename_ciphertext.len() as u16).to_le_bytes());
-        bytes.extend_from_slice(&self.filename_ciphertext);
+        bytes.extend_from_slice(&self.nonce_prefix);
+        bytes.extend_from_slice(&self.chunk_size.to_le_bytes());
+        bytes.extend_from_slice(&self.metadata_nonce);
+        bytes.extend_from_slice(&(self.metadata_ciphertext.len() as u16).to_le_bytes());
+        bytes.extend_from_slice(&self.metadata_ciphertext);
 
         bytes
     }
@@ -130,7 +148,6 @@ impl FileHeader {
         let magic: [u8; 6] = bytes[0..6].try_into().ok()?;
         let version = bytes[6];
 
-        // Unlike v1, v2 rejects a wrong magic or version byte at parse time.
         if magic != MAGIC || version != VERSION {
             return None;
         }
@@ -141,11 +158,16 @@ impl FileHeader {
         let kdf_iterations = u32::from_le_bytes(bytes[31..35].try_into().ok()?);
         let kdf_parallelism = u32::from_le_bytes(bytes[35..39].try_into().ok()?);
         let kdf_key_length = bytes[39];
-        let content_nonce = bytes[40..64].try_into().ok()?;
-        let filename_nonce = bytes[64..88].try_into().ok()?;
-        let filename_ciphertext_length = u16::from_le_bytes(bytes[88..90].try_into().ok()?);
+        let nonce_prefix = bytes[40..56].try_into().ok()?;
+        let chunk_size = u32::from_le_bytes(bytes[56..60].try_into().ok()?);
+        let metadata_nonce = bytes[60..84].try_into().ok()?;
+        let metadata_ciphertext_length = u16::from_le_bytes(bytes[84..86].try_into().ok()?);
 
-        let expected_length: usize = FileHeader::min_length() + filename_ciphertext_length as usize;
+        if chunk_size == 0 || chunk_size > MAX_ACCEPTED_CHUNK_SIZE {
+            return None;
+        }
+
+        let expected_length: usize = FileHeader::min_length() + metadata_ciphertext_length as usize;
 
         if header_length != expected_length as u32 {
             return None;
@@ -155,7 +177,7 @@ impl FileHeader {
             return None;
         }
 
-        let filename_ciphertext = bytes[FileHeader::min_length()..expected_length].to_vec();
+        let metadata_ciphertext = bytes[FileHeader::min_length()..expected_length].to_vec();
 
         Some(FileHeader {
             salt,
@@ -165,9 +187,10 @@ impl FileHeader {
                 kdf_parallelism,
                 kdf_key_length,
             ),
-            content_nonce,
-            filename_nonce,
-            filename_ciphertext,
+            nonce_prefix,
+            chunk_size,
+            metadata_nonce,
+            metadata_ciphertext,
         })
     }
 
@@ -180,46 +203,32 @@ impl FileHeader {
         &self.kdf_params
     }
 
-    pub fn content_nonce(&self) -> &[u8; 24] {
-        &self.content_nonce
+    pub fn nonce_prefix(&self) -> &[u8; 16] {
+        &self.nonce_prefix
     }
 
-    pub fn filename_nonce(&self) -> &[u8; 24] {
-        &self.filename_nonce
+    pub fn chunk_size(&self) -> u32 {
+        self.chunk_size
     }
 
-    pub fn filename_ciphertext(&self) -> &[u8] {
-        &self.filename_ciphertext
+    pub fn metadata_nonce(&self) -> &[u8; 24] {
+        &self.metadata_nonce
     }
 
-    /// Decrypts a content ciphertext under this header's content nonce,
-    /// verifying the header binding under the content domain.
-    pub fn decrypt_content(
-        &self,
-        ciphertext: &[u8],
-        key: &SecureKey,
-    ) -> Result<crate::memory::SecureBytes, FileError> {
-        let (content, _) = crypt::decrypt_bytes(
-            ciphertext,
+    pub fn metadata_ciphertext(&self) -> &[u8] {
+        &self.metadata_ciphertext
+    }
+
+    /// Decrypts and parses the metadata envelope stored in this header,
+    /// verifying the header binding under the metadata domain.
+    pub fn decrypt_metadata(&self, key: &SecureKey) -> Result<FileMetadata, FileError> {
+        let (envelope, _) = crypt::decrypt_bytes(
+            &self.metadata_ciphertext,
             key.as_bytes(),
-            &self.content_nonce,
-            &self.binding().aad(AadPurpose::Content),
+            &self.metadata_nonce,
+            &self.binding().aad(AadPurpose::Metadata),
         )?;
-        Ok(content)
-    }
-
-    /// Decrypts the original filename stored in this header, verifying the
-    /// header binding under the filename domain.
-    pub fn decrypt_filename(&self, key: &SecureKey) -> Result<SecureString, FileError> {
-        let (filename_bytes, _) = crypt::decrypt_bytes(
-            &self.filename_ciphertext,
-            key.as_bytes(),
-            &self.filename_nonce,
-            &self.binding().aad(AadPurpose::Filename),
-        )?;
-        let filename = String::from_utf8(filename_bytes.as_slice().to_vec())
-            .map_err(|_| FileError::InvalidFilename)?;
-        Ok(SecureString::new(filename))
+        metadata::parse(envelope.as_slice())
     }
 
     /// The header binding used as associated data for this header's AEAD
@@ -228,8 +237,9 @@ impl FileHeader {
         HeaderBinding {
             salt: &self.salt,
             kdf_params: &self.kdf_params,
-            content_nonce: &self.content_nonce,
-            filename_nonce: &self.filename_nonce,
+            nonce_prefix: &self.nonce_prefix,
+            chunk_size: self.chunk_size,
+            metadata_nonce: &self.metadata_nonce,
         }
     }
 }
@@ -250,57 +260,61 @@ fn read_header_length(bytes: &[u8]) -> Result<u32, HeaderError> {
 
 /// Which ciphertext an AEAD operation belongs to.
 ///
-/// The purpose is mixed into the associated data, giving the filename and
-/// content ciphertexts distinct domains: a ciphertext produced for one
-/// purpose can never authenticate for the other, even under the same key.
+/// The purpose is mixed into the associated data, giving the metadata
+/// envelope and the content chunks distinct domains: a ciphertext produced
+/// for one purpose can never authenticate for the other, even under the
+/// same key.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AadPurpose {
-    Filename,
+    Metadata,
     Content,
 }
 
 impl AadPurpose {
     fn domain_tag(self) -> &'static [u8] {
         match self {
-            AadPurpose::Filename => b"shadow-crypt/v2/filename",
-            AadPurpose::Content => b"shadow-crypt/v2/content",
+            AadPurpose::Metadata => b"shadow-crypt/v3/metadata",
+            AadPurpose::Content => b"shadow-crypt/v3/content",
         }
     }
 }
 
-/// The fixed header fields bound as associated data to every v2 AEAD
+/// The fixed header fields bound as associated data to every v3 AEAD
 /// operation.
 ///
 /// This exists separately from [`FileHeader`] because on encryption the
 /// associated data is needed *before* the header can be built (the header
-/// contains the filename ciphertext, which is itself AEAD-encrypted under
+/// contains the metadata ciphertext, which is itself AEAD-encrypted under
 /// this binding).
 ///
-/// The variable-length fields (`header_length`, `filename_ciphertext_length`,
-/// and the filename ciphertext itself) are deliberately excluded: they depend
-/// on the filename encryption output, and tampering with them is already
+/// The variable-length fields (`header_length`, `metadata_ciphertext_length`,
+/// and the metadata ciphertext itself) are deliberately excluded: they depend
+/// on the metadata encryption output, and tampering with them is already
 /// detected — a shifted length changes which bytes are interpreted as
 /// ciphertext, which fails authentication.
 #[derive(Debug, Clone, Copy)]
 pub struct HeaderBinding<'a> {
     salt: &'a [u8; 16],
     kdf_params: &'a KeyDerivationParams,
-    content_nonce: &'a [u8; 24],
-    filename_nonce: &'a [u8; 24],
+    nonce_prefix: &'a [u8; 16],
+    chunk_size: u32,
+    metadata_nonce: &'a [u8; 24],
 }
 
 impl<'a> HeaderBinding<'a> {
     pub fn new(
         salt: &'a [u8; 16],
         kdf_params: &'a KeyDerivationParams,
-        content_nonce: &'a [u8; 24],
-        filename_nonce: &'a [u8; 24],
+        nonce_prefix: &'a [u8; 16],
+        chunk_size: u32,
+        metadata_nonce: &'a [u8; 24],
     ) -> Self {
         Self {
             salt,
             kdf_params,
-            content_nonce,
-            filename_nonce,
+            nonce_prefix,
+            chunk_size,
+            metadata_nonce,
         }
     }
 
@@ -315,8 +329,9 @@ impl<'a> HeaderBinding<'a> {
         aad.extend_from_slice(&self.kdf_params.time_cost.to_le_bytes());
         aad.extend_from_slice(&self.kdf_params.parallelism.to_le_bytes());
         aad.push(self.kdf_params.key_size);
-        aad.extend_from_slice(self.content_nonce);
-        aad.extend_from_slice(self.filename_nonce);
+        aad.extend_from_slice(self.nonce_prefix);
+        aad.extend_from_slice(&self.chunk_size.to_le_bytes());
+        aad.extend_from_slice(self.metadata_nonce);
         aad.extend_from_slice(purpose.domain_tag());
         aad
     }
@@ -335,7 +350,8 @@ mod tests {
         FileHeader::new(
             [1u8; 16],
             get_test_params(),
-            [2u8; 24],
+            [2u8; 16],
+            1024,
             [3u8; 24],
             vec![4, 5, 6, 7, 8],
         )
@@ -346,62 +362,61 @@ mod tests {
     fn serialized_magic_and_version_are_correct() {
         let serialized = create_test_header().serialize();
         assert_eq!(&serialized[0..6], b"SHADOW");
-        assert_eq!(serialized[6], 2);
+        assert_eq!(serialized[6], 3);
     }
 
     #[test]
     fn header_size_is_calculated_correctly() {
-        let filename_ciphertext = vec![1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-        let header = FileHeader::new(
-            [0u8; 16],
-            get_test_params(),
-            [0u8; 24],
-            [0u8; 24],
-            filename_ciphertext.clone(),
-        )
-        .unwrap();
-
-        assert_eq!(header.header_length(), 90 + filename_ciphertext.len());
+        let header = create_test_header();
+        assert_eq!(header.header_length(), 86 + 5);
         assert_eq!(header.serialize().len(), header.header_length());
     }
 
     #[test]
-    fn oversized_filename_ciphertext_is_rejected() {
-        let filename_ciphertext = vec![0u8; u16::MAX as usize + 1];
+    fn oversized_metadata_ciphertext_is_rejected() {
         let result = FileHeader::new(
             [0u8; 16],
             get_test_params(),
+            [0u8; 16],
+            1024,
             [0u8; 24],
-            [0u8; 24],
-            filename_ciphertext,
+            vec![0u8; u16::MAX as usize + 1],
         );
-        assert!(matches!(result, Err(HeaderError::FilenameTooLong)));
+        assert!(matches!(result, Err(HeaderError::MetadataTooLong)));
     }
 
     #[test]
-    fn max_length_filename_ciphertext_is_accepted() {
-        let filename_ciphertext = vec![0u8; u16::MAX as usize];
-        let header = FileHeader::new(
-            [0u8; 16],
-            get_test_params(),
-            [0u8; 24],
-            [0u8; 24],
-            filename_ciphertext,
-        )
-        .unwrap();
-        assert_eq!(header.filename_ciphertext().len(), u16::MAX as usize);
+    fn invalid_chunk_sizes_are_rejected() {
+        for chunk_size in [0, MAX_ACCEPTED_CHUNK_SIZE + 1] {
+            let result = FileHeader::new(
+                [0u8; 16],
+                get_test_params(),
+                [0u8; 16],
+                chunk_size,
+                [0u8; 24],
+                vec![1, 2, 3],
+            );
+            assert!(matches!(result, Err(HeaderError::InvalidData)));
+        }
+    }
+
+    #[test]
+    fn oversized_chunk_size_is_rejected_at_parse_time() {
+        let mut serialized = create_test_header().serialize();
+        serialized[56..60].copy_from_slice(&(MAX_ACCEPTED_CHUNK_SIZE + 1).to_le_bytes());
+        assert!(FileHeader::try_deserialize(&serialized).is_err());
     }
 
     #[test]
     fn aad_differs_by_purpose() {
         let salt = [1u8; 16];
         let params = get_test_params();
-        let content_nonce = [2u8; 24];
-        let filename_nonce = [3u8; 24];
-        let binding = HeaderBinding::new(&salt, &params, &content_nonce, &filename_nonce);
+        let nonce_prefix = [2u8; 16];
+        let metadata_nonce = [3u8; 24];
+        let binding = HeaderBinding::new(&salt, &params, &nonce_prefix, 1024, &metadata_nonce);
 
         assert_ne!(
-            binding.aad(AadPurpose::Filename),
+            binding.aad(AadPurpose::Metadata),
             binding.aad(AadPurpose::Content)
         );
     }
@@ -410,15 +425,16 @@ mod tests {
     fn header_binding_matches_standalone_binding() {
         let salt = [1u8; 16];
         let params = get_test_params();
-        let content_nonce = [2u8; 24];
-        let filename_nonce = [3u8; 24];
+        let nonce_prefix = [2u8; 16];
+        let metadata_nonce = [3u8; 24];
 
-        let standalone = HeaderBinding::new(&salt, &params, &content_nonce, &filename_nonce);
+        let standalone = HeaderBinding::new(&salt, &params, &nonce_prefix, 1024, &metadata_nonce);
         let header = FileHeader::new(
             salt,
             params.clone(),
-            content_nonce,
-            filename_nonce,
+            nonce_prefix,
+            1024,
+            metadata_nonce,
             vec![1, 2, 3],
         )
         .unwrap();
@@ -428,23 +444,9 @@ mod tests {
             header.binding().aad(AadPurpose::Content)
         );
         assert_eq!(
-            standalone.aad(AadPurpose::Filename),
-            header.binding().aad(AadPurpose::Filename)
+            standalone.aad(AadPurpose::Metadata),
+            header.binding().aad(AadPurpose::Metadata)
         );
-    }
-
-    #[test]
-    fn kdf_params_round_trip_through_header() {
-        let params = get_test_params();
-        let header = FileHeader::new(
-            [0u8; 16],
-            params.clone(),
-            [0u8; 24],
-            [0u8; 24],
-            vec![1, 2, 3],
-        )
-        .unwrap();
-        assert_eq!(header.kdf_params(), &params);
     }
 
     #[test]
@@ -456,18 +458,19 @@ mod tests {
         let deserialized = FileHeader::try_deserialize(&serialized).unwrap();
         assert_eq!(deserialized.salt(), original.salt());
         assert_eq!(deserialized.kdf_params(), original.kdf_params());
-        assert_eq!(deserialized.content_nonce(), original.content_nonce());
-        assert_eq!(deserialized.filename_nonce(), original.filename_nonce());
+        assert_eq!(deserialized.nonce_prefix(), original.nonce_prefix());
+        assert_eq!(deserialized.chunk_size(), original.chunk_size());
+        assert_eq!(deserialized.metadata_nonce(), original.metadata_nonce());
         assert_eq!(
-            deserialized.filename_ciphertext(),
-            original.filename_ciphertext()
+            deserialized.metadata_ciphertext(),
+            original.metadata_ciphertext()
         );
     }
 
     #[test]
     fn test_try_deserialize_rejects_wrong_version() {
         let mut serialized = create_test_header().serialize();
-        serialized[6] = 1; // claim v1
+        serialized[6] = 2; // claim v2
 
         assert!(FileHeader::try_deserialize(&serialized).is_err());
     }
@@ -492,24 +495,9 @@ mod tests {
     #[test]
     fn test_try_deserialize_inconsistent_lengths() {
         let mut serialized = create_test_header().serialize();
-        // header_length no longer matches min_length + filename_ciphertext_length
+        // header_length no longer matches min_length + metadata_ciphertext_length
         serialized[7..11].copy_from_slice(&(200u32.to_le_bytes()));
 
         assert!(FileHeader::try_deserialize(&serialized).is_err());
-    }
-
-    #[test]
-    fn test_empty_filename_ciphertext_round_trip() {
-        let header = FileHeader::new(
-            [1u8; 16],
-            KeyDerivationParams::from(profile::SecurityProfile::Test),
-            [2u8; 24],
-            [3u8; 24],
-            vec![],
-        )
-        .unwrap();
-
-        let deserialized = FileHeader::try_deserialize(&header.serialize()).unwrap();
-        assert!(deserialized.filename_ciphertext().is_empty());
     }
 }

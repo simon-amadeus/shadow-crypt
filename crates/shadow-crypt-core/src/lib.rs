@@ -37,6 +37,13 @@ pub mod v1;
 /// with domain separation between filename and content encryption.
 pub mod v2;
 
+/// Version 3 implementation of the encryption protocol
+///
+/// Same algorithms and header authentication as v2, but the content is
+/// encrypted as a stream of chunks (bounded memory for any file size) and
+/// the header stores an encrypted metadata envelope (filename, mtime, mode).
+pub mod v3;
+
 /// Version-erased reading of shadow files across all format versions.
 pub mod vault;
 

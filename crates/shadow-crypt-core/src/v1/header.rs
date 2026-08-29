@@ -175,6 +175,16 @@ impl FileHeader {
         &self.filename_ciphertext
     }
 
+    /// Decrypts a content ciphertext under this header's content nonce.
+    pub fn decrypt_content(
+        &self,
+        ciphertext: &[u8],
+        key: &SecureKey,
+    ) -> Result<crate::memory::SecureBytes, FileError> {
+        let (content, _) = crypt::decrypt_bytes(ciphertext, key.as_bytes(), &self.content_nonce)?;
+        Ok(content)
+    }
+
     /// Decrypts the original filename stored in this header.
     pub fn decrypt_filename(&self, key: &SecureKey) -> Result<SecureString, FileError> {
         let (filename_bytes, _) = crypt::decrypt_bytes(

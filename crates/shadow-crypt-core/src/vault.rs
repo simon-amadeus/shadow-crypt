@@ -18,10 +18,10 @@
 use crate::{
     algorithm::Algorithm,
     errors::{FileError, HeaderError, KeyDerivationError},
-    file::PlaintextFile,
-    memory::{SecureKey, SecureString},
+    file::{FileMetadata, PlaintextFile},
+    memory::{SecureBytes, SecureKey, SecureString},
     report::KeyDerivationReport,
-    v1, v2,
+    v1, v2, v3,
     version::{Version, read_file_version},
 };
 
@@ -33,7 +33,9 @@ use crate::{
 pub const MAX_HEADER_LEN: usize = {
     let v1_len = v1::header::FileHeader::min_length();
     let v2_len = v2::header::FileHeader::min_length();
-    (if v1_len > v2_len { v1_len } else { v2_len }) + u16::MAX as usize
+    let v3_len = v3::header::FileHeader::min_length();
+    let max12 = if v1_len > v2_len { v1_len } else { v2_len };
+    (if max12 > v3_len { max12 } else { v3_len }) + u16::MAX as usize
 };
 
 /// The (untrusted) key derivation inputs a file's header asks for,
@@ -56,6 +58,7 @@ pub struct ParsedFile(Inner);
 enum Inner {
     V1(v1::file::EncryptedFile),
     V2(v2::file::EncryptedFile),
+    V3(v3::file::EncryptedFile),
 }
 
 impl ParsedFile {
@@ -63,11 +66,14 @@ impl ParsedFile {
     ///
     /// Accepts both complete files and header-only prefixes (at least the
     /// full header must be present); trailing bytes are treated as content
-    /// ciphertext.
+    /// ciphertext. When parsing a header-only prefix, use
+    /// [`ParsedFile::content_decryptor`] and feed the content bytes
+    /// externally — [`ParsedFile::decrypt`] needs the complete file.
     pub fn parse(bytes: &[u8]) -> Result<Self, HeaderError> {
         let inner = match read_file_version(bytes)? {
             Version::V1 => Inner::V1(v1::file::EncryptedFile::from_bytes(bytes)?),
             Version::V2 => Inner::V2(v2::file::EncryptedFile::from_bytes(bytes)?),
+            Version::V3 => Inner::V3(v3::file::EncryptedFile::from_bytes(bytes)?),
         };
         Ok(Self(inner))
     }
@@ -76,6 +82,7 @@ impl ParsedFile {
         match &self.0 {
             Inner::V1(_) => Version::V1,
             Inner::V2(_) => Version::V2,
+            Inner::V3(_) => Version::V3,
         }
     }
 
@@ -84,6 +91,17 @@ impl ParsedFile {
         match &self.0 {
             Inner::V1(_) => v1::ALGORITHM,
             Inner::V2(_) => v2::ALGORITHM,
+            Inner::V3(_) => v3::ALGORITHM,
+        }
+    }
+
+    /// Total length of the file's serialized header; the content ciphertext
+    /// starts at this offset.
+    pub fn header_length(&self) -> usize {
+        match &self.0 {
+            Inner::V1(f) => f.header().header_length(),
+            Inner::V2(f) => f.header().header_length(),
+            Inner::V3(f) => f.header().header_length(),
         }
     }
 
@@ -112,6 +130,16 @@ impl ParsedFile {
                     key_size: p.key_size,
                 }
             }
+            Inner::V3(f) => {
+                let p = f.header().kdf_params();
+                KdfRequest {
+                    salt: *f.header().salt(),
+                    memory_cost: p.memory_cost,
+                    time_cost: p.time_cost,
+                    parallelism: p.parallelism,
+                    key_size: p.key_size,
+                }
+            }
         }
     }
 
@@ -130,14 +158,21 @@ impl ParsedFile {
                 .header()
                 .kdf_params()
                 .derive_key(password, f.header().salt()),
+            Inner::V3(f) => f
+                .header()
+                .kdf_params()
+                .derive_key(password, f.header().salt()),
         }
     }
 
-    /// Decrypts the file's filename and content.
+    /// Decrypts the file's filename and content. Requires the file to have
+    /// been parsed from its complete bytes; for streamed decryption use
+    /// [`ParsedFile::content_decryptor`].
     pub fn decrypt(&self, key: &SecureKey) -> Result<PlaintextFile, FileError> {
         match &self.0 {
             Inner::V1(f) => f.decrypt(key),
             Inner::V2(f) => f.decrypt(key),
+            Inner::V3(f) => f.decrypt(key),
         }
     }
 
@@ -146,14 +181,142 @@ impl ParsedFile {
         match &self.0 {
             Inner::V1(f) => f.header().decrypt_filename(key),
             Inner::V2(f) => f.header().decrypt_filename(key),
+            Inner::V3(f) => Ok(f.header().decrypt_metadata(key)?.filename().clone()),
         }
     }
+
+    /// Decrypts the file's metadata stored in the header. Format versions
+    /// that predate metadata storage (v1, v2) return only the filename.
+    pub fn decrypt_metadata(&self, key: &SecureKey) -> Result<FileMetadata, FileError> {
+        match &self.0 {
+            Inner::V1(f) => Ok(FileMetadata::new(
+                f.header().decrypt_filename(key)?,
+                None,
+                None,
+            )),
+            Inner::V2(f) => Ok(FileMetadata::new(
+                f.header().decrypt_filename(key)?,
+                None,
+                None,
+            )),
+            Inner::V3(f) => f.header().decrypt_metadata(key),
+        }
+    }
+
+    /// Starts decrypting the file's content from externally supplied
+    /// ciphertext bytes (starting at [`ParsedFile::header_length`]), so the
+    /// caller controls I/O and memory. Works uniformly across versions:
+    /// [`ContentDecryptor::chunk_len`] says how to feed the bytes.
+    pub fn content_decryptor(&self, key: &SecureKey) -> ContentDecryptor<'_> {
+        let inner = match &self.0 {
+            Inner::V1(f) => DecryptorInner::V1 {
+                header: f.header(),
+                key: key.clone(),
+                done: false,
+            },
+            Inner::V2(f) => DecryptorInner::V2 {
+                header: f.header(),
+                key: key.clone(),
+                done: false,
+            },
+            Inner::V3(f) => DecryptorInner::V3(v3::stream::StreamOpener::new(f.header(), key)),
+        };
+        ContentDecryptor { inner }
+    }
+}
+
+/// Incremental decryption of one file's content, fed by the caller.
+///
+/// Formats whose content is a single AEAD message (v1, v2) report
+/// [`ContentDecryptor::chunk_len`] `None`: feed the entire content in one
+/// [`ContentDecryptor::decrypt_chunk`] call with `is_last = true`. Streaming
+/// formats report `Some(n)`: feed `n`-byte pieces, the final one shorter or
+/// equal, with `is_last` on the final piece.
+pub struct ContentDecryptor<'a> {
+    inner: DecryptorInner<'a>,
+}
+
+enum DecryptorInner<'a> {
+    V1 {
+        header: &'a v1::header::FileHeader,
+        key: SecureKey,
+        done: bool,
+    },
+    V2 {
+        header: &'a v2::header::FileHeader,
+        key: SecureKey,
+        done: bool,
+    },
+    V3(v3::stream::StreamOpener),
+}
+
+impl ContentDecryptor<'_> {
+    /// Ciphertext bytes to feed per [`ContentDecryptor::decrypt_chunk`]
+    /// call, or `None` when the whole content must be fed at once.
+    pub fn chunk_len(&self) -> Option<usize> {
+        match &self.inner {
+            DecryptorInner::V1 { .. } | DecryptorInner::V2 { .. } => None,
+            DecryptorInner::V3(opener) => Some(opener.chunk_ciphertext_len()),
+        }
+    }
+
+    /// Decrypts the next piece of content ciphertext. `is_last` marks that
+    /// no more bytes follow.
+    pub fn decrypt_chunk(
+        &mut self,
+        ciphertext: &[u8],
+        is_last: bool,
+    ) -> Result<SecureBytes, FileError> {
+        match &mut self.inner {
+            DecryptorInner::V1 { header, key, done } => {
+                whole_content_chunk(done, is_last)?;
+                header.decrypt_content(ciphertext, key)
+            }
+            DecryptorInner::V2 { header, key, done } => {
+                whole_content_chunk(done, is_last)?;
+                header.decrypt_content(ciphertext, key)
+            }
+            DecryptorInner::V3(opener) => opener.open_chunk(ciphertext, is_last),
+        }
+    }
+
+    /// True once the final piece has been decrypted. A content stream that
+    /// ends without this being true was truncated.
+    pub fn finished(&self) -> bool {
+        match &self.inner {
+            DecryptorInner::V1 { done, .. } | DecryptorInner::V2 { done, .. } => *done,
+            DecryptorInner::V3(opener) => opener.finished(),
+        }
+    }
+}
+
+/// Guards the single-chunk contract of the whole-content (v1/v2) decryptors.
+fn whole_content_chunk(done: &mut bool, is_last: bool) -> Result<(), FileError> {
+    if *done || !is_last {
+        return Err(FileError::Crypt(
+            crate::errors::CryptError::DecryptionError(
+                "this format's content must be decrypted as a single final chunk".to_string(),
+            ),
+        ));
+    }
+    *done = true;
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::memory::SecureBytes;
+
+    fn seal_v3(password: &[u8], filename: &str, content: &[u8]) -> Vec<u8> {
+        let salt = [1u8; 16];
+        let params = v3::key::KeyDerivationParams::test_defaults();
+        let (key, _) = params.derive_key(password, &salt).unwrap();
+        let metadata =
+            FileMetadata::new(SecureString::new(filename.to_string()), None, Some(0o600));
+        v3::file::EncryptedFile::seal(&metadata, content, &key, params, salt, [2u8; 16], [3u8; 24])
+            .unwrap()
+            .to_bytes()
+    }
 
     fn seal_v2(password: &[u8], filename: &str, content: &[u8]) -> Vec<u8> {
         let salt = [1u8; 16];
@@ -187,9 +350,11 @@ mod tests {
     fn parse_dispatches_on_version_byte() {
         let v1_bytes = seal_v1(b"pw", "a.txt", b"one");
         let v2_bytes = seal_v2(b"pw", "b.txt", b"two");
+        let v3_bytes = seal_v3(b"pw", "c.txt", b"three");
 
         assert_eq!(ParsedFile::parse(&v1_bytes).unwrap().version(), Version::V1);
         assert_eq!(ParsedFile::parse(&v2_bytes).unwrap().version(), Version::V2);
+        assert_eq!(ParsedFile::parse(&v3_bytes).unwrap().version(), Version::V3);
     }
 
     #[test]
@@ -200,10 +365,11 @@ mod tests {
     }
 
     #[test]
-    fn decrypt_round_trips_both_versions() {
+    fn decrypt_round_trips_all_versions() {
         for bytes in [
             seal_v1(b"pw", "name.txt", b"content"),
             seal_v2(b"pw", "name.txt", b"content"),
+            seal_v3(b"pw", "name.txt", b"content"),
         ] {
             let parsed = ParsedFile::parse(&bytes).unwrap();
             let (key, _) = parsed.derive_key(b"pw").unwrap();
@@ -218,6 +384,7 @@ mod tests {
         for bytes in [
             seal_v1(b"pw", "name.txt", b"content"),
             seal_v2(b"pw", "name.txt", b"content"),
+            seal_v3(b"pw", "name.txt", b"content"),
         ] {
             // Simulate a bounded header read: any prefix at least as long as
             // the header (here capped at MAX_HEADER_LEN) must be parseable.
@@ -226,6 +393,65 @@ mod tests {
             let (key, _) = parsed.derive_key(b"pw").unwrap();
             assert_eq!(parsed.decrypt_filename(&key).unwrap().as_str(), "name.txt");
         }
+    }
+
+    /// The caller-fed decryptor must reproduce the content for every version
+    /// when fed according to its own chunk_len contract.
+    #[test]
+    fn content_decryptor_round_trips_all_versions() {
+        for bytes in [
+            seal_v1(b"pw", "name.txt", b"content"),
+            seal_v2(b"pw", "name.txt", b"content"),
+            seal_v3(b"pw", "name.txt", b"content"),
+        ] {
+            let parsed = ParsedFile::parse(&bytes).unwrap();
+            let (key, _) = parsed.derive_key(b"pw").unwrap();
+            let content_bytes = &bytes[parsed.header_length()..];
+
+            let mut decryptor = parsed.content_decryptor(&key);
+            let mut out = Vec::new();
+            match decryptor.chunk_len() {
+                None => {
+                    out.extend_from_slice(
+                        decryptor
+                            .decrypt_chunk(content_bytes, true)
+                            .unwrap()
+                            .as_slice(),
+                    );
+                }
+                Some(n) => {
+                    let pieces: Vec<&[u8]> = content_bytes.chunks(n).collect();
+                    for (i, piece) in pieces.iter().enumerate() {
+                        out.extend_from_slice(
+                            decryptor
+                                .decrypt_chunk(piece, i == pieces.len() - 1)
+                                .unwrap()
+                                .as_slice(),
+                        );
+                    }
+                }
+            }
+
+            assert!(decryptor.finished());
+            assert_eq!(out, b"content");
+        }
+    }
+
+    #[test]
+    fn decrypt_metadata_reports_fields_by_version() {
+        let v2_bytes = seal_v2(b"pw", "name.txt", b"content");
+        let parsed = ParsedFile::parse(&v2_bytes).unwrap();
+        let (key, _) = parsed.derive_key(b"pw").unwrap();
+        let meta = parsed.decrypt_metadata(&key).unwrap();
+        assert_eq!(meta.filename().as_str(), "name.txt");
+        assert_eq!(meta.mode(), None);
+
+        let v3_bytes = seal_v3(b"pw", "name.txt", b"content");
+        let parsed = ParsedFile::parse(&v3_bytes).unwrap();
+        let (key, _) = parsed.derive_key(b"pw").unwrap();
+        let meta = parsed.decrypt_metadata(&key).unwrap();
+        assert_eq!(meta.filename().as_str(), "name.txt");
+        assert_eq!(meta.mode(), Some(0o600));
     }
 
     #[test]

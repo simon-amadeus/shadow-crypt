@@ -5,6 +5,7 @@ pub enum HeaderError {
     InsufficientBytes,
     InvalidData,
     FilenameTooLong,
+    MetadataTooLong,
 }
 
 impl std::fmt::Display for HeaderError {
@@ -14,6 +15,9 @@ impl std::fmt::Display for HeaderError {
             HeaderError::InvalidData => write!(f, "Invalid header data"),
             HeaderError::FilenameTooLong => {
                 write!(f, "Encrypted filename is too long to fit in the header")
+            }
+            HeaderError::MetadataTooLong => {
+                write!(f, "Encrypted metadata is too long to fit in the header")
             }
         }
     }
@@ -63,6 +67,8 @@ pub enum FileError {
     Crypt(CryptError),
     /// The decrypted filename is not valid UTF-8.
     InvalidFilename,
+    /// The decrypted metadata envelope is malformed.
+    InvalidMetadata,
 }
 
 impl From<HeaderError> for FileError {
@@ -83,6 +89,7 @@ impl Display for FileError {
             FileError::Header(e) => write!(f, "{}", e),
             FileError::Crypt(e) => write!(f, "{}", e),
             FileError::InvalidFilename => write!(f, "Decrypted filename is not valid UTF-8"),
+            FileError::InvalidMetadata => write!(f, "Decrypted metadata envelope is malformed"),
         }
     }
 }

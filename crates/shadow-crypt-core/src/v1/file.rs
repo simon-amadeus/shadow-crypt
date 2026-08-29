@@ -2,7 +2,6 @@ use crate::{
     errors::{FileError, HeaderError},
     file::PlaintextFile,
     memory::SecureKey,
-    v1::crypt,
 };
 
 use super::header::FileHeader;
@@ -38,12 +37,7 @@ impl EncryptedFile {
     /// so only the AEAD tags of the two ciphertexts are verified.
     pub fn decrypt(&self, key: &SecureKey) -> Result<PlaintextFile, FileError> {
         let filename = self.header.decrypt_filename(key)?;
-
-        let (content, _) = crypt::decrypt_bytes(
-            &self.ciphertext,
-            key.as_bytes(),
-            self.header.content_nonce(),
-        )?;
+        let content = self.header.decrypt_content(&self.ciphertext, key)?;
 
         Ok(PlaintextFile::new(filename, content))
     }

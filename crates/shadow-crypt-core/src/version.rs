@@ -10,6 +10,7 @@ pub const PREAMBLE_LENGTH: usize = MAGIC.len() + 1;
 pub enum Version {
     V1,
     V2,
+    V3,
 }
 
 impl Version {
@@ -17,6 +18,7 @@ impl Version {
         match self {
             Version::V1 => "v1",
             Version::V2 => "v2",
+            Version::V3 => "v3",
         }
     }
 
@@ -24,6 +26,7 @@ impl Version {
         match self {
             Version::V1 => 1,
             Version::V2 => 2,
+            Version::V3 => 3,
         }
     }
 }
@@ -35,6 +38,7 @@ impl TryFrom<u8> for Version {
         match value {
             1 => Ok(Version::V1),
             2 => Ok(Version::V2),
+            3 => Ok(Version::V3),
             _ => Err(()),
         }
     }
@@ -63,20 +67,23 @@ mod tests {
     fn test_version_as_str() {
         assert_eq!(Version::V1.as_str(), "v1");
         assert_eq!(Version::V2.as_str(), "v2");
+        assert_eq!(Version::V3.as_str(), "v3");
     }
 
     #[test]
     fn test_version_as_u8() {
         assert_eq!(Version::V1.as_u8(), 1);
         assert_eq!(Version::V2.as_u8(), 2);
+        assert_eq!(Version::V3.as_u8(), 3);
     }
 
     #[test]
     fn test_try_from_u8() {
         assert_eq!(Version::try_from(1), Ok(Version::V1));
         assert_eq!(Version::try_from(2), Ok(Version::V2));
+        assert_eq!(Version::try_from(3), Ok(Version::V3));
         assert!(Version::try_from(0).is_err());
-        assert!(Version::try_from(3).is_err());
+        assert!(Version::try_from(4).is_err());
     }
 
     #[test]

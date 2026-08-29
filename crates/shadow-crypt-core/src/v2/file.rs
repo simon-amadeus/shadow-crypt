@@ -82,13 +82,7 @@ impl EncryptedFile {
     /// each ciphertext's own domain. The inverse of [`EncryptedFile::seal`].
     pub fn decrypt(&self, key: &SecureKey) -> Result<PlaintextFile, FileError> {
         let filename = self.header.decrypt_filename(key)?;
-
-        let (content, _) = crypt::decrypt_bytes(
-            &self.ciphertext,
-            key.as_bytes(),
-            self.header.content_nonce(),
-            &self.header.binding().aad(AadPurpose::Content),
-        )?;
+        let content = self.header.decrypt_content(&self.ciphertext, key)?;
 
         Ok(PlaintextFile::new(filename, content))
     }

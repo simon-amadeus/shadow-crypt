@@ -5,7 +5,40 @@
 //! couple the version modules to each other (unlike format-defining code,
 //! which is duplicated per version on purpose).
 
+use std::time::SystemTime;
+
 use crate::memory::{SecureBytes, SecureString};
+
+/// Metadata of a plaintext file, stored encrypted alongside the content.
+///
+/// Which fields a format version actually preserves varies: v1/v2 store only
+/// the filename, v3 stores everything. Absent fields are `None`.
+#[derive(Debug, Clone)]
+pub struct FileMetadata {
+    filename: SecureString,
+    mtime: Option<SystemTime>,
+    mode: Option<u32>, // Unix permission bits
+}
+
+impl FileMetadata {
+    pub fn new(filename: SecureString, mtime: Option<SystemTime>, mode: Option<u32>) -> Self {
+        Self {
+            filename,
+            mtime,
+            mode,
+        }
+    }
+
+    pub fn filename(&self) -> &SecureString {
+        &self.filename
+    }
+    pub fn mtime(&self) -> Option<SystemTime> {
+        self.mtime
+    }
+    pub fn mode(&self) -> Option<u32> {
+        self.mode
+    }
+}
 
 /// Represents a plaintext file with filename and content
 #[derive(Debug)]
