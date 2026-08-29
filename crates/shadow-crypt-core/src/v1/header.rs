@@ -50,7 +50,7 @@ impl FileHeader {
 
     /// Minimum length of the header without the variable-length filename ciphertext.
     /// Changing the fixed fields above requires updating this value.
-    pub fn min_length() -> usize {
+    pub const fn min_length() -> usize {
         6  // magic ("SHADOW")
         + 1  // version (u8)
         + 4  // header_length (u32)

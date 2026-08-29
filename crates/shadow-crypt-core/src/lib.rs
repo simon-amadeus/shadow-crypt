@@ -37,5 +37,8 @@ pub mod v1;
 /// with domain separation between filename and content encryption.
 pub mod v2;
 
+/// Version-erased reading of shadow files across all format versions.
+pub mod vault;
+
 /// Version management for encryption formats.
 pub mod version;

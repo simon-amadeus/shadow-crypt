@@ -1,19 +1,15 @@
 use rayon::prelude::*;
 use shadow_crypt_core::{
-    memory::SecureString,
-    progress::ProgressCounter,
-    report::DecryptionReport,
-    v1, v2,
-    version::{Version, read_file_version},
+    memory::SecureString, progress::ProgressCounter, report::DecryptionReport, vault::ParsedFile,
 };
 
 use crate::{
     decryption::{
-        file::{DecryptionInput, DecryptionInputFile, DecryptionOutputFile},
+        file::{DecryptionInput, DecryptionInputFile},
         file_ops::{load_file_bytes, store_plaintext_file},
     },
     errors::{WorkflowError, WorkflowResult},
-    kdf::derive_key_from_untrusted_params,
+    kdf::derive_untrusted_key,
     ui::{display_decryption_report, display_progress},
 };
 
@@ -55,24 +51,13 @@ fn process_file_decryption(
 
     let bytes = load_file_bytes(&file)?;
 
-    // Dispatch on the version byte; each format version is decrypted by its
-    // own self-contained code path.
-    let (output_file, algorithm): (DecryptionOutputFile, _) = match read_file_version(&bytes)? {
-        Version::V1 => {
-            let plaintext = decrypt_v1(&bytes, password)?;
-            (
-                store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?,
-                v1::ALGORITHM,
-            )
-        }
-        Version::V2 => {
-            let plaintext = decrypt_v2(&bytes, password)?;
-            (
-                store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?,
-                v2::ALGORITHM,
-            )
-        }
-    };
+    // ParsedFile dispatches to the file's own format version internally; this
+    // workflow is version-agnostic.
+    let parsed = ParsedFile::parse(&bytes)?;
+    let key = derive_untrusted_key(&parsed, password)?;
+    let plaintext = parsed.decrypt(&key)?;
+
+    let output_file = store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?;
 
     let duration = start_time.elapsed();
 
@@ -80,44 +65,8 @@ fn process_file_decryption(
         file.filename,
         output_file.filename,
         duration,
-        algorithm,
+        parsed.algorithm(),
     ))
-}
-
-fn decrypt_v1(
-    bytes: &[u8],
-    password: &SecureString,
-) -> WorkflowResult<shadow_crypt_core::file::PlaintextFile> {
-    let encrypted_file = v1::file::EncryptedFile::from_bytes(bytes)?;
-    let kdf_params = encrypted_file.header().kdf_params();
-
-    let key = derive_key_from_untrusted_params(
-        kdf_params.memory_cost,
-        kdf_params.time_cost,
-        kdf_params.parallelism,
-        kdf_params.key_size,
-        || kdf_params.derive_key(password.as_str().as_bytes(), &encrypted_file.header().salt),
-    )?;
-
-    Ok(encrypted_file.decrypt(&key)?)
-}
-
-fn decrypt_v2(
-    bytes: &[u8],
-    password: &SecureString,
-) -> WorkflowResult<shadow_crypt_core::file::PlaintextFile> {
-    let encrypted_file = v2::file::EncryptedFile::from_bytes(bytes)?;
-    let kdf_params = encrypted_file.header().kdf_params();
-
-    let key = derive_key_from_untrusted_params(
-        kdf_params.memory_cost,
-        kdf_params.time_cost,
-        kdf_params.parallelism,
-        kdf_params.key_size,
-        || kdf_params.derive_key(password.as_str().as_bytes(), &encrypted_file.header().salt),
-    )?;
-
-    Ok(encrypted_file.decrypt(&key)?)
 }
 
 #[cfg(test)]
@@ -125,9 +74,19 @@ mod tests {
     use super::*;
     use crate::kdf::MAX_KDF_MEMORY_KIB;
     use shadow_crypt_core::{
+        file::PlaintextFile,
         memory::{SecureBytes, SecureString},
         profile::SecurityProfile,
+        v1, v2,
     };
+
+    /// The parse → guarded derive → decrypt chain exactly as the workflow
+    /// runs it.
+    fn decrypt(bytes: &[u8], password: &SecureString) -> WorkflowResult<PlaintextFile> {
+        let parsed = ParsedFile::parse(bytes)?;
+        let key = derive_untrusted_key(&parsed, password)?;
+        Ok(parsed.decrypt(&key)?)
+    }
 
     #[test]
     fn test_v1_oversized_kdf_params_rejected_before_derivation() {
@@ -140,7 +99,7 @@ mod tests {
         bytes.extend_from_slice(b"ciphertext");
 
         let password = SecureString::new("pw".to_string());
-        assert!(decrypt_v1(&bytes, &password).is_err());
+        assert!(decrypt(&bytes, &password).is_err());
     }
 
     #[test]
@@ -153,7 +112,7 @@ mod tests {
         bytes.extend_from_slice(b"ciphertext");
 
         let password = SecureString::new("pw".to_string());
-        assert!(decrypt_v2(&bytes, &password).is_err());
+        assert!(decrypt(&bytes, &password).is_err());
     }
 
     #[test]
@@ -202,7 +161,7 @@ mod tests {
         let mut bytes = swapped_header.serialize();
         bytes.extend_from_slice(&filename_ct);
 
-        assert!(decrypt_v2(&bytes, &password).is_err());
+        assert!(decrypt(&bytes, &password).is_err());
     }
 
     #[test]
@@ -215,7 +174,7 @@ mod tests {
             .derive_key(password.as_str().as_bytes(), &salt)
             .unwrap();
 
-        let plaintext_file = shadow_crypt_core::file::PlaintextFile::new(
+        let plaintext_file = PlaintextFile::new(
             SecureString::new("name.txt".to_string()),
             SecureBytes::new(b"content".to_vec()),
         );
@@ -229,7 +188,7 @@ mod tests {
         )
         .unwrap();
 
-        let decrypted = decrypt_v2(&sealed.to_bytes(), &password).unwrap();
+        let decrypted = decrypt(&sealed.to_bytes(), &password).unwrap();
         assert_eq!(decrypted.filename().as_str(), "name.txt");
         assert_eq!(decrypted.content().as_slice(), b"content");
     }

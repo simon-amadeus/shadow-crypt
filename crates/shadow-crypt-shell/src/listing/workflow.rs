@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use rayon::prelude::*;
-use shadow_crypt_core::{memory::SecureString, v1, v2, version::Version};
+use shadow_crypt_core::{memory::SecureString, vault::ParsedFile};
 
 use crate::{
     errors::WorkflowResult,
-    kdf::derive_key_from_untrusted_params,
+    kdf::derive_untrusted_key,
     listing::{
         file::{FileInfoList, ListingInput, ShadowFile, ShadowFileInfo},
         file_ops::{load_file_header_bytes, scan_directory_for_shadow_files},
@@ -30,47 +30,14 @@ pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
     Ok(())
 }
 
+/// Version-agnostic: ParsedFile dispatches to the file's own format version.
 fn decipher_original_filename(
     header_bytes: &[u8],
-    version: Version,
     password: &SecureString,
 ) -> Option<SecureString> {
-    match version {
-        Version::V1 => decipher_v1(header_bytes, password),
-        Version::V2 => decipher_v2(header_bytes, password),
-    }
-}
-
-fn decipher_v1(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
-    let header = v1::header::FileHeader::try_deserialize(header_bytes).ok()?;
-    let kdf_params = header.kdf_params();
-
-    let key = derive_key_from_untrusted_params(
-        kdf_params.memory_cost,
-        kdf_params.time_cost,
-        kdf_params.parallelism,
-        kdf_params.key_size,
-        || kdf_params.derive_key(password.as_str().as_bytes(), &header.salt),
-    )
-    .ok()?;
-
-    header.decrypt_filename(&key).ok()
-}
-
-fn decipher_v2(header_bytes: &[u8], password: &SecureString) -> Option<SecureString> {
-    let header = v2::header::FileHeader::try_deserialize(header_bytes).ok()?;
-    let kdf_params = header.kdf_params();
-
-    let key = derive_key_from_untrusted_params(
-        kdf_params.memory_cost,
-        kdf_params.time_cost,
-        kdf_params.parallelism,
-        kdf_params.key_size,
-        || kdf_params.derive_key(password.as_str().as_bytes(), &header.salt),
-    )
-    .ok()?;
-
-    header.decrypt_filename(&key).ok()
+    let parsed = ParsedFile::parse(header_bytes).ok()?;
+    let key = derive_untrusted_key(&parsed, password).ok()?;
+    parsed.decrypt_filename(&key).ok()
 }
 
 fn get_shadow_file_info(
@@ -79,7 +46,7 @@ fn get_shadow_file_info(
 ) -> WorkflowResult<ShadowFileInfo> {
     let header_bytes = load_file_header_bytes(shadow_file)?;
     let original_filename: Option<SecureString> =
-        decipher_original_filename(header_bytes.as_slice(), shadow_file.version, password);
+        decipher_original_filename(header_bytes.as_slice(), password);
 
     Ok(ShadowFileInfo::new(
         original_filename,
@@ -92,7 +59,7 @@ fn get_shadow_file_info(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use shadow_crypt_core::profile::SecurityProfile;
+    use shadow_crypt_core::{profile::SecurityProfile, v1, v2};
 
     fn build_v1_header_bytes(password: &str, original_filename: &str) -> Vec<u8> {
         let salt = [0u8; 16];
@@ -150,7 +117,7 @@ mod tests {
         let header_bytes = build_v1_header_bytes("testpassword", "test.txt");
         let password = SecureString::new("testpassword".to_string());
 
-        let result = decipher_original_filename(&header_bytes, Version::V1, &password);
+        let result = decipher_original_filename(&header_bytes, &password);
         assert_eq!(result.unwrap().as_str(), "test.txt");
     }
 
@@ -159,7 +126,7 @@ mod tests {
         let header_bytes = build_v1_header_bytes("testpassword", "test.txt");
         let password = SecureString::new("wrongpassword".to_string());
 
-        let result = decipher_original_filename(&header_bytes, Version::V1, &password);
+        let result = decipher_original_filename(&header_bytes, &password);
         assert!(result.is_none());
     }
 
@@ -168,7 +135,7 @@ mod tests {
         let header_bytes = build_v2_header_bytes("testpassword", "test.txt");
         let password = SecureString::new("testpassword".to_string());
 
-        let result = decipher_original_filename(&header_bytes, Version::V2, &password);
+        let result = decipher_original_filename(&header_bytes, &password);
         assert_eq!(result.unwrap().as_str(), "test.txt");
     }
 
@@ -177,7 +144,7 @@ mod tests {
         let header_bytes = build_v2_header_bytes("testpassword", "test.txt");
         let password = SecureString::new("wrongpassword".to_string());
 
-        let result = decipher_original_filename(&header_bytes, Version::V2, &password);
+        let result = decipher_original_filename(&header_bytes, &password);
         assert!(result.is_none());
     }
 
@@ -192,7 +159,7 @@ mod tests {
         let header_bytes = header.serialize();
 
         let password = SecureString::new("testpassword".to_string());
-        let result = decipher_original_filename(&header_bytes, Version::V1, &password);
+        let result = decipher_original_filename(&header_bytes, &password);
 
         assert!(result.is_none());
     }

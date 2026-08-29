@@ -8,7 +8,8 @@
 use std::sync::{Condvar, Mutex};
 
 use shadow_crypt_core::{
-    errors::KeyDerivationError, memory::SecureKey, report::KeyDerivationReport,
+    memory::{SecureKey, SecureString},
+    vault::{KdfRequest, ParsedFile},
 };
 
 use crate::errors::{WorkflowError, WorkflowResult};
@@ -20,62 +21,54 @@ pub const MAX_KDF_ITERATIONS: u32 = 1_000;
 pub const MAX_KDF_PARALLELISM: u32 = 256;
 pub const MAX_KDF_KEY_SIZE: u8 = 64;
 
-/// Validates KDF parameters taken from an untrusted file header.
-///
-/// Takes raw values rather than a version-specific params struct so that
-/// every format version can use the same bounds.
-pub fn validate_untrusted_kdf_params(
-    memory_cost: u32,
-    time_cost: u32,
-    parallelism: u32,
-    key_size: u8,
-) -> WorkflowResult<()> {
-    if memory_cost > MAX_KDF_MEMORY_KIB {
+/// Validates the KDF parameters a file header requests, against the bounds
+/// above. The request is version-agnostic, so every format version passes
+/// through the same checks.
+pub fn validate_kdf_request(request: &KdfRequest) -> WorkflowResult<()> {
+    if request.memory_cost > MAX_KDF_MEMORY_KIB {
         return Err(WorkflowError::UserInput(format!(
             "KDF memory cost in file header is too large: {} KiB (max {} KiB)",
-            memory_cost, MAX_KDF_MEMORY_KIB
+            request.memory_cost, MAX_KDF_MEMORY_KIB
         )));
     }
-    if time_cost > MAX_KDF_ITERATIONS {
+    if request.time_cost > MAX_KDF_ITERATIONS {
         return Err(WorkflowError::UserInput(format!(
             "KDF iteration count in file header is too large: {} (max {})",
-            time_cost, MAX_KDF_ITERATIONS
+            request.time_cost, MAX_KDF_ITERATIONS
         )));
     }
-    if parallelism > MAX_KDF_PARALLELISM {
+    if request.parallelism > MAX_KDF_PARALLELISM {
         return Err(WorkflowError::UserInput(format!(
             "KDF parallelism in file header is too large: {} (max {})",
-            parallelism, MAX_KDF_PARALLELISM
+            request.parallelism, MAX_KDF_PARALLELISM
         )));
     }
-    if key_size > MAX_KDF_KEY_SIZE {
+    if request.key_size > MAX_KDF_KEY_SIZE {
         return Err(WorkflowError::UserInput(format!(
             "KDF key size in file header is too large: {} bytes (max {})",
-            key_size, MAX_KDF_KEY_SIZE
+            request.key_size, MAX_KDF_KEY_SIZE
         )));
     }
     Ok(())
 }
 
-/// Derives a key from KDF parameters read out of an untrusted file header.
+/// Derives a parsed file's key from a password, guarding the (untrusted)
+/// KDF parameters its header requests.
 ///
-/// Validates the parameters against the bounds above and, only if they pass,
-/// runs `derive` while holding a reservation against the global memory
-/// budget. This is the single intended entry point for header-supplied
-/// parameters: fusing the two steps makes it impossible to run an
-/// unvalidated derivation from a crafted file.
-///
-/// Takes raw values rather than a version-specific params struct so that
-/// every format version can use the same guard.
-pub fn derive_key_from_untrusted_params(
-    memory_cost: u32,
-    time_cost: u32,
-    parallelism: u32,
-    key_size: u8,
-    derive: impl FnOnce() -> Result<(SecureKey, KeyDerivationReport), KeyDerivationError>,
+/// Validates the request against the bounds above and, only if it passes,
+/// runs the file's own key derivation while holding a reservation against
+/// the global memory budget. This is the single intended entry point for
+/// header-supplied parameters: fusing the two steps makes it impossible to
+/// run an unvalidated derivation from a crafted file.
+pub fn derive_untrusted_key(
+    parsed: &ParsedFile,
+    password: &SecureString,
 ) -> WorkflowResult<SecureKey> {
-    validate_untrusted_kdf_params(memory_cost, time_cost, parallelism, key_size)?;
-    let (key, _) = with_kdf_memory_permit(memory_cost, derive)?;
+    let request = parsed.kdf_request();
+    validate_kdf_request(&request)?;
+    let (key, _) = with_kdf_memory_permit(request.memory_cost, || {
+        parsed.derive_key(password.as_str().as_bytes())
+    })?;
     Ok(key)
 }
 
@@ -159,34 +152,44 @@ impl Drop for KdfPermit<'_> {
 mod tests {
     use super::*;
 
+    fn request(memory_cost: u32, time_cost: u32, parallelism: u32, key_size: u8) -> KdfRequest {
+        KdfRequest {
+            salt: [0u8; 16],
+            memory_cost,
+            time_cost,
+            parallelism,
+            key_size,
+        }
+    }
+
     #[test]
     fn test_valid_kdf_params_accepted() {
-        assert!(validate_untrusted_kdf_params(1024, 1, 1, 32).is_ok());
+        assert!(validate_kdf_request(&request(1024, 1, 1, 32)).is_ok());
     }
 
     #[test]
     fn test_memory_cost_too_large() {
-        assert!(validate_untrusted_kdf_params(MAX_KDF_MEMORY_KIB + 1, 1, 1, 32).is_err());
+        assert!(validate_kdf_request(&request(MAX_KDF_MEMORY_KIB + 1, 1, 1, 32)).is_err());
     }
 
     #[test]
     fn test_memory_cost_at_limit_accepted() {
-        assert!(validate_untrusted_kdf_params(MAX_KDF_MEMORY_KIB, 1, 1, 32).is_ok());
+        assert!(validate_kdf_request(&request(MAX_KDF_MEMORY_KIB, 1, 1, 32)).is_ok());
     }
 
     #[test]
     fn test_iterations_too_large() {
-        assert!(validate_untrusted_kdf_params(1024, MAX_KDF_ITERATIONS + 1, 1, 32).is_err());
+        assert!(validate_kdf_request(&request(1024, MAX_KDF_ITERATIONS + 1, 1, 32)).is_err());
     }
 
     #[test]
     fn test_parallelism_too_large() {
-        assert!(validate_untrusted_kdf_params(1024, 1, MAX_KDF_PARALLELISM + 1, 32).is_err());
+        assert!(validate_kdf_request(&request(1024, 1, MAX_KDF_PARALLELISM + 1, 32)).is_err());
     }
 
     #[test]
     fn test_key_size_too_large() {
-        assert!(validate_untrusted_kdf_params(1024, 1, 1, MAX_KDF_KEY_SIZE + 1).is_err());
+        assert!(validate_kdf_request(&request(1024, 1, 1, MAX_KDF_KEY_SIZE + 1)).is_err());
     }
 
     #[test]
@@ -260,12 +263,12 @@ mod tests {
     fn test_production_params_accepted() {
         let params = shadow_crypt_core::v1::key::KeyDerivationParams::production_defaults();
         assert!(
-            validate_untrusted_kdf_params(
+            validate_kdf_request(&request(
                 params.memory_cost,
                 params.time_cost,
                 params.parallelism,
                 params.key_size
-            )
+            ))
             .is_ok()
         );
     }

@@ -2,8 +2,8 @@ use std::{fs, path::Path};
 
 use shadow_crypt_core::{
     memory::SecureBytes,
-    v1, v2,
-    version::{PREAMBLE_LENGTH, Version, read_file_version},
+    vault::MAX_HEADER_LEN,
+    version::{PREAMBLE_LENGTH, read_file_version},
 };
 
 use crate::{
@@ -67,22 +67,12 @@ fn get_file_size(path: &Path) -> WorkflowResult<u64> {
     Ok(metadata.len())
 }
 
-/// Reads the complete raw header bytes of a shadow file. Deserialization
-/// happens in the workflow, per format version.
+/// Reads enough leading bytes of a shadow file to cover its complete header,
+/// whatever its format version. Parsing happens in the workflow via
+/// [`shadow_crypt_core::vault::ParsedFile`], which tolerates trailing
+/// ciphertext bytes, so no version-specific length probing is needed here.
 pub fn load_file_header_bytes(file: &ShadowFile) -> WorkflowResult<SecureBytes> {
-    // The file's own format version reads the header length out of the fixed
-    // header fields; the shell does not know the header layout.
-    let header_length = match file.version {
-        Version::V1 => {
-            let fixed = read_n_bytes_from_file(&file.path, v1::header::FileHeader::min_length())?;
-            v1::header::FileHeader::read_header_length(fixed.as_slice())?
-        }
-        Version::V2 => {
-            let fixed = read_n_bytes_from_file(&file.path, v2::header::FileHeader::min_length())?;
-            v2::header::FileHeader::read_header_length(fixed.as_slice())?
-        }
-    };
-    read_n_bytes_from_file(&file.path, header_length as usize)
+    read_n_bytes_from_file(&file.path, MAX_HEADER_LEN)
 }
 
 #[cfg(test)]
