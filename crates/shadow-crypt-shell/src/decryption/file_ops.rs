@@ -1,18 +1,24 @@
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 
-use shadow_crypt_core::memory::{SecureBytes, SecureString};
+use shadow_crypt_core::{
+    file::FileMetadata,
+    memory::{SecureKey, SecureString},
+    vault::ParsedFile,
+};
 
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
+    utils::read_up_to,
 };
 
-pub fn store_plaintext_file(
+/// Creates the plaintext output file for a decrypted filename, enforcing the
+/// no-traversal and no-overwrite policies.
+fn create_output_file(
     filename: &SecureString,
-    content: &SecureBytes,
     output_dir: &std::path::Path,
     force: bool,
-) -> WorkflowResult<DecryptionOutputFile> {
+) -> WorkflowResult<(std::fs::File, DecryptionOutputFile)> {
     // Reject any path traversal by taking only the bare filename component.
     // This prevents a malicious .shadow file from writing to an arbitrary path.
     let safe_name = std::path::Path::new(filename.as_str())
@@ -43,7 +49,7 @@ pub fn store_plaintext_file(
     // create_new makes the no-overwrite check atomic: no window between an
     // exists() check and creation, and symlinks are never followed to clobber
     // an existing target.
-    let mut f = std::fs::File::create_new(output_file.path.as_path()).map_err(|e| {
+    let f = std::fs::File::create_new(output_file.path.as_path()).map_err(|e| {
         if e.kind() == std::io::ErrorKind::AlreadyExists {
             WorkflowError::File(format!(
                 "Output file '{}' already exists (use --force to overwrite)",
@@ -53,52 +59,121 @@ pub fn store_plaintext_file(
             WorkflowError::Io(e)
         }
     })?;
-    f.write_all(content.as_slice())?;
 
-    Ok(output_file)
+    Ok((f, output_file))
 }
 
-/// Reads the complete raw bytes of an encrypted input file. Parsing happens
-/// in the workflow, per format version.
-pub fn load_file_bytes(file: &DecryptionInputFile) -> WorkflowResult<Vec<u8>> {
-    let size: usize = file.size as usize;
+/// Restores preserved metadata onto the decrypted file. Applied after the
+/// content is written, since writing would bump the mtime again.
+fn apply_metadata(f: &std::fs::File, metadata: &FileMetadata) -> WorkflowResult<()> {
+    #[cfg(unix)]
+    if let Some(mode) = metadata.mode() {
+        use std::os::unix::fs::PermissionsExt;
+        f.set_permissions(std::fs::Permissions::from_mode(mode & 0o7777))?;
+    }
+    if let Some(mtime) = metadata.mtime() {
+        f.set_modified(mtime)?;
+    }
+    Ok(())
+}
 
-    let mut f = std::fs::File::open(&file.path)?;
-    let mut buffer: Vec<u8> = Vec::with_capacity(size);
+/// Streams the encrypted input file's content through the parsed file's
+/// decryptor into the plaintext output file, then restores the preserved
+/// metadata. Memory is bounded by the format's chunk size (formats without
+/// chunking are decrypted as one piece). A partially written output is
+/// removed on failure.
+pub fn stream_decrypt_file(
+    file: &DecryptionInputFile,
+    parsed: &ParsedFile,
+    key: &SecureKey,
+    metadata: &FileMetadata,
+    output_dir: &std::path::Path,
+    force: bool,
+) -> WorkflowResult<DecryptionOutputFile> {
+    let (mut out, output_file) = create_output_file(metadata.filename(), output_dir, force)?;
 
-    f.read_to_end(&mut buffer)?;
+    let result = (|| -> WorkflowResult<()> {
+        let mut reader = std::fs::File::open(&file.path)?;
+        reader.seek(SeekFrom::Start(parsed.header_length() as u64))?;
 
-    Ok(buffer)
+        let mut decryptor = parsed.content_decryptor(key);
+        match decryptor.chunk_len() {
+            // The whole content is a single AEAD message: feed it at once.
+            None => {
+                let mut content = Vec::new();
+                reader.read_to_end(&mut content)?;
+                out.write_all(decryptor.decrypt_chunk(&content, true)?.as_slice())?;
+            }
+            // Chunked content: double-buffered read, a chunk is final when
+            // the read after it returns nothing.
+            Some(chunk_len) => {
+                let mut current = vec![0u8; chunk_len];
+                let mut next = vec![0u8; chunk_len];
+                let mut current_len = read_up_to(&mut reader, &mut current)?;
+                loop {
+                    let next_len = read_up_to(&mut reader, &mut next)?;
+                    let is_last = next_len == 0;
+                    out.write_all(
+                        decryptor
+                            .decrypt_chunk(&current[..current_len], is_last)?
+                            .as_slice(),
+                    )?;
+                    if is_last {
+                        break;
+                    }
+                    std::mem::swap(&mut current, &mut next);
+                    current_len = next_len;
+                }
+            }
+        }
+
+        apply_metadata(&out, metadata)?;
+        Ok(())
+    })();
+
+    match result {
+        Ok(()) => Ok(output_file),
+        Err(e) => {
+            let _ = std::fs::remove_file(&output_file.path);
+            Err(e)
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use shadow_crypt_core::memory::SecureBytes;
     use std::fs;
-    use std::io::Write;
-    use tempfile::NamedTempFile;
 
-    #[test]
-    fn test_store_plaintext_file() {
-        let temp_dir = tempfile::TempDir::new().unwrap();
-        let filename = SecureString::new("test.txt".to_string());
-        let content = SecureBytes::new(b"test content".to_vec());
-
-        let output = store_plaintext_file(&filename, &content, temp_dir.path(), false).unwrap();
-        assert_eq!(output.filename, "test.txt");
-
-        let read_content = fs::read(&output.path).unwrap();
-        assert_eq!(read_content, b"test content");
+    fn write_output(
+        filename: &str,
+        content: &[u8],
+        output_dir: &std::path::Path,
+        force: bool,
+    ) -> WorkflowResult<DecryptionOutputFile> {
+        let filename = SecureString::new(filename.to_string());
+        let content = SecureBytes::new(content.to_vec());
+        let (mut f, output_file) = create_output_file(&filename, output_dir, force)?;
+        f.write_all(content.as_slice())?;
+        Ok(output_file)
     }
 
     #[test]
-    fn test_store_plaintext_file_path_traversal_rejected() {
+    fn test_create_and_write_output_file() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+
+        let output = write_output("test.txt", b"test content", temp_dir.path(), false).unwrap();
+        assert_eq!(output.filename, "test.txt");
+        assert_eq!(fs::read(&output.path).unwrap(), b"test content");
+    }
+
+    #[test]
+    fn test_output_file_path_traversal_rejected() {
         let temp_dir = tempfile::TempDir::new().unwrap();
 
         for malicious_name in &["../../etc/passwd", "../sibling", "/abs/path", ".."] {
-            let filename = SecureString::new(malicious_name.to_string());
-            let content = SecureBytes::new(b"evil".to_vec());
-            let result = store_plaintext_file(&filename, &content, temp_dir.path(), false);
+            let result = write_output(malicious_name, b"evil", temp_dir.path(), false);
 
             match malicious_name {
                 &".." => {
@@ -122,18 +197,14 @@ mod tests {
     }
 
     #[test]
-    fn test_store_plaintext_file_no_overwrite() {
+    fn test_output_file_no_overwrite() {
         let temp_dir = tempfile::TempDir::new().unwrap();
 
-        let filename = SecureString::new("test.txt".to_string());
-        let content = SecureBytes::new(b"new content".to_vec());
-
-        // Create existing file
         let output_path = temp_dir.path().join("test.txt");
         let existing_content = b"existing content";
-        std::fs::write(&output_path, existing_content).unwrap();
+        fs::write(&output_path, existing_content).unwrap();
 
-        let result = store_plaintext_file(&filename, &content, temp_dir.path(), false);
+        let result = write_output("test.txt", b"new content", temp_dir.path(), false);
         assert!(result.is_err());
         if let Err(WorkflowError::File(msg)) = result {
             assert!(msg.contains("already exists"));
@@ -142,49 +213,25 @@ mod tests {
         }
 
         // Check existing content unchanged
-        let read_content = std::fs::read(&output_path).unwrap();
-        assert_eq!(read_content, existing_content);
+        assert_eq!(fs::read(&output_path).unwrap(), existing_content);
     }
 
     #[test]
-    fn test_store_plaintext_file_force_overwrites() {
+    fn test_output_file_force_overwrites() {
         let temp_dir = tempfile::TempDir::new().unwrap();
-
-        let filename = SecureString::new("test.txt".to_string());
-        let content = SecureBytes::new(b"new content".to_vec());
 
         let output_path = temp_dir.path().join("test.txt");
-        std::fs::write(&output_path, b"existing content").unwrap();
+        fs::write(&output_path, b"existing content").unwrap();
 
-        let output = store_plaintext_file(&filename, &content, temp_dir.path(), true).unwrap();
-        assert_eq!(std::fs::read(&output.path).unwrap(), b"new content");
+        let output = write_output("test.txt", b"new content", temp_dir.path(), true).unwrap();
+        assert_eq!(fs::read(&output.path).unwrap(), b"new content");
     }
 
     #[test]
-    fn test_store_plaintext_file_force_without_existing_file() {
+    fn test_output_file_force_without_existing_file() {
         let temp_dir = tempfile::TempDir::new().unwrap();
 
-        let filename = SecureString::new("test.txt".to_string());
-        let content = SecureBytes::new(b"content".to_vec());
-
-        let output = store_plaintext_file(&filename, &content, temp_dir.path(), true).unwrap();
-        assert_eq!(std::fs::read(&output.path).unwrap(), b"content");
-    }
-
-    #[test]
-    fn test_load_file_bytes() {
-        let mut temp_file = NamedTempFile::new().unwrap();
-        let data = b"raw file data";
-        temp_file.write_all(data).unwrap();
-        temp_file.flush().unwrap();
-
-        let input_file = DecryptionInputFile {
-            path: temp_file.path().to_path_buf(),
-            filename: "test.shadow".to_string(),
-            size: data.len() as u64,
-        };
-
-        let bytes = load_file_bytes(&input_file).unwrap();
-        assert_eq!(bytes, data);
+        let output = write_output("test.txt", b"content", temp_dir.path(), true).unwrap();
+        assert_eq!(fs::read(&output.path).unwrap(), b"content");
     }
 }

@@ -53,21 +53,60 @@ fn test_v2_backward_compatibility() {
     );
 }
 
-/// Regenerates the v2 fixture. Run manually after an intentional format
+#[test]
+fn test_v3_backward_compatibility() {
+    assert_fixture_decrypts(
+        "test_v3.shadow",
+        "test_v3_plaintext.txt",
+        b"This is a test file for v3 backward compatibility testing. It contains known content that should be decrypted correctly.\n",
+    );
+}
+
+/// Regenerates the v2 fixture through the v2 core API (the workflow writes
+/// the current format, not v2). Run manually after an intentional format
 /// change: `cargo test regenerate_v2_fixture -- --ignored`
 #[test]
 #[ignore]
 fn regenerate_v2_fixture() {
+    use shadow_crypt::core::{
+        file::PlaintextFile,
+        memory::{SecureBytes, SecureString},
+        profile::SecurityProfile,
+        v2::{file::EncryptedFile, key::KeyDerivationParams},
+    };
+
+    let params = KeyDerivationParams::from(SecurityProfile::Test);
+    let salt = [11u8; 16];
+    let (key, _) = params.derive_key(TEST_PASSWORD.as_bytes(), &salt).unwrap();
+
+    let plaintext = PlaintextFile::new(
+        SecureString::new("test_v2_plaintext.txt".to_string()),
+        SecureBytes::new(
+            b"This is a test file for v2 backward compatibility testing. It contains known content that should be decrypted correctly.\n".to_vec(),
+        ),
+    );
+    let sealed =
+        EncryptedFile::seal(&plaintext, &key, params, salt, [12u8; 24], [13u8; 24]).unwrap();
+
+    fs::write(fixture_path("test_v2.shadow"), sealed.to_bytes()).unwrap();
+}
+
+/// Regenerates the v3 fixture through the regular encryption workflow (v3 is
+/// the current write format). Run manually after an intentional format
+/// change: `cargo test regenerate_v3_fixture -- --ignored`
+#[test]
+#[ignore]
+fn regenerate_v3_fixture() {
     let temp_dir = TempDir::new().unwrap();
-    let input_file = temp_dir.path().join("test_v2_plaintext.txt");
+    let input_file = temp_dir.path().join("test_v3_plaintext.txt");
     fs::write(
         &input_file,
-        b"This is a test file for v2 backward compatibility testing. It contains known content that should be decrypted correctly.\n",
+        b"This is a test file for v3 backward compatibility testing. It contains known content that should be decrypted correctly.\n",
     )
     .unwrap();
 
     encrypt_files(&[&input_file], TEST_PASSWORD, temp_dir.path()).unwrap();
     let encrypted = find_single_shadow_file(temp_dir.path());
 
-    fs::copy(&encrypted, fixture_path("test_v2.shadow")).unwrap();
+    fs::copy(&encrypted, fixture_path("test_v3.shadow")).unwrap();
 }

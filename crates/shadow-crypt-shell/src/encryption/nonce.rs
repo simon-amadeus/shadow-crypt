@@ -11,6 +11,17 @@ pub fn generate_nonce() -> WorkflowResult<[u8; 24]> {
     Ok(buffer)
 }
 
+/// Random prefix for the v3 content stream nonces (the per-chunk counter and
+/// final flag fill the remaining nonce bytes).
+pub fn generate_nonce_prefix() -> WorkflowResult<[u8; 16]> {
+    let mut buffer = [0u8; 16];
+    OsRng.try_fill_bytes(&mut buffer).map_err(|e| {
+        WorkflowError::NonceGeneration(format!("Failed to generate nonce prefix: {}", e))
+    })?;
+
+    Ok(buffer)
+}
+
 #[cfg(test)]
 mod tests {
     use super::generate_nonce;

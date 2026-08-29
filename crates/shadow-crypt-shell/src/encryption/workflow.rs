@@ -3,14 +3,14 @@ use shadow_crypt_core::{
     memory::SecureString,
     progress::ProgressCounter,
     report::EncryptionReport,
-    v2::{self, file::EncryptedFile, key::KeyDerivationParams},
+    v3::{self, key::KeyDerivationParams, stream::StreamSealer},
 };
 
 use crate::{
     encryption::{
         file::{EncryptionInput, EncryptionInputFile},
-        file_ops::{load_plaintext_file, store_encrypted_file},
-        nonce::generate_nonce,
+        file_ops::{gather_metadata, stream_encrypt_file},
+        nonce::{generate_nonce, generate_nonce_prefix},
         salt::generate_salt,
     },
     errors::{WorkflowError, WorkflowResult},
@@ -67,19 +67,19 @@ fn process_file_encryption(
         kdf_params.derive_key(password.as_str().as_bytes(), salt.as_ref())
     })?;
 
-    let filename_nonce: [u8; 24] = generate_nonce()?;
-    let content_nonce: [u8; 24] = generate_nonce()?;
-    let plaintext_file = load_plaintext_file(&file)?;
+    let nonce_prefix: [u8; 16] = generate_nonce_prefix()?;
+    let metadata_nonce: [u8; 24] = generate_nonce()?;
+    let metadata = gather_metadata(&file);
 
-    let encrypted_file = EncryptedFile::seal(
-        &plaintext_file,
+    let (header, sealer) = StreamSealer::begin(
+        &metadata,
         &key,
         kdf_params.clone(),
         salt,
-        content_nonce,
-        filename_nonce,
+        nonce_prefix,
+        metadata_nonce,
     )?;
-    let output_file = store_encrypted_file(&encrypted_file, output_dir)?;
+    let output_file = stream_encrypt_file(&file, &header, sealer, output_dir)?;
 
     let duration = start_time.elapsed();
 
@@ -87,6 +87,6 @@ fn process_file_encryption(
         file.filename,
         output_file.filename,
         duration,
-        v2::ALGORITHM,
+        v3::ALGORITHM,
     ))
 }

@@ -12,6 +12,21 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
     Ok(SecureBytes::new(buffer))
 }
 
+/// Reads from `reader` until `buf` is full or EOF; returns the bytes read.
+/// Unlike a bare `read` call this only returns short on EOF, which the
+/// streaming loops rely on to spot the final chunk.
+pub fn read_up_to(reader: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usize> {
+    let mut filled = 0;
+    while filled < buf.len() {
+        let n = reader.read(&mut buf[filled..])?;
+        if n == 0 {
+            break;
+        }
+        filled += n;
+    }
+    Ok(filled)
+}
+
 /// Resolves the output directory for a workflow: the given path (created if
 /// missing) or the current directory.
 pub fn resolve_output_dir(

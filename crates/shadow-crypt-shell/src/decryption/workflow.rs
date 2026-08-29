@@ -1,16 +1,20 @@
 use rayon::prelude::*;
 use shadow_crypt_core::{
-    memory::SecureString, progress::ProgressCounter, report::DecryptionReport, vault::ParsedFile,
+    memory::SecureString,
+    progress::ProgressCounter,
+    report::DecryptionReport,
+    vault::{MAX_HEADER_LEN, ParsedFile},
 };
 
 use crate::{
     decryption::{
         file::{DecryptionInput, DecryptionInputFile},
-        file_ops::{load_file_bytes, store_plaintext_file},
+        file_ops::stream_decrypt_file,
     },
     errors::{WorkflowError, WorkflowResult},
     kdf::derive_untrusted_key,
     ui::{display_decryption_report, display_progress},
+    utils::read_n_bytes_from_file,
 };
 
 pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
@@ -55,16 +59,18 @@ fn process_file_decryption(
 ) -> WorkflowResult<DecryptionReport> {
     let start_time = std::time::Instant::now();
 
-    let bytes = load_file_bytes(&file)?;
-
-    // ParsedFile dispatches to the file's own format version internally; this
-    // workflow is version-agnostic.
-    let parsed = ParsedFile::parse(&bytes)?;
+    // Only the header is read up front; the content is streamed afterwards,
+    // so memory stays bounded regardless of file size. ParsedFile dispatches
+    // to the file's own format version internally; this workflow is
+    // version-agnostic.
+    let header_bytes = read_n_bytes_from_file(&file.path, MAX_HEADER_LEN)?;
+    let parsed = ParsedFile::parse(header_bytes.as_slice())?;
     let key = derive_untrusted_key(&parsed, password)?;
-    let plaintext = parsed.decrypt(&key)?;
 
-    let output_file =
-        store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir, force)?;
+    // Decrypting the metadata also verifies the password before any output
+    // file is created.
+    let metadata = parsed.decrypt_metadata(&key)?;
+    let output_file = stream_decrypt_file(&file, &parsed, &key, &metadata, output_dir, force)?;
 
     let duration = start_time.elapsed();
 
