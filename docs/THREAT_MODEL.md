@@ -62,6 +62,9 @@ place at any time:
 
 - Output is written to a temporary file, fsynced, and atomically renamed
   into place — a crash never leaves a truncated file that looks complete.
+  A hard crash (power loss, kill) can leave a hidden `.<name>.tmpN` file
+  behind; during decryption it holds an authenticated plaintext prefix, so
+  treat leftovers as sensitive and delete them.
 - Nothing is overwritten without `--force`, and even `--force` destroys the
   existing file only after its replacement has fully authenticated.
 - `--delete` removes originals only after the encrypted output is committed

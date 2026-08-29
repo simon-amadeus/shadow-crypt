@@ -166,7 +166,8 @@ fn stream_decrypt_single_file(
     output_dir: &std::path::Path,
     force: bool,
 ) -> WorkflowResult<DecryptionOutputFile> {
-    let (mut out, output_file, claimed) = create_output_file(metadata.filename(), output_dir, force)?;
+    let (mut out, output_file, claimed) =
+        create_output_file(metadata.filename(), output_dir, force)?;
 
     let result = (|| -> WorkflowResult<()> {
         let mut decryptor = parsed.content_decryptor(key);
@@ -422,7 +423,10 @@ mod tests {
 
         let filename = SecureString::new("test.txt".to_string());
         let (mut f, _, claimed) = create_output_file(&filename, temp_dir.path(), true).unwrap();
-        assert!(!claimed, "existing file must not be claimed as a placeholder");
+        assert!(
+            !claimed,
+            "existing file must not be claimed as a placeholder"
+        );
         f.write_all(b"partial").unwrap();
         drop(f); // simulated failure: dropped without commit
 

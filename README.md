@@ -13,7 +13,7 @@ Password-based file encryption with filename obfuscation.
 ## Features
 
 - **Strong cryptography** — XChaCha20-Poly1305 authenticated encryption, Argon2id key derivation
-- **Nothing leaks** — filenames, timestamps, and permissions travel inside an encrypted metadata envelope; a directory becomes a single archive that hides even its file count and sizes
+- **Metadata encrypted** — filenames, timestamps, and permissions travel inside an encrypted metadata envelope; a directory becomes a single archive that hides even its file count and sizes
 - **Tamper-evident** — headers are bound to the ciphertext as AEAD associated data; chunk counters make reordering, truncation, and extension fail authentication
 - **Any size** — streaming encryption and decryption with bounded memory
 - **Safe by default** — crash-safe atomic writes, no overwrites without `--force`, no data destroyed before its replacement is verified, path-traversal-proof extraction
