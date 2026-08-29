@@ -64,6 +64,11 @@ pub fn read_up_to(reader: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usi
 /// there (typically an empty placeholder claiming the name), so a crash or
 /// error never leaves a truncated file that looks complete. Dropping
 /// without committing removes the temporary file.
+///
+/// A hard crash (kill, power loss) can still leave the empty placeholder
+/// and a `.<name>.tmpN` file behind; both are inert and safe to delete
+/// manually. We deliberately never auto-clean them: deleting files we
+/// cannot prove we created is worse than the litter.
 pub struct AtomicOutputFile {
     tmp_path: std::path::PathBuf,
     final_path: std::path::PathBuf,

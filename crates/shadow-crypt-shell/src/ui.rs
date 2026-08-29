@@ -2,7 +2,7 @@ use colored::Colorize;
 use shadow_crypt_core::{
     profile::SecurityProfile,
     progress::ProgressCounter,
-    report::{DecryptionReport, EncryptionReport, KeyDerivationReport},
+    report::{DecryptionReport, EncryptionReport},
     v3::key::KeyDerivationParams,
 };
 
@@ -77,20 +77,6 @@ pub fn display_profiles() {
 
     println!("Files record their parameters in the header, so any profile decrypts");
     println!("with any build of this tool.");
-}
-
-pub fn display_key_derivation_report(report: &KeyDerivationReport) {
-    println!("Derived key in {:#?}:", report.duration);
-    println!("  Algorithm: {}", report.algorithm);
-    println!("  Version: {}", report.algorithm_version);
-    println!(
-        "  Memory Cost (KiB): {} ({} MiB)",
-        report.memory_cost_kib,
-        report.memory_cost_kib / 1024
-    );
-    println!("  Time Cost (Iterations): {}", report.time_cost_iterations);
-    println!("  Parallelism: {}", report.parallelism);
-    println!("  Key Size (Bytes): {}", report.key_size_bytes);
 }
 
 pub fn display_encryption_success(report: &EncryptionReport) {
