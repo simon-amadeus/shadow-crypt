@@ -11,7 +11,7 @@ use shadow_crypt_shell::{
     errors::WorkflowError,
     listing::{cli::get_cli_args, file::ListingInput, workflow::run_workflow},
     memory::SecureString,
-    password::prompt_for_password,
+    password::resolve_password,
 };
 
 fn run() -> Result<(), WorkflowError> {
@@ -23,8 +23,9 @@ fn run() -> Result<(), WorkflowError> {
 
     // Only decrypting original filenames needs a password; the default
     // listing reads plaintext header metadata without any key derivation.
-    let password: Option<SecureString> = if args.names {
-        Some(prompt_for_password()?)
+    // --password-file implies --names.
+    let password: Option<SecureString> = if args.names || args.password_file.is_some() {
+        Some(resolve_password(args.password_file.as_deref())?)
     } else {
         None
     };

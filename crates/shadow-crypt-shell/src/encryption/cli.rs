@@ -1,10 +1,12 @@
+use std::path::PathBuf;
+
 use clap::Parser;
 use shadow_crypt_core::profile::SecurityProfile;
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
 /// Encryption CLI arguments structure
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Default, Parser)]
 #[command(name = "shadow", about = "Encrypt files using shadow format", version)]
 pub struct EncryptionCliArgs {
     /// Input files to encrypt
@@ -14,6 +16,14 @@ pub struct EncryptionCliArgs {
     /// Use test security profile for faster key derivation (not recommended for production)
     #[arg(long = "test-mode", short = 't')]
     pub test_mode: bool,
+
+    /// Write encrypted files to this directory (created if missing; defaults to the current directory)
+    #[arg(long = "output-dir", short = 'o', value_name = "DIR")]
+    pub output_dir: Option<PathBuf>,
+
+    /// Read the password from this file instead of prompting (one trailing newline is ignored)
+    #[arg(long = "password-file", value_name = "FILE")]
+    pub password_file: Option<PathBuf>,
 }
 
 /// Parse encryption command line arguments

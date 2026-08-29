@@ -11,6 +11,7 @@ pub fn store_plaintext_file(
     filename: &SecureString,
     content: &SecureBytes,
     output_dir: &std::path::Path,
+    force: bool,
 ) -> WorkflowResult<DecryptionOutputFile> {
     // Reject any path traversal by taking only the bare filename component.
     // This prevents a malicious .shadow file from writing to an arbitrary path.
@@ -29,13 +30,23 @@ pub fn store_plaintext_file(
         filename: safe_name_str,
     };
 
+    // With --force, remove the existing file first (rather than truncating)
+    // so a symlink at the target is never followed to clobber elsewhere.
+    if force {
+        match std::fs::remove_file(output_file.path.as_path()) {
+            Ok(()) => {}
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+            Err(e) => return Err(e.into()),
+        }
+    }
+
     // create_new makes the no-overwrite check atomic: no window between an
     // exists() check and creation, and symlinks are never followed to clobber
     // an existing target.
     let mut f = std::fs::File::create_new(output_file.path.as_path()).map_err(|e| {
         if e.kind() == std::io::ErrorKind::AlreadyExists {
             WorkflowError::File(format!(
-                "Output file '{}' already exists",
+                "Output file '{}' already exists (use --force to overwrite)",
                 output_file.filename
             ))
         } else {
@@ -73,7 +84,7 @@ mod tests {
         let filename = SecureString::new("test.txt".to_string());
         let content = SecureBytes::new(b"test content".to_vec());
 
-        let output = store_plaintext_file(&filename, &content, temp_dir.path()).unwrap();
+        let output = store_plaintext_file(&filename, &content, temp_dir.path(), false).unwrap();
         assert_eq!(output.filename, "test.txt");
 
         let read_content = fs::read(&output.path).unwrap();
@@ -87,7 +98,7 @@ mod tests {
         for malicious_name in &["../../etc/passwd", "../sibling", "/abs/path", ".."] {
             let filename = SecureString::new(malicious_name.to_string());
             let content = SecureBytes::new(b"evil".to_vec());
-            let result = store_plaintext_file(&filename, &content, temp_dir.path());
+            let result = store_plaintext_file(&filename, &content, temp_dir.path(), false);
 
             match malicious_name {
                 &".." => {
@@ -122,7 +133,7 @@ mod tests {
         let existing_content = b"existing content";
         std::fs::write(&output_path, existing_content).unwrap();
 
-        let result = store_plaintext_file(&filename, &content, temp_dir.path());
+        let result = store_plaintext_file(&filename, &content, temp_dir.path(), false);
         assert!(result.is_err());
         if let Err(WorkflowError::File(msg)) = result {
             assert!(msg.contains("already exists"));
@@ -133,6 +144,31 @@ mod tests {
         // Check existing content unchanged
         let read_content = std::fs::read(&output_path).unwrap();
         assert_eq!(read_content, existing_content);
+    }
+
+    #[test]
+    fn test_store_plaintext_file_force_overwrites() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+
+        let filename = SecureString::new("test.txt".to_string());
+        let content = SecureBytes::new(b"new content".to_vec());
+
+        let output_path = temp_dir.path().join("test.txt");
+        std::fs::write(&output_path, b"existing content").unwrap();
+
+        let output = store_plaintext_file(&filename, &content, temp_dir.path(), true).unwrap();
+        assert_eq!(std::fs::read(&output.path).unwrap(), b"new content");
+    }
+
+    #[test]
+    fn test_store_plaintext_file_force_without_existing_file() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+
+        let filename = SecureString::new("test.txt".to_string());
+        let content = SecureBytes::new(b"content".to_vec());
+
+        let output = store_plaintext_file(&filename, &content, temp_dir.path(), true).unwrap();
+        assert_eq!(std::fs::read(&output.path).unwrap(), b"content");
     }
 
     #[test]

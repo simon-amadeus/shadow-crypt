@@ -15,15 +15,17 @@ use shadow_crypt_shell::{
     },
     errors::WorkflowError,
     memory::SecureString,
-    password::prompt_for_password_with_confirmation,
+    password::resolve_encryption_password,
+    utils::resolve_output_dir,
 };
 
 fn run() -> Result<(), WorkflowError> {
     let input: ValidEncryptionArgs =
         get_cli_args(std::env::args().collect()).and_then(validate_input)?;
     let security_profile: SecurityProfile = get_security_profile(input.test_mode);
-    let password: SecureString = prompt_for_password_with_confirmation(&security_profile)?;
-    let output_dir = std::env::current_dir()?;
+    let password: SecureString =
+        resolve_encryption_password(input.password_file.as_deref(), &security_profile)?;
+    let output_dir = resolve_output_dir(input.output_dir)?;
     let encryption_input =
         EncryptionInput::new(input.files, password, security_profile, output_dir);
 

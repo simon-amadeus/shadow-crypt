@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use rpassword;
 use shadow_crypt_core::{memory::SecureString, profile::SecurityProfile};
 
@@ -10,6 +12,55 @@ pub fn prompt_for_password() -> WorkflowResult<SecureString> {
         .map(SecureString::new)?;
 
     Ok(password)
+}
+
+/// Reads a password from a file for non-interactive use. A single trailing
+/// newline (as left by most editors and `echo`) is stripped; everything else
+/// is taken verbatim.
+pub fn read_password_from_file(path: &Path) -> WorkflowResult<SecureString> {
+    let mut content = std::fs::read_to_string(path).map_err(|e| {
+        WorkflowError::Password(format!(
+            "Failed to read password file '{}': {}",
+            path.display(),
+            e
+        ))
+    })?;
+    if content.ends_with('\n') {
+        content.pop();
+        if content.ends_with('\r') {
+            content.pop();
+        }
+    }
+
+    let password = SecureString::new(content);
+    validate_password_format(&password)?;
+    Ok(password)
+}
+
+/// Password for decryption or listing: read from `password_file` when given,
+/// otherwise prompt interactively.
+pub fn resolve_password(password_file: Option<&Path>) -> WorkflowResult<SecureString> {
+    match password_file {
+        Some(path) => read_password_from_file(path),
+        None => prompt_for_password(),
+    }
+}
+
+/// Password for encryption: read from `password_file` when given (strength
+/// requirements still apply, but no confirmation is needed since there is no
+/// typo risk), otherwise prompt interactively with confirmation.
+pub fn resolve_encryption_password(
+    password_file: Option<&Path>,
+    security_profile: &SecurityProfile,
+) -> WorkflowResult<SecureString> {
+    match password_file {
+        Some(path) => {
+            let password = read_password_from_file(path)?;
+            validate_password_requirements(&password, security_profile)?;
+            Ok(password)
+        }
+        None => prompt_for_password_with_confirmation(security_profile),
+    }
 }
 
 /// Prompt user for password with confirmation
@@ -188,5 +239,44 @@ mod tests {
         let a = b"test";
         let b = b"testing";
         assert!(!constant_time_eq(a, b));
+    }
+
+    #[test]
+    fn test_read_password_from_file() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        std::io::Write::write_all(&mut file, b"secret-password\n").unwrap();
+
+        let password = read_password_from_file(file.path()).unwrap();
+        assert_eq!(password.as_str(), "secret-password");
+    }
+
+    #[test]
+    fn test_read_password_from_file_strips_crlf() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        std::io::Write::write_all(&mut file, b"secret-password\r\n").unwrap();
+
+        let password = read_password_from_file(file.path()).unwrap();
+        assert_eq!(password.as_str(), "secret-password");
+    }
+
+    #[test]
+    fn test_read_password_from_file_keeps_inner_content_verbatim() {
+        let mut file = tempfile::NamedTempFile::new().unwrap();
+        std::io::Write::write_all(&mut file, b"  spaced password ").unwrap();
+
+        let password = read_password_from_file(file.path()).unwrap();
+        assert_eq!(password.as_str(), "  spaced password ");
+    }
+
+    #[test]
+    fn test_read_password_from_empty_file_rejected() {
+        let file = tempfile::NamedTempFile::new().unwrap();
+        assert!(read_password_from_file(file.path()).is_err());
+    }
+
+    #[test]
+    fn test_read_password_from_missing_file_rejected() {
+        let result = read_password_from_file(std::path::Path::new("/nonexistent/password"));
+        assert!(result.is_err());
     }
 }

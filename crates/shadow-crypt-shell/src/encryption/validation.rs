@@ -8,6 +8,8 @@ use crate::{
 pub struct ValidEncryptionArgs {
     pub files: Vec<EncryptionInputFile>,
     pub test_mode: bool,
+    pub output_dir: Option<PathBuf>,
+    pub password_file: Option<PathBuf>,
 }
 
 pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptionArgs> {
@@ -26,6 +28,8 @@ pub fn validate_input(input: EncryptionCliArgs) -> WorkflowResult<ValidEncryptio
     Ok(ValidEncryptionArgs {
         files: validated_files,
         test_mode: input.test_mode,
+        output_dir: input.output_dir,
+        password_file: input.password_file,
     })
 }
 
@@ -78,6 +82,7 @@ mod tests {
         let input = EncryptionCliArgs {
             input_files: vec![],
             test_mode: false,
+            ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_err());
@@ -93,6 +98,7 @@ mod tests {
         let input = EncryptionCliArgs {
             input_files: vec!["nonexistent_file.txt".to_string()],
             test_mode: false,
+            ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_err());
@@ -109,6 +115,7 @@ mod tests {
         let input = EncryptionCliArgs {
             input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
             test_mode: false,
+            ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_err());
@@ -129,6 +136,7 @@ mod tests {
         let input = EncryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
             test_mode: true,
+            ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_ok());
@@ -160,6 +168,7 @@ mod tests {
                 path2.to_str().unwrap().to_string(),
             ],
             test_mode: false,
+            ..Default::default()
         };
         let result = validate_input(input);
         assert!(result.is_ok());

@@ -12,6 +12,20 @@ pub fn read_n_bytes_from_file(path: &std::path::Path, n: usize) -> WorkflowResul
     Ok(SecureBytes::new(buffer))
 }
 
+/// Resolves the output directory for a workflow: the given path (created if
+/// missing) or the current directory.
+pub fn resolve_output_dir(
+    output_dir: Option<std::path::PathBuf>,
+) -> WorkflowResult<std::path::PathBuf> {
+    match output_dir {
+        Some(dir) => {
+            std::fs::create_dir_all(&dir)?;
+            Ok(dir)
+        }
+        None => Ok(std::env::current_dir()?),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -70,5 +84,21 @@ mod tests {
         assert!(result.is_err());
         // Should be Io error
         assert!(matches!(result, Err(WorkflowError::Io(_))));
+    }
+
+    #[test]
+    fn test_resolve_output_dir_creates_missing_directory() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let nested = temp_dir.path().join("a").join("b");
+
+        let resolved = resolve_output_dir(Some(nested.clone())).unwrap();
+        assert_eq!(resolved, nested);
+        assert!(nested.is_dir());
+    }
+
+    #[test]
+    fn test_resolve_output_dir_defaults_to_current_dir() {
+        let resolved = resolve_output_dir(None).unwrap();
+        assert_eq!(resolved, std::env::current_dir().unwrap());
     }
 }

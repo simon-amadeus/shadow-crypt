@@ -22,11 +22,13 @@ pub fn run_workflow(input: DecryptionInput) -> WorkflowResult<()> {
         .files
         .par_iter()
         .map(|input_file| {
-            let result =
-                process_file_decryption(input_file.to_owned(), &input.password, &input.output_dir)
-                    .map_err(|e| {
-                        WorkflowError::Decryption(format!("'{}': {}", input_file.filename, e))
-                    });
+            let result = process_file_decryption(
+                input_file.to_owned(),
+                &input.password,
+                &input.output_dir,
+                input.force,
+            )
+            .map_err(|e| WorkflowError::Decryption(format!("'{}': {}", input_file.filename, e)));
             counter.increment();
             display_progress(&counter);
             let failed = result.is_err();
@@ -49,6 +51,7 @@ fn process_file_decryption(
     file: DecryptionInputFile,
     password: &SecureString,
     output_dir: &std::path::Path,
+    force: bool,
 ) -> WorkflowResult<DecryptionReport> {
     let start_time = std::time::Instant::now();
 
@@ -60,7 +63,8 @@ fn process_file_decryption(
     let key = derive_untrusted_key(&parsed, password)?;
     let plaintext = parsed.decrypt(&key)?;
 
-    let output_file = store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir)?;
+    let output_file =
+        store_plaintext_file(plaintext.filename(), plaintext.content(), output_dir, force)?;
 
     let duration = start_time.elapsed();
 

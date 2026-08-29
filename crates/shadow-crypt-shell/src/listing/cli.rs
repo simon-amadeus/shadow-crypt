@@ -22,6 +22,10 @@ pub struct ListingCliArgs {
     /// Decrypt and show the original filenames (prompts for the password)
     #[arg(long = "names", short = 'n')]
     pub names: bool,
+
+    /// Read the password from this file instead of prompting (implies --names)
+    #[arg(long = "password-file", value_name = "FILE")]
+    pub password_file: Option<PathBuf>,
 }
 
 /// Parse listing command line arguments

@@ -34,6 +34,7 @@ pub fn encrypt_files(files: &[&Path], password: &str, output_dir: &Path) -> Work
             .map(|path| path.to_str().unwrap().to_string())
             .collect(),
         test_mode: true,
+        ..Default::default()
     };
     let valid_args = validate_encryption_input(cli_args)?;
     run_encryption_workflow(EncryptionInput::new(
@@ -52,12 +53,14 @@ pub fn decrypt_files(files: &[&Path], password: &str, output_dir: &Path) -> Work
             .iter()
             .map(|path| path.to_str().unwrap().to_string())
             .collect(),
+        ..Default::default()
     };
     let valid_args = validate_decryption_input(cli_args)?;
     run_decryption_workflow(DecryptionInput::new(
         valid_args.files,
         SecureString::new(password.to_string()),
         output_dir.to_path_buf(),
+        false,
     ))
 }
 

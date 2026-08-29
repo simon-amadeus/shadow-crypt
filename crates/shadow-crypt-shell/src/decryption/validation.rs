@@ -11,6 +11,9 @@ use crate::{
 #[derive(Debug)]
 pub struct ValidDecryptionArgs {
     pub files: Vec<DecryptionInputFile>,
+    pub output_dir: Option<PathBuf>,
+    pub password_file: Option<PathBuf>,
+    pub force: bool,
 }
 
 pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptionArgs> {
@@ -28,6 +31,9 @@ pub fn validate_input(input: DecryptionCliArgs) -> WorkflowResult<ValidDecryptio
 
     Ok(ValidDecryptionArgs {
         files: validated_files,
+        output_dir: input.output_dir,
+        password_file: input.password_file,
+        force: input.force,
     })
 }
 
@@ -120,6 +126,7 @@ mod tests {
     fn test_validate_input_no_files() {
         let args = DecryptionCliArgs {
             input_files: vec![],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -129,6 +136,7 @@ mod tests {
     fn test_validate_input_file_does_not_exist() {
         let args = DecryptionCliArgs {
             input_files: vec!["nonexistent.txt".to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -139,6 +147,7 @@ mod tests {
         let temp_dir = TempDir::new().unwrap();
         let args = DecryptionCliArgs {
             input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -152,6 +161,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         // This will fail because the file is not a shadow file, but that's tested elsewhere
@@ -172,6 +182,7 @@ mod tests {
                 file1.to_str().unwrap().to_string(),
                 file2.to_str().unwrap().to_string(),
             ],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err()); // Expected to fail at shadow file check
@@ -190,6 +201,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_ok());
@@ -208,6 +220,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -231,6 +244,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -252,6 +266,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![file_path.to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());
@@ -265,6 +280,7 @@ mod tests {
 
         let args = DecryptionCliArgs {
             input_files: vec![temp_dir.path().to_str().unwrap().to_string()],
+            ..Default::default()
         };
         let result = validate_input(args);
         assert!(result.is_err());

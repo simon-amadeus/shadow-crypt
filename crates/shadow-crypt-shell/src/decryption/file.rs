@@ -13,17 +13,21 @@ pub struct DecryptionInput {
     pub files: Vec<DecryptionInputFile>,
     pub password: SecureString,
     pub output_dir: PathBuf,
+    /// Overwrite existing output files instead of failing.
+    pub force: bool,
 }
 impl DecryptionInput {
     pub fn new(
         files: Vec<DecryptionInputFile>,
         password: SecureString,
         output_dir: PathBuf,
+        force: bool,
     ) -> Self {
         Self {
             files,
             password,
             output_dir,
+            force,
         }
     }
 }

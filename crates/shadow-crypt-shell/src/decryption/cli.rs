@@ -1,13 +1,27 @@
+use std::path::PathBuf;
+
 use crate::errors::{WorkflowError, WorkflowResult};
 use clap::Parser;
 
 /// Decryption CLI arguments structure
-#[derive(Debug, Clone, Parser)]
+#[derive(Debug, Clone, Default, Parser)]
 #[command(name = "unshadow", about = "Decrypt shadow files", version)]
 pub struct DecryptionCliArgs {
     /// Input files to decrypt
     #[arg(value_name = "FILE")]
     pub input_files: Vec<String>,
+
+    /// Write decrypted files to this directory (created if missing; defaults to the current directory)
+    #[arg(long = "output-dir", short = 'o', value_name = "DIR")]
+    pub output_dir: Option<PathBuf>,
+
+    /// Read the password from this file instead of prompting (one trailing newline is ignored)
+    #[arg(long = "password-file", value_name = "FILE")]
+    pub password_file: Option<PathBuf>,
+
+    /// Overwrite existing output files instead of failing
+    #[arg(long = "force", short = 'f')]
+    pub force: bool,
 }
 
 /// Parse decryption command line arguments
