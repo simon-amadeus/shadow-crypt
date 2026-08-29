@@ -30,6 +30,8 @@ pub struct EncryptionInput {
     pub output_dir: PathBuf,
     /// Suppress progress and per-file success output (errors still shown).
     pub quiet: bool,
+    /// Delete originals after their encryption succeeds.
+    pub delete: bool,
 }
 impl EncryptionInput {
     pub fn new(
@@ -38,6 +40,7 @@ impl EncryptionInput {
         security_profile: SecurityProfile,
         output_dir: PathBuf,
         quiet: bool,
+        delete: bool,
     ) -> Self {
         Self {
             files,
@@ -45,6 +48,7 @@ impl EncryptionInput {
             security_profile,
             output_dir,
             quiet,
+            delete,
         }
     }
 }

@@ -99,10 +99,14 @@ pub fn display_encryption_success(report: &EncryptionReport) {
         report.input_filename, report.output_filename, report.duration, report.algorithm
     );
     display_success(&msg);
-    println!(
-        "  Note: '{}' was not deleted — remove it manually if it is no longer needed.",
-        report.input_filename
-    );
+    if report.original_deleted {
+        println!("  Deleted original '{}'.", report.input_filename);
+    } else {
+        println!(
+            "  Note: '{}' was not deleted — remove it manually if it is no longer needed.",
+            report.input_filename
+        );
+    }
 }
 
 pub fn display_decryption_success(report: &DecryptionReport) {

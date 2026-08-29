@@ -36,6 +36,7 @@ pub fn run_workflow(input: EncryptionInput) -> WorkflowResult<()> {
                 &input.password,
                 &params,
                 &input.output_dir,
+                input.delete,
             )
             .map_err(|e| WorkflowError::per_file(&input_file.filename, e));
             counter.increment();
@@ -72,6 +73,7 @@ fn process_file_encryption(
     password: &SecureString,
     kdf_params: &KeyDerivationParams,
     output_dir: &std::path::Path,
+    delete_original: bool,
 ) -> WorkflowResult<EncryptionReport> {
     let start_time = std::time::Instant::now();
 
@@ -119,6 +121,22 @@ fn process_file_encryption(
         }
     };
 
+    // Delete only after the output is fully committed to disk. A failed
+    // deletion is an error (scripts relying on --delete must notice), but
+    // the encrypted output itself is complete and valid at this point.
+    if delete_original {
+        let removal = match file.kind {
+            InputKind::File => std::fs::remove_file(&file.path),
+            InputKind::Directory => std::fs::remove_dir_all(&file.path),
+        };
+        removal.map_err(|e| {
+            WorkflowError::File(format!(
+                "encrypted successfully to '{}', but failed to delete the original: {}",
+                output_file.filename, e
+            ))
+        })?;
+    }
+
     let duration = start_time.elapsed();
 
     Ok(EncryptionReport::new(
@@ -126,5 +144,6 @@ fn process_file_encryption(
         output_file.filename,
         duration,
         v3::ALGORITHM,
+        delete_original,
     ))
 }

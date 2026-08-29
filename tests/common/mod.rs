@@ -38,6 +38,17 @@ pub fn encrypt_paths(
     output_dir: &Path,
     recursive: bool,
 ) -> WorkflowResult<()> {
+    encrypt_with_options(paths, password, output_dir, recursive, false)
+}
+
+/// [`encrypt_paths`] with control over deleting the originals.
+pub fn encrypt_with_options(
+    paths: &[&Path],
+    password: &str,
+    output_dir: &Path,
+    recursive: bool,
+    delete: bool,
+) -> WorkflowResult<()> {
     let cli_args = EncryptionCliArgs {
         input_files: paths
             .iter()
@@ -54,6 +65,7 @@ pub fn encrypt_paths(
         SecurityProfile::Test,
         output_dir.to_path_buf(),
         false,
+        delete,
     ))
 }
 

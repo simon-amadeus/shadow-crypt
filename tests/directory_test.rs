@@ -139,3 +139,37 @@ fn test_empty_directory_archive_round_trip() {
     decrypt_files(&[&shadows[0]], TEST_PASSWORD, out_dir.path()).unwrap();
     assert!(out_dir.path().join("hollow").is_dir());
 }
+
+#[test]
+fn test_delete_removes_original_file_after_encryption() {
+    let temp_dir = TempDir::new().unwrap();
+    let input_file = temp_dir.path().join("secret.txt");
+    fs::write(&input_file, b"delete me after").unwrap();
+
+    common::encrypt_with_options(&[&input_file], TEST_PASSWORD, temp_dir.path(), false, true)
+        .unwrap();
+
+    assert!(!input_file.exists(), "original must be deleted");
+    let shadows = find_shadow_files(temp_dir.path());
+    assert_eq!(shadows.len(), 1);
+
+    // The encrypted copy still restores the content.
+    decrypt_files(&[&shadows[0]], TEST_PASSWORD, temp_dir.path()).unwrap();
+    assert_eq!(fs::read(&input_file).unwrap(), b"delete me after");
+}
+
+#[test]
+fn test_delete_removes_original_directory_after_archiving() {
+    let src_dir = TempDir::new().unwrap();
+    let root = build_tree(src_dir.path());
+
+    let enc_dir = TempDir::new().unwrap();
+    common::encrypt_with_options(&[&root], TEST_PASSWORD, enc_dir.path(), false, true).unwrap();
+
+    assert!(!root.exists(), "original tree must be deleted");
+
+    let shadows = find_shadow_files(enc_dir.path());
+    let out_dir = TempDir::new().unwrap();
+    decrypt_files(&[&shadows[0]], TEST_PASSWORD, out_dir.path()).unwrap();
+    assert_tree_restored(&out_dir.path().join("photos"), true);
+}

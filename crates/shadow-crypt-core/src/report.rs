@@ -7,6 +7,8 @@ pub struct EncryptionReport {
     pub output_filename: String,
     pub duration: Duration,
     pub algorithm: Algorithm,
+    /// Whether the original was deleted after successful encryption.
+    pub original_deleted: bool,
 }
 impl EncryptionReport {
     pub fn new(
@@ -14,12 +16,14 @@ impl EncryptionReport {
         output_filename: String,
         duration: Duration,
         algorithm: Algorithm,
+        original_deleted: bool,
     ) -> Self {
         Self {
             input_filename,
             output_filename,
             duration,
             algorithm,
+            original_deleted,
         }
     }
 }

@@ -37,6 +37,7 @@ fn run() -> Result<(), WorkflowError> {
         input.security_profile,
         output_dir,
         input.quiet,
+        input.delete,
     );
 
     run_workflow(encryption_input)?;

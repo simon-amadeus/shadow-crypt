@@ -71,6 +71,12 @@ pub struct EncryptionCliArgs {
     /// Suppress progress and per-file success output (errors are still shown)
     #[arg(long = "quiet", short = 'q')]
     pub quiet: bool,
+
+    /// Delete originals after successful encryption. Best-effort removal:
+    /// on SSDs and journaling filesystems the data may remain recoverable
+    /// until overwritten. With --recursive, emptied directories are kept.
+    #[arg(long = "delete")]
+    pub delete: bool,
 }
 
 /// Parse encryption command line arguments
