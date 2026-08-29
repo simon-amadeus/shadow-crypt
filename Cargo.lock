@@ -932,7 +932,7 @@ dependencies = [
 
 [[package]]
 name = "shadow-crypt"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "shadow-crypt-core",
  "shadow-crypt-shell",
@@ -941,7 +941,7 @@ dependencies = [
 
 [[package]]
 name = "shadow-crypt-core"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "argon2",
  "chacha20poly1305",
@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "shadow-crypt-shell"
-version = "2.0.0"
+version = "3.0.0"
 dependencies = [
  "clap",
  "colored",
