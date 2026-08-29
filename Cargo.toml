@@ -67,11 +67,11 @@ rustdoc-args = ["--document-private-items"]
 
 [workspace.dependencies]
 zeroize = "1"
-chacha20poly1305 = "0.10"
-argon2 = "0.5"
-uuid = { version = "1", features = ["v4", "rng"] }
-rand = { version = "0.9", features = ["os_rng"] }
+chacha20poly1305 = "0.11"
+argon2 = "0.6"
+rand = { version = "0.10", features = ["sys_rng"] }
 subtle = "2"
+rayon = "1"
 
 # I/O and CLI dependencies for shadow-shell
 clap = { version = "4", features = ["derive"] }

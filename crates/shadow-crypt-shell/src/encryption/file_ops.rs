@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use rand::rand_core::{OsRng, TryRngCore};
+use rand::{rand_core::TryRng, rngs::SysRng};
 use shadow_crypt_core::{
     archive,
     file::FileMetadata,
@@ -285,7 +285,7 @@ fn generate_output_filename() -> WorkflowResult<String> {
     let mut name = String::with_capacity(NAME_LENGTH);
     let mut bytes = [0u8; 2 * NAME_LENGTH];
     while name.len() < NAME_LENGTH {
-        OsRng.try_fill_bytes(&mut bytes).map_err(|e| {
+        SysRng.try_fill_bytes(&mut bytes).map_err(|e| {
             WorkflowError::File(format!("Failed to generate output filename: {}", e))
         })?;
         for byte in bytes {

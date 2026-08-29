@@ -1,10 +1,10 @@
-use rand::rand_core::{OsRng, TryRngCore};
+use rand::{rand_core::TryRng, rngs::SysRng};
 
 use crate::errors::{WorkflowError, WorkflowResult};
 
 pub fn generate_nonce() -> WorkflowResult<[u8; 24]> {
     let mut buffer = [0u8; 24];
-    OsRng
+    SysRng
         .try_fill_bytes(&mut buffer)
         .map_err(|e| WorkflowError::NonceGeneration(format!("Failed to generate nonce: {}", e)))?;
 
@@ -15,7 +15,7 @@ pub fn generate_nonce() -> WorkflowResult<[u8; 24]> {
 /// final flag fill the remaining nonce bytes).
 pub fn generate_nonce_prefix() -> WorkflowResult<[u8; 16]> {
     let mut buffer = [0u8; 16];
-    OsRng.try_fill_bytes(&mut buffer).map_err(|e| {
+    SysRng.try_fill_bytes(&mut buffer).map_err(|e| {
         WorkflowError::NonceGeneration(format!("Failed to generate nonce prefix: {}", e))
     })?;
 

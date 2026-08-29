@@ -25,7 +25,7 @@ colored = { workspace = true }
 thiserror = { workspace = true }
 subtle = { workspace = true }
 zxcvbn = { workspace = true }
-rayon = "1"
+rayon = { workspace = true }
 zeroize = { workspace = true }
 
 [dev-dependencies]
