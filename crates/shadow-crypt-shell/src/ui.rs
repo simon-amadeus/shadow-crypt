@@ -73,7 +73,10 @@ pub fn display_decryption_report(result: WorkflowResult<DecryptionReport>) {
     }
 }
 
-pub fn display_file_info_list(info_list: &FileInfoList) {
+/// Displays the listing. `names_requested` says whether original filenames
+/// were decrypted (a password was provided); without it only the plaintext
+/// header metadata is shown.
+pub fn display_file_info_list(info_list: &FileInfoList, names_requested: bool) {
     if info_list.items.is_empty() {
         println!("{}", "No shadow files found.".yellow());
         return;
@@ -93,37 +96,72 @@ pub fn display_file_info_list(info_list: &FileInfoList) {
     println!();
 
     // Column headers
-    println!(
-        "{:<30} {:<30} {:<10} {:<10}",
-        "Original Filename".bold(),
-        "Obfuscated Filename".bold(),
-        "Version".bold(),
-        "Size".bold()
-    );
+    if names_requested {
+        println!(
+            "{:<30} {:<30} {:<10} {:<10}",
+            "Original Filename".bold(),
+            "Obfuscated Filename".bold(),
+            "Version".bold(),
+            "Size".bold()
+        );
+    } else {
+        println!(
+            "{:<30} {:<10} {:<10}",
+            "Obfuscated Filename".bold(),
+            "Version".bold(),
+            "Size".bold()
+        );
+    }
     println!("{}", "─".repeat(80).dimmed());
 
     // Print each file info
     for info in &sorted_items {
-        let original = match &info.original_filename {
-            Some(name) => name.as_str().green(),
-            None => "N/A".red(),
-        };
-
         let obfuscated = &info.obfuscated_filename;
         let version = info.version.as_str().cyan();
         let size = format_size(info.size).blue();
 
-        println!(
-            "{:<30} {:<30} {:<10} {:<10}",
-            truncate_string(&original, 28),
-            truncate_string(obfuscated, 28),
-            version,
-            size
-        );
+        if names_requested {
+            let original = match &info.original_filename {
+                Some(name) => name.as_str().green(),
+                None => "N/A".red(),
+            };
+            println!(
+                "{:<30} {:<30} {:<10} {:<10}",
+                truncate_string(&original, 28),
+                truncate_string(obfuscated, 28),
+                version,
+                size
+            );
+        } else {
+            println!(
+                "{:<30} {:<10} {:<10}",
+                truncate_string(obfuscated, 28),
+                version,
+                size
+            );
+        }
     }
 
     println!();
     println!("{} files found", info_list.items.len().to_string().bold());
+
+    if names_requested {
+        let decrypted = sorted_items
+            .iter()
+            .filter(|i| i.original_filename.is_some())
+            .count();
+        if decrypted == 0 {
+            println!(
+                "{}",
+                "No filenames could be decrypted — wrong password?".yellow()
+            );
+        }
+    } else {
+        println!(
+            "{}",
+            "Run with --names to decrypt the original filenames.".dimmed()
+        );
+    }
 }
 
 fn format_size(bytes: u64) -> String {

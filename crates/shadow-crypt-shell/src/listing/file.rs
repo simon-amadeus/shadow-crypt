@@ -5,11 +5,13 @@ use shadow_crypt_core::version::Version;
 use crate::memory::SecureString;
 
 pub struct ListingInput {
-    pub password: SecureString,
+    /// Password for decrypting original filenames; `None` lists only the
+    /// plaintext header metadata without any key derivation.
+    pub password: Option<SecureString>,
     pub work_dir: PathBuf,
 }
 impl ListingInput {
-    pub fn new(password: SecureString, work_dir: PathBuf) -> Self {
+    pub fn new(password: Option<SecureString>, work_dir: PathBuf) -> Self {
         Self { password, work_dir }
     }
 }

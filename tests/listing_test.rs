@@ -28,8 +28,12 @@ fn test_listing_workflow() {
     // assert on; check that it succeeds over a directory that contains both
     // shadow files and plaintext files.
     let listing_input = ListingInput::new(
-        SecureString::new(TEST_PASSWORD.to_string()),
+        Some(SecureString::new(TEST_PASSWORD.to_string())),
         temp_dir.path().to_path_buf(),
     );
     run_listing_workflow(listing_input).unwrap();
+
+    // Without a password the listing must still succeed, showing only the
+    // plaintext header metadata.
+    run_listing_workflow(ListingInput::new(None, temp_dir.path().to_path_buf())).unwrap();
 }

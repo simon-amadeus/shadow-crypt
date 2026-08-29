@@ -15,18 +15,20 @@ use crate::{
 
 pub fn run_workflow(input: ListingInput) -> WorkflowResult<()> {
     let shadow_files: Vec<ShadowFile> = scan_directory_for_shadow_files(&input.work_dir)?;
+    let names_requested = input.password.is_some();
     let password = Arc::new(input.password);
 
-    // Process files in parallel using rayon
+    // Process files in parallel using rayon. Without a password no key
+    // derivation runs at all; only the plaintext header metadata is shown.
     let file_infos: Vec<ShadowFileInfo> = shadow_files
         .par_iter()
-        .map(|shadow_file| get_shadow_file_info(shadow_file, &password))
+        .map(|shadow_file| get_shadow_file_info(shadow_file, password.as_ref().as_ref()))
         .filter_map(Result::ok)
         .collect();
 
     let info_list: FileInfoList = FileInfoList::new(file_infos);
 
-    ui::display_file_info_list(&info_list);
+    ui::display_file_info_list(&info_list, names_requested);
     Ok(())
 }
 
@@ -42,11 +44,15 @@ fn decipher_original_filename(
 
 fn get_shadow_file_info(
     shadow_file: &ShadowFile,
-    password: &SecureString,
+    password: Option<&SecureString>,
 ) -> WorkflowResult<ShadowFileInfo> {
-    let header_bytes = load_file_header_bytes(shadow_file)?;
-    let original_filename: Option<SecureString> =
-        decipher_original_filename(header_bytes.as_slice(), password);
+    let original_filename: Option<SecureString> = match password {
+        Some(password) => {
+            let header_bytes = load_file_header_bytes(shadow_file)?;
+            decipher_original_filename(header_bytes.as_slice(), password)
+        }
+        None => None,
+    };
 
     Ok(ShadowFileInfo::new(
         original_filename,
