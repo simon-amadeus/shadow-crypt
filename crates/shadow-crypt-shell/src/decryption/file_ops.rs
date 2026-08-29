@@ -11,7 +11,7 @@ use shadow_crypt_core::{
 use crate::{
     decryption::file::{DecryptionInputFile, DecryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
-    utils::{read_up_to, sanitize_relative_path},
+    utils::{AtomicOutputFile, read_up_to, sanitize_relative_path},
 };
 
 /// Opens a fresh file at `path`, enforcing the no-overwrite policy.
@@ -41,14 +41,17 @@ fn open_new_file(path: &Path, display_name: &str, force: bool) -> WorkflowResult
     })
 }
 
-/// Creates the plaintext output file for a decrypted filename, enforcing the
+/// Creates the plaintext output for a decrypted filename, enforcing the
 /// no-traversal and no-overwrite policies. Multi-component names (from
 /// recursive encryption) recreate their directories under `output_dir`.
+/// The returned writer is crash-safe: the final path holds an empty
+/// placeholder until [`AtomicOutputFile::commit`] renames the finished
+/// content over it.
 fn create_output_file(
     filename: &SecureString,
     output_dir: &Path,
     force: bool,
-) -> WorkflowResult<(std::fs::File, DecryptionOutputFile)> {
+) -> WorkflowResult<(AtomicOutputFile, DecryptionOutputFile)> {
     let safe_rel = sanitize_relative_path(filename.as_str())?;
     let path = output_dir.join(&safe_rel);
     if let Some(parent) = path.parent() {
@@ -56,10 +59,12 @@ fn create_output_file(
     }
 
     let display_name = safe_rel.to_string_lossy().into_owned();
-    let f = open_new_file(&path, &display_name, force)?;
+    // Claim the final name (placeholder), then write next to it.
+    drop(open_new_file(&path, &display_name, force)?);
+    let out = AtomicOutputFile::start(path.clone())?;
 
     Ok((
-        f,
+        out,
         DecryptionOutputFile {
             path,
             filename: display_name,
@@ -163,13 +168,15 @@ fn stream_decrypt_single_file(
             out.write_all(plaintext)?;
             Ok(())
         })?;
-        apply_metadata(&out, metadata)?;
+        apply_metadata(out.as_file(), metadata)?;
+        out.commit()?;
         Ok(())
     })();
 
     match result {
         Ok(()) => Ok(output_file),
         Err(e) => {
+            drop(out); // removes the temporary file
             let _ = std::fs::remove_file(&output_file.path);
             Err(e)
         }
@@ -209,8 +216,8 @@ fn extract_archive(
     }
 
     let mut parser = ArchiveParser::new();
-    // (open handle, on-disk path, entry metadata) of the file being written.
-    let mut current: Option<(std::fs::File, PathBuf, FileMetadata)> = None;
+    // (atomic writer, on-disk path, entry metadata) of the file being written.
+    let mut current: Option<(AtomicOutputFile, PathBuf, FileMetadata)> = None;
     let mut directory_metas: Vec<(PathBuf, FileMetadata)> = Vec::new();
 
     let result = (|| -> WorkflowResult<()> {
@@ -230,20 +237,24 @@ fn extract_archive(
                         if let Some(parent) = path.parent() {
                             std::fs::create_dir_all(parent)?;
                         }
-                        let f = open_new_file(&path, &rel.to_string_lossy(), force)?;
-                        current = Some((f, path, metadata));
+                        // Claim the final name, then write crash-safely next
+                        // to it.
+                        drop(open_new_file(&path, &rel.to_string_lossy(), force)?);
+                        let out = AtomicOutputFile::start(path.clone())?;
+                        current = Some((out, path, metadata));
                     }
                     ArchiveEvent::FileData(data) => {
-                        let (f, _, _) = current.as_mut().ok_or_else(|| {
+                        let (out, _, _) = current.as_mut().ok_or_else(|| {
                             WorkflowError::File("Archive stream out of order".to_string())
                         })?;
-                        f.write_all(data.as_slice())?;
+                        out.write_all(data.as_slice())?;
                     }
                     ArchiveEvent::FileEnd => {
-                        let (f, _, entry_metadata) = current.take().ok_or_else(|| {
+                        let (mut out, _, entry_metadata) = current.take().ok_or_else(|| {
                             WorkflowError::File("Archive stream out of order".to_string())
                         })?;
-                        apply_metadata(&f, &entry_metadata)?;
+                        apply_metadata(out.as_file(), &entry_metadata)?;
+                        out.commit()?;
                     }
                     ArchiveEvent::End => {}
                 }
@@ -298,6 +309,7 @@ mod tests {
         let content = SecureBytes::new(content.to_vec());
         let (mut f, output_file) = create_output_file(&filename, output_dir, force)?;
         f.write_all(content.as_slice())?;
+        f.commit()?;
         Ok(output_file)
     }
 

@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 use shadow_crypt_core::memory::SecureBytes;
 
@@ -56,6 +56,100 @@ pub fn read_up_to(reader: &mut impl Read, buf: &mut [u8]) -> std::io::Result<usi
         filled += n;
     }
     Ok(filled)
+}
+
+/// Crash-safe output writing: content goes to a hidden temporary file next
+/// to `final_path`, and [`AtomicOutputFile::commit`] fsyncs it and renames
+/// it into place. Until then the final path holds whatever the caller put
+/// there (typically an empty placeholder claiming the name), so a crash or
+/// error never leaves a truncated file that looks complete. Dropping
+/// without committing removes the temporary file.
+pub struct AtomicOutputFile {
+    tmp_path: std::path::PathBuf,
+    final_path: std::path::PathBuf,
+    file: Option<std::fs::File>,
+}
+
+impl AtomicOutputFile {
+    /// Starts writing for `final_path`, which the caller must already have
+    /// claimed (created) so the name is reserved under its own overwrite
+    /// policy.
+    pub fn start(final_path: std::path::PathBuf) -> WorkflowResult<Self> {
+        let file_name = final_path
+            .file_name()
+            .ok_or_else(|| WorkflowError::File("Output path has no filename".to_string()))?
+            .to_string_lossy()
+            .into_owned();
+
+        for n in 0..1000u32 {
+            let tmp_path = final_path.with_file_name(format!(".{file_name}.tmp{n}"));
+            match std::fs::File::create_new(&tmp_path) {
+                Ok(file) => {
+                    return Ok(Self {
+                        tmp_path,
+                        final_path,
+                        file: Some(file),
+                    });
+                }
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(e.into()),
+            }
+        }
+        Err(WorkflowError::File(
+            "Unable to create a temporary output file".to_string(),
+        ))
+    }
+
+    /// The temporary file being written, e.g. to apply metadata before
+    /// committing (rename preserves it).
+    pub fn as_file(&self) -> &std::fs::File {
+        self.file.as_ref().expect("not committed")
+    }
+
+    /// Flushes the content to disk and atomically renames it over the final
+    /// path (replacing the caller's placeholder).
+    pub fn commit(&mut self) -> WorkflowResult<()> {
+        let file = self
+            .file
+            .take()
+            .ok_or_else(|| WorkflowError::File("Output already committed".to_string()))?;
+        file.sync_all()?;
+        drop(file);
+
+        // On Windows, rename does not replace an existing destination.
+        #[cfg(windows)]
+        {
+            let _ = std::fs::remove_file(&self.final_path);
+        }
+        std::fs::rename(&self.tmp_path, &self.final_path)?;
+
+        // Best-effort directory sync so the rename itself is durable.
+        #[cfg(unix)]
+        if let Some(dir) = self.final_path.parent()
+            && let Ok(dir_handle) = std::fs::File::open(dir)
+        {
+            let _ = dir_handle.sync_all();
+        }
+        Ok(())
+    }
+}
+
+impl Write for AtomicOutputFile {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        self.file.as_ref().expect("not committed").write(buf)
+    }
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.file.as_ref().expect("not committed").flush()
+    }
+}
+
+impl Drop for AtomicOutputFile {
+    fn drop(&mut self) {
+        if self.file.is_some() {
+            self.file = None;
+            let _ = std::fs::remove_file(&self.tmp_path);
+        }
+    }
 }
 
 /// Resolves the output directory for a workflow: the given path (created if
@@ -173,5 +267,39 @@ mod tests {
     fn test_resolve_output_dir_defaults_to_current_dir() {
         let resolved = resolve_output_dir(None).unwrap();
         assert_eq!(resolved, std::env::current_dir().unwrap());
+    }
+
+    #[test]
+    fn test_atomic_output_file_commit() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let final_path = temp_dir.path().join("out.txt");
+        std::fs::write(&final_path, b"").unwrap(); // placeholder claim
+
+        let mut atomic = AtomicOutputFile::start(final_path.clone()).unwrap();
+        atomic.write_all(b"content").unwrap();
+        atomic.commit().unwrap();
+        drop(atomic);
+
+        assert_eq!(std::fs::read(&final_path).unwrap(), b"content");
+        // No temporary files remain.
+        let leftovers = std::fs::read_dir(temp_dir.path()).unwrap().count();
+        assert_eq!(leftovers, 1);
+    }
+
+    #[test]
+    fn test_atomic_output_file_drop_without_commit_keeps_placeholder() {
+        let temp_dir = tempfile::TempDir::new().unwrap();
+        let final_path = temp_dir.path().join("out.txt");
+        std::fs::write(&final_path, b"placeholder").unwrap();
+
+        {
+            let mut atomic = AtomicOutputFile::start(final_path.clone()).unwrap();
+            atomic.write_all(b"partial").unwrap();
+            // dropped without commit
+        }
+
+        assert_eq!(std::fs::read(&final_path).unwrap(), b"placeholder");
+        let leftovers = std::fs::read_dir(temp_dir.path()).unwrap().count();
+        assert_eq!(leftovers, 1, "temporary file must be cleaned up");
     }
 }

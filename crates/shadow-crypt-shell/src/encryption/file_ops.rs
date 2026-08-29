@@ -15,7 +15,7 @@ use zeroize::Zeroizing;
 use crate::{
     encryption::file::{EncryptionInputFile, EncryptionOutputFile},
     errors::{WorkflowError, WorkflowResult},
-    utils::read_up_to,
+    utils::{AtomicOutputFile, read_up_to},
 };
 
 /// Collects the metadata to preserve for an input file or directory. Fields
@@ -153,10 +153,12 @@ pub fn stream_encrypt_directory(
     sealer: StreamSealer,
     output_dir: &Path,
 ) -> WorkflowResult<EncryptionOutputFile> {
-    let (out, output_file) = create_encryption_output_file(output_dir)?;
+    let (claim, output_file) = create_encryption_output_file(output_dir)?;
+    drop(claim); // the empty placeholder keeps the name reserved
+    let atomic = AtomicOutputFile::start(output_file.path.clone())?;
 
     let result = (|| -> WorkflowResult<()> {
-        let mut writer = BufWriter::new(out);
+        let mut writer = BufWriter::new(atomic);
         writer.write_all(&header.serialize())?;
 
         let mut pump = ChunkPump::new(sealer, writer);
@@ -175,6 +177,10 @@ pub fn stream_encrypt_directory(
 
         let mut writer = pump.finish()?;
         writer.flush()?;
+        writer
+            .into_inner()
+            .map_err(|e| WorkflowError::Io(e.into_error()))?
+            .commit()?;
         Ok(())
     })();
 
@@ -224,10 +230,12 @@ pub fn stream_encrypt_file(
     mut sealer: StreamSealer,
     output_dir: &std::path::Path,
 ) -> WorkflowResult<EncryptionOutputFile> {
-    let (out, output_file) = create_encryption_output_file(output_dir)?;
+    let (claim, output_file) = create_encryption_output_file(output_dir)?;
+    drop(claim); // the empty placeholder keeps the name reserved
+    let atomic = AtomicOutputFile::start(output_file.path.clone())?;
 
     let result = (|| -> WorkflowResult<()> {
-        let mut writer = BufWriter::new(out);
+        let mut writer = BufWriter::new(atomic);
         writer.write_all(&header.serialize())?;
 
         let mut reader = std::fs::File::open(&file.path)?;
@@ -251,6 +259,10 @@ pub fn stream_encrypt_file(
         }
 
         writer.flush()?;
+        writer
+            .into_inner()
+            .map_err(|e| WorkflowError::Io(e.into_error()))?
+            .commit()?;
         Ok(())
     })();
 
